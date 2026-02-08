@@ -1,0 +1,161 @@
+﻿@page "/account/login"
+@using System.Text.RegularExpressions
+@using Daisi.Manager.Shared.Services
+@using Microsoft.AspNetCore.Http
+@layout BlankLayout
+<PageTitle>DAISI Login</PageTitle>
+
+<div class="container pt-5 d-flex flex-fill">
+	<div class="row d-flex flex-fill" style="height: 90vh">
+		<div class="col px-5 px-md-3 col-md-6 align-content-center">
+			<h3>DAISI Login</h3>
+			@if (!string.IsNullOrWhiteSpace(errorMessage))
+			{
+				<div class="alert alert-danger" role="alert">
+					@errorMessage
+				</div>
+			}
+			@if (verificationCodeSent)
+			{
+				<div class="alert alert-success" role="alert">
+					A login link and code have been sent to @emailOrPhone. Please click the link or enter the code below.
+				</div>
+				<div class="mt-4">
+					<input @onkeyup=HandleCodeKeyUp class="form-control" placeholder="Enter Verification Code" @bind="verificationCode" />
+				</div>
+				<div class="mt-4">
+					<button class="btn btn-primary @(isLoading ? "disabled" : "")" @onclick=OnVerifyCode>Verify Code</button>
+				</div>
+			}
+			else
+			{
+				<p>Please log in to access your account.</p>
+				<div class="mt-4">
+					<input @onkeyup=HandleKeyUp class="form-control" placeholder="Your Email Address" @bind="emailOrPhone" />
+				</div>
+				<div class="mt-4">
+					<button class="btn btn-primary @(isLoading ? "disabled" : "")" @onclick=OnSendLoginLink>Send Login Link</button>
+				</div>
+			}
+
+
+			<hr class="mt-5" />
+			<div class="mt-4">
+				<a class="text-light" href="/account/register">Don't have an account? Register here.</a>
+			</div>
+		</div>
+
+	</div>
+
+</div>
+
+<div class="d-none d-md-block position-fixed v-100 p-0" style="right:0; top: 56px; width: 35%; height: 100%; background-image: url('_content/Daisi.Manager.Shared/img/connected-daisis.jpg');background-size:cover; background-repeat:no-repeat;background-position:center;filter:brightness(70%) grayscale(50%)">
+	&nbsp;
+</div>
+
+@code {
+	bool verificationCodeSent = false;
+
+	string emailOrPhone;
+	string verificationCode;
+
+	string errorMessage;
+
+	[SupplyParameterFromQuery] public string ReturnUrl { get; set; }
+	[Inject] NavigationManager Navigation { get; set; }
+	[Inject] AuthService AuthService { get; set; }
+	[Inject] AuthClientFactory AuthClientFactory{ get; set; }
+
+	bool isLoading = false;
+
+	protected async override Task OnInitializedAsync()
+	{
+		await RedirectToReturnUrl();
+	}
+	async Task RedirectToReturnUrl()
+	{
+		var authenticated = await AuthService.IsAuthenticatedAsync();
+		if (!string.IsNullOrWhiteSpace(ReturnUrl) && authenticated)
+		{
+			Navigation.NavigateTo(ReturnUrl);
+		}
+	}
+	async Task HandleCodeKeyUp(KeyboardEventArgs e)
+	{
+		if (e.Key == "Enter")
+		{
+			await OnVerifyCode();
+		}
+	}
+	async Task HandleKeyUp(KeyboardEventArgs e)
+	{
+		if (e.Key == "Enter")
+		{
+			await OnSendLoginLink();
+		}
+	}
+	async Task OnVerifyCode()
+	{
+		try
+		{
+			isLoading = true;
+			AuthClient authClient = AuthClientFactory.Create();
+			var validationResult = await authClient.ValidateAuthCodeAsync(new ValidateAuthCodeRequest() { SecretKey = DaisiStaticSettings.SecretKey, EmailOrPhone = emailOrPhone, AuthCode = verificationCode });
+
+			if (validationResult.Success)
+			{
+				Navigation.NavigateTo("/account/setauthcookies" + new QueryString()
+					.Add("returnUrl", ReturnUrl)
+					.Add("clientKey", validationResult.ClientKey)
+					.Add("keyExpiration", validationResult.KeyExpiration?.ToDateTime().ToString() ?? DateTime.UtcNow.AddMinutes(5).ToString())
+					.Add("userName", validationResult.UserName)
+					.Add("userRole", validationResult.UserRole.ToString())
+					.Add("accountName", validationResult.AccountName)
+					.Add("accountId", validationResult.AccountId), true);
+			}
+			else
+			{
+				errorMessage = $"Error verifying code: {validationResult.ErrorMessage}";
+			}
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"Error verifying code: {ex.Message}";
+		}
+		isLoading = false;
+
+	}
+	async Task OnSendLoginLink()
+	{
+		try
+		{
+			@if (string.IsNullOrWhiteSpace(emailOrPhone)
+			|| (Regex.IsMatch(emailOrPhone, @"^[^@\s]+@[^@\s]+\.[^@\s]+$") == false
+				&& Regex.IsMatch(emailOrPhone, @"^\+?[1-9][\d.-]{1,14}$") == false))
+			{
+				errorMessage = "You must enter a valid email address";
+				return;
+			}
+
+			isLoading = true;
+			AuthClient authClient = AuthClientFactory.Create();
+			var authCodeResult = await authClient.SendAuthCodeAsync(new SendAuthCodeRequest() { EmailOrPhone = emailOrPhone });
+
+			if (authCodeResult.Success)
+			{
+				verificationCodeSent = true;
+				errorMessage = null;
+			}
+			else
+			{
+				errorMessage = $"Error sending login link: {authCodeResult.ErrorMessage}";
+			}
+		}
+		catch(Exception ex)
+		{
+			errorMessage = $"Error sending login link: {ex.Message}";
+		}
+		isLoading = false;
+
+	}
+}

@@ -1,0 +1,124 @@
+﻿@page "/hosts/setup"
+<PageTitle>DAISI Host Setup</PageTitle>
+@using Daisi.Manager.Shared.Services
+@using Daisi.SDK.Extensions
+@using System.Text.RegularExpressions
+<div class="container">
+    <h3 class="mt-4">New Host Setup</h3>
+    @if (isSetupComplete)
+    {
+        <h4 class="mt-5">Congratulations! Your host has been successfully created. There may be additional steps in the process to get it fully online.</h4>
+        <p>Please make sure to save your secret key in a safe place and never share this with untrusted sources. You will need it to configure your host software.</p>
+        <div class="mt-4 p-3 border rounded-3 text-warning">
+            <label class="fw-bold">Secret Key: @registerHostResponse.SecretKey</label>
+        </div>
+        <div class="mt-4">
+            <button class="btn btn-primary" @onclick=@(() => NavigationManager.NavigateTo($"/hosts/{registerHostResponse.HostId}"))>Go to Your Host Details</button>
+        </div>
+    }
+    else
+    {
+        <p>This is the host setup page for your own personal devices. If you don't understand something here, just leave it at the default settings.</p>
+        <div class="mt-5">
+            <label class="fw-bold">Host Name </label>
+            <p>You can make the host name anything that you want (keep it clean), but it is usually best to keep it simple and descriptive. Other users in the DAISI network will be able to see this name.</p>
+            <input maxlength="15" class="form-control" @bind="host.Name">
+        </div>
+        <div class="mt-5">
+            <label class="fw-bold">Region</label>
+            <p>The host's region will determine where the host is physically located. <ConsumersInfoLink />, <PeersInfoLink />, and <OrcsInfoLink /> will be able to communicate better with your host if it is set to the correct region.</p>
+            <select class="form-select" @bind="host.Region">
+                <option value="AFRNorthEast">Africa North East</option>
+                <option value="AFRNorthWest">Africa North West</option>
+                <option value="AFRSouthEast">Africa South East</option>
+                <option value="AFRSouthWest">Africa South West</option>
+                <option value="ASIANorthEast">Asia North East</option>
+                <option value="ASIANorthWest">Asia North West</option>
+                <option value="ASIASouthEast">Asia South East</option>
+                <option value="ASIASouthWest">Asia South West</option>
+                <option value="AUSNZ">Australia/New Zealand</option>
+                <option value="CANEast">Canada East</option>
+                <option value="CANWest">Canada West</option>
+                <option value="CentralAmerica">Central America</option>
+                <option value="EURNorthEast">Europe North East</option>
+                <option value="EURNorthWest">Europe North West</option>
+                <option value="EURSouthEast">Europe South East</option>
+                <option value="EURSouthWest">Europe South West</option>
+                <option value="MiddleEast">Middle East</option>
+                <option value="SANorthEast">South America North East</option>
+                <option value="SANorthWest">South America North West</option>
+                <option value="SASouthEast">South America South East</option>
+                <option value="SASouthWest">South America South West</option>
+                <option value="UK">United Kingdom</option>
+                <option value="USNorthEast">US North East</option>
+                <option value="USNorthWest">US North West</option>
+                <option value="USSouthEast">US South East</option>
+                <option value="USSouthWest">US South West</option>
+            </select>
+        </div>
+        <div class="mt-5">
+            <label class="fw-bold">Connection Types</label>
+            <p>
+                You can choose to run all communications exclusively through the <OrcsInfoLink /> or you can allow <ConsumersInfoLink />
+                to connect directly to your host with a <a href="/hosts/direct-setup" target="_blank">little extra setup</a>.
+            </p>
+            <p>
+                <PeersInfoLink /> will connect directly with you in order to share important system files and they will also relay requests to you when their workload is too high.
+            </p>
+        
+            <div class="mt-3">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" disabled type="checkbox" role="switch" id="switchCheckChecked" checked>
+                    <label class="form-check-label" for="switchCheckChecked"><FullyOrcConnectInfoLink></FullyOrcConnectInfoLink> (Required)</label>
+                </div>
+            </div>
+            <div class="mt-3">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="switchCheckChecked" @bind="host.DirectConnect">
+                    <label class="form-check-label" for="switchCheckChecked"><DirectConnectInfoLink></DirectConnectInfoLink> (Requires Setup)</label>
+                </div>
+            </div>
+            @if (host.DirectConnect)
+            {
+                <div class="mt-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="switchCheckChecked" @bind="host.PeerConnect">
+                        <label class="form-check-label" for="switchCheckChecked">Peer Connect (Requires Setup)</label>
+                    </div>
+                </div>
+            }
+        </div>
+        @if (host.DirectConnect)
+        {
+            <div class="mt-5">
+                <label class="fw-bold">Peer and Direct Connect Port Number</label>
+                <p>This is the port that will be used to connect directly to your host. It will need to be <a href="/hosts/direct-setup" target="_blank">mapped in your router settings</a>.</p>
+                <input type="number" @bind="host.Port" class="form-control" />
+            </div>
+        }
+        <div class="my-5">
+            <button class="btn btn-warning @(isLoading ? "disabled" : "")" @onclick=OnCreateHost>Create Host</button>
+        </div>
+    }
+</div>
+
+@code {
+
+    Host host = new Host() { Region = "USSouthEast", DirectConnect = false, PeerConnect = false, Port = 4242 };
+    [Inject] NavigationManager NavigationManager { get; set; }
+    [Inject] AuthService auth { get; set; }
+    [Inject] HostClientFactory hostClientFactory { get; set; }
+    bool isLoading = false;
+    bool isSetupComplete = false;
+    RegisterHostResponse registerHostResponse;
+
+    protected async override Task OnInitializedAsync()
+    {
+        host.Name = $"{Regex.Replace(await auth.GetAccountNameAsync(), "[^a-zA-Z0-9]", "")}-{StringExtensions.Random(4, true, false)}";
+    }
+    async Task OnCreateHost()
+    {
+        registerHostResponse = await hostClientFactory.Create().RegisterAsync(new RegisterHostRequest() { Host = host });
+        isSetupComplete = registerHostResponse != null && !string.IsNullOrEmpty(registerHostResponse.SecretKey);
+    }
+}

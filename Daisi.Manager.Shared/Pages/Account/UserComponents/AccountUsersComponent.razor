@@ -1,0 +1,136 @@
+﻿<div class="row">
+    <div class="col">
+        <h3 class="mt-2 mt-md-0">Users</h3>
+
+    </div>
+    <div class="col-12 col-md-auto">
+        <div class="input-group">
+            <input class="form-control" placeholder="Search Users" @bind=searchText @onkeyup=OnSearchTextKeyUp />
+            <button class="btn btn-outline-success me-1" @onclick=@(async (_) => await RefreshUsers(0))><i class="fa-duotone fa-search"></i></button>
+
+            <button class="btn btn-outline-success" @onclick=OnCreateUser><i class="fa-duotone fa-plus"></i> <span class="">Create User</span></button>
+        </div>
+    </div>
+</div>
+@if (UsersResponse is null)
+{
+        <p>Loading Users... </p>
+}
+else
+{
+        <div class="table-responsive">
+            <table class="table table-hover mt-3">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Role</th>
+                        <th class="text-center">Login?</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in UsersResponse.Users)
+                    {
+                        <tr>
+                            <td><a class="text-white" href="#" @onclick:preventDefault @onclick=@(async (_) => await OnSelectUser(user))>@user.Name</a> </td>
+                            <td>@user.EmailAddress</td>
+                            <td>@user.Phone</td>
+                            <td>
+                                @user.Role.ToString()
+                            </td>
+                            <td class="text-center">
+                                @if (user.AllowedToLogin)
+                                {
+                                    <i class="fa-duotone fa-check text-success"></i>
+                                }
+                                else
+                                {
+                                    <i class="fa-duotone fa-close text-danger"></i>
+
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="5">
+                            <Daisi.Razor.Components.Pager.PagingComponent PageIndexChanged="RefreshUsers" TotalCount="UsersResponse.TotalCount" Paging="Paging"></Daisi.Razor.Components.Pager.PagingComponent>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+}
+
+@code {
+    [Inject] public AccountClientFactory AccountClientFactory { get; set; }
+    [Inject] public IToastService ToastService { get; set; }
+    [Inject] public IDialogService DialogService { get; set; }
+
+    GetUsersResponse UsersResponse { get; set; }
+    PagingInfo Paging { get; set; } = new() { PageIndex = 0, PageSize = 10 };
+    int TotalCount = 0;
+    string? searchText = null;
+
+    protected async override Task OnInitializedAsync()
+    {
+        await RefreshUsers();
+
+    }
+    async Task OnSearchTextKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await RefreshUsers(0);
+        }
+    }
+    async Task RefreshUsers(int pageIndex = 0)
+    {
+        UsersResponse = null;
+        var accountClient = AccountClientFactory.Create();
+        Paging.PageIndex = pageIndex;
+        Paging.SearchTerm = searchText ?? string.Empty;
+        UsersResponse = await accountClient.GetUsersAsync(new GetUsersRequest() { Paging = Paging });
+    }
+
+    async Task OnSelectUser(User user)
+    {
+        var cloned = user.Clone();
+
+        var dialogReference = await DialogService.ShowAsync<UserUpdateComponent>("Update User",
+        new DialogParameters() {
+    { nameof(UserUpdateComponent.User), cloned },
+    { nameof(UserUpdateComponent.AllowManagement), true },
+    { nameof(UserUpdateComponent.Class), "px-4 pb-4" }
+        },
+        new DialogOptions() { CloseOnEscapeKey = true, CloseButton = true });
+
+        if (!(await dialogReference.Result).Canceled)
+        {
+            user.MergeFrom(cloned);
+            await RefreshUsers();
+        }
+    }
+
+    async Task OnCreateUser()
+    {
+        User user = new();
+        user.AllowEmail = user.AllowSMS = user.AllowedToLogin = true;
+
+        var dialogReference = await DialogService.ShowAsync<UserUpdateComponent>("Create User",
+        new DialogParameters() {
+    { nameof(UserUpdateComponent.User), user },
+    { nameof(UserUpdateComponent.AllowManagement), true },
+    { nameof(UserUpdateComponent.Class), "px-4 pb-4" }
+        },
+        new DialogOptions() { CloseOnEscapeKey = true, CloseButton = true });
+
+        if (!(await dialogReference.Result).Canceled)
+        {
+            await RefreshUsers(0);
+        }
+    }
+}

@@ -1,0 +1,133 @@
+﻿@using Daisi.Razor.Components.Dialogs
+<div class="@Class">
+    <div class="">
+        <label class="fw-bold">First and Last Name *</label>
+        <p>This is the User's legal first and last name. Please do not use handles or nicknames.</p>
+        <input class="form-control" @bind=User.Name placeholder="(required)" />
+    </div>
+    <div class="mt-4">
+        <label class="fw-bold">Email Address *</label>
+        <p>The user's email address associated with this account. This will be used for login. Changing this email to something invalid will block logins.</p>
+        <input class="form-control" @bind=User.EmailAddress placeholder="(required)" />
+    </div>
+    <div class="mt-2">
+        <MudSwitch @bind-Value="@User.AllowEmail" Label="System can send emails to this address. Even if turned off, user will receive login emails." Color="Color.Success" UncheckedColor="Color.Error"></MudSwitch>
+    </div>
+
+
+    <div class="mt-4">
+        <label class="fw-bold">Phone</label>
+        <p>The user's phone number associated with this account. </p>
+        <input class="form-control" @bind=User.Phone placeholder="(no special characters)" />
+    </div>
+    <div class="mt-2">
+        <MudSwitch @bind-Value="@User.AllowSMS" Label="System can send user SMS messages to this number. Reply STOP at any time to stop receiving messages." Color="Color.Success" UncheckedColor="Color.Error"></MudSwitch>
+    </div>
+
+    @if (AllowManagement)
+    {
+        <div class="mt-3">
+            <label class="fw-bold">Account Role</label>
+            <p class="my-0"><code>Readers</code> can access the account services, but cannot update settings.</p>
+            <p class="my-0"><code>Managers</code> can read and update everything, except Users. </p>
+            <p class="mt-0"><code>Owners</code> can do everything that managers can do and manage Users.</p>
+            <select @bind="User.Role" class="form-control">
+                <option value="@nameof(UserRoles.Reader)">Reader</option>
+                <option value="@nameof(UserRoles.Manager)">Manager</option>
+                <option value="@nameof(UserRoles.Owner)">Owner</option>
+            </select>
+        </div>        
+        <div class="mt-2">
+            <MudSwitch Value="User.AllowedToLogin" Label="Allowed to Login" Color="Color.Success" UncheckedColor="Color.Error"></MudSwitch>
+        </div>
+
+    }
+
+    <div class="mt-4">
+        <button disabled="@processing" class="btn btn-success" @onclick=OnSave>
+            @if (processing)
+            {
+                <i class="fa-duotone fa-refresh fa-spin"></i>
+            }
+            Save
+        </button>
+
+        @if (AllowManagement && !string.IsNullOrEmpty(User.Id))
+        {
+            <button disabled="@processing" class="btn btn-danger float-end" @onclick=OnArchive>Archive User</button>
+        }
+    </div>
+</div>
+@code {
+    [Parameter] public User User { get; set; }
+    [Parameter] public string Class { get; set; }
+    [Parameter] public bool AllowManagement { get; set; }
+    [CascadingParameter] public IMudDialogInstance MudDialog { get; set; }
+    [Inject] public AccountClientFactory AccountClientFactory { get; set; }
+    [Inject] public IToastService ToastService { get; set; }
+    [Inject] public IDialogService DialogService { get; set; }
+
+    bool processing = false;
+
+    async Task OnSave()
+    {
+        processing = true;
+
+        var accountClient = AccountClientFactory.Create();
+        if (string.IsNullOrEmpty(User.Id))
+        {
+            var response = await accountClient.CreateUserAsync(new CreateUserRequest() { User = User });
+            if (response.Success)
+            {
+                ToastService.ShowSuccess("User created successfully");
+            }
+            else
+            {
+                ToastService.ShowError($"Error creating user: {response.Message}");
+            }
+
+            if (MudDialog is not null)
+                MudDialog.Close();
+        }
+        else
+        {
+            var response = await accountClient.UpdateUserAsync(new UpdateUserRequest() { User = User });
+            if (response.Success)
+            {
+                ToastService.ShowSuccess("User updated successfully");
+            }
+            else
+            {
+                ToastService.ShowError($"Error updating user: {response.Message}");
+            }
+
+            if (MudDialog is not null)
+                MudDialog.Close();
+        }
+
+        processing = false;
+    }
+    async Task OnArchive()
+    {
+        processing = true;
+
+        if (await DialogService.ConfirmAsync("Archive User", "Are you sure that you want to archive this user? They will not be able to login and this is permanent.", Color.Warning))
+        {
+            var accountClient = AccountClientFactory.Create();
+            var response = await accountClient.ArchiveUserAsync(new ArchiveUserRequest() { UserId = User.Id });
+            if (response.Success)
+            {
+                ToastService.ShowSuccess("User archived successfully");
+            }
+            else
+            {
+                ToastService.ShowError($"Error updating user: {response.Message}");
+            }
+
+            if (MudDialog is not null)
+                MudDialog.Close();
+        }
+
+        processing = false;
+    }
+}

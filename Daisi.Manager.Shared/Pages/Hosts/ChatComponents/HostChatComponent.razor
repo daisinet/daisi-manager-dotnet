@@ -1,0 +1,22 @@
+﻿<div class="mt-3">
+    <Daisi.Razor.Components.Chat.DaisiChat Host="@SelectedHost" UserName="@userName" ShowConnectionType="true">
+
+    </Daisi.Razor.Components.Chat.DaisiChat>
+</div>
+@code {
+    [Parameter] public Host SelectedHost { get; set; }
+
+    [Inject] public AuthService AuthService { get; set; }
+    string userName;
+
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            userName = await AuthService.GetUserNameAsync();
+            StateHasChanged();
+        }
+
+    }
+
+}

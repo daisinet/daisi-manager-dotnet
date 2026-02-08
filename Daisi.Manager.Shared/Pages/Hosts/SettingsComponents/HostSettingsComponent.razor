@@ -1,0 +1,78 @@
+﻿<h3>Host Settings</h3>
+<p>
+    These are the general settings for this host device. Changing any settings can negatively affect the performance of this host.
+</p>
+<div class="form">
+    <div class="">
+        <label class="fw-bold">Default Orc</label>
+        @if (OrcResponse is null)
+        {
+            <p>Loading Orcs... </p>
+        }
+        else
+        {
+            <select class="form-control" value="@Settings.Host.OrcIpAddressOrDomain" @onchange="OnChangeDefaultOrc">
+               @if(PublicOrcs.Any())
+               {
+                <optgroup label="Public">
+                    @foreach (var pub in PublicOrcs)
+                    {
+                        <option value="@pub.Domain">@pub.Name &mdash;  @(pub.RequiresSSL ? "https" : "http")://@pub.Domain:@pub.Port </option>
+                    }
+                </optgroup>
+               }
+               @if(PrivateOrcs.Any()){
+               <optgroup label="Private">
+                    @foreach (var pub in PrivateOrcs)
+                    {
+                        <option value="@pub.Domain">@pub.Name &mdash;  @(pub.RequiresSSL ? "https" : "http")://@pub.Domain:@pub.Port </option>
+                    }
+                </optgroup>
+               }
+            </select>
+        }
+    </div>
+    <div class="mt-3">
+        <label class="fw-bold">Name</label>
+        <input class="form-control" @bind="Settings.Host.Name" />
+    </div>
+    <div class="mt-3">
+        <label class="fw-bold">Maximum Concurrent Sessions</label>
+        <input type="number" class="form-control" @bind="Settings.Host.MaxConcurrentSessions" />
+    </div>
+    <div class="mt-3">
+        <label class="fw-bold">Auto-Update</label>
+        <MudSwitch @bind-Value="Settings.Host.AutoUpdate" Color="Color.Success" UncheckedColor="Color.Error" Label="@(Settings.Host.AutoUpdate ? "Allow the Host to auto-update (recommended)" : "Manual Update ")"></MudSwitch>
+    </div>
+</div>
+@code {
+    [Parameter] public Daisi.Protos.V1.Settings Settings { get; set; }
+    [Inject] public OrcClientFactory OrcClientFactory { get; set; }
+
+    GetOrcsResponse OrcResponse { get; set; }
+
+    public IEnumerable<Orchestrator> PublicOrcs => OrcResponse?.Orcs.Where(o => o.Networks.Any(n => n.IsPublic)) ?? [];
+    public IEnumerable<Orchestrator> PrivateOrcs => OrcResponse?.Orcs.Where(o => !o.Networks.Any(n => n.IsPublic)) ?? [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var client = OrcClientFactory.Create();
+
+        OrcResponse = await client.GetAsync(new() { Paging = new() { PageIndex = 0, PageSize = 20 } });
+    }
+
+    async Task OnChangeDefaultOrc(ChangeEventArgs e)
+    {
+        var val = e.Value as string;
+        if(val is not null)
+        {
+            var orc = OrcResponse.Orcs.FirstOrDefault(o => o.Domain == val);
+            if(orc is not null)
+            {
+                Settings.Host.OrcIpAddressOrDomain = orc.Domain;
+                Settings.Host.OrcPort = orc.Port;
+                Settings.Host.OrcUseSSL |= orc.RequiresSSL;
+            }
+        }
+    }
+}

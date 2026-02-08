@@ -1,0 +1,150 @@
+﻿@using System.Text.RegularExpressions
+<div class="px-4 pb-4">
+  <Daisi.Razor.Components.Validation.ValidationAlert Messages=messages></Daisi.Razor.Components.Validation.ValidationAlert>
+    <div class="">
+        <label class="fw-bold">Name *</label>
+        <p>
+            This is the easy to remember name that will be used for your network. 
+            Use only alphanumeric characters: a-z, A-Z, and 0-9. 
+            There should be no special characters, spaces, or other punctuation.
+            This will end up becoming your access URL for the network.
+        </p>
+        <div class="input-group">
+            <input @onblur="OnNetworkNameBlur" required class="form-control" @bind=Network.Name />
+            <span class="input-group-text">.daisinet.com</span>
+        </div>
+    </div>
+    <div class="mt-3">
+        <label class="fw-bold">Description *</label>
+        <p>
+            Give a general description for your network that describes the available uses. For example, if you intend on this network being used 
+            for a specific purpose, like image generation, you may want to say so.
+        </p>
+        <textarea class="form-control" @bind=Network.Description ></textarea>
+    </div>
+    <div class="mt-3">
+        <label class="fw-bold">Accessibilty</label>
+        <p>
+            <strong class="text-white">Public Networks</strong> are accessible by everyone on the internet. They only go live when at least two Hosts of HIGH reputation join the network. All public networks must be approved by DAISI.        
+        </p>
+        <p>
+            <strong class="text-white">Private Networks</strong> ensure the highest level of privacy and security. Only users, hosts, and apps that are connected to your account can access these networks.
+        </p>
+        <MudSwitch @bind-Value="Network.IsPublic" Color="Color.Success" UncheckedColor="Color.Error" Label="@(Network.IsPublic ? "Set this up as a Public Network" : "Set this up as a Private Network")"></MudSwitch>
+    </div>
+    <div class="mt-3">
+        <Daisi.Razor.Components.Buttons.ProcessingButton Processing="processing" class="btn btn-success" OnClick="OnSave">Save</Daisi.Razor.Components.Buttons.ProcessingButton>
+
+        @if (!IsNew)
+        {
+            <Daisi.Razor.Components.Buttons.ProcessingButton Processing="processing" class="btn btn-danger float-end" OnClick="OnArchive">Archive</Daisi.Razor.Components.Buttons.ProcessingButton>
+        }
+    </div>
+</div>
+
+@code {
+    [Inject] NetworkClientFactory NetworkClientFactory { get; set; }
+    [Parameter] public Network Network { get; set; }
+    [Parameter] public EventCallback Archived { get; set; }
+    [CascadingParameter] public IMudDialogInstance MudDialog { get; set; }
+    [Inject] IDialogService DialogService { get; set; }
+    bool IsNew => string.IsNullOrWhiteSpace(Network.Id);
+    List<string> messages = new();
+    bool processing = false;
+
+    async Task OnNetworkNameBlur(FocusEventArgs e)
+    {
+        Network.Name = Regex.Replace(Network.Name, "[^a-zA-Z0-9]", "");
+        StateHasChanged();
+    }
+    async Task OnArchive()
+    {
+        messages = new();
+
+        if(await DialogService.ConfirmAsync("Archive Network?", "Are you certain that you want to archive this network? This will disconnect all Hosts and Consumers. This is very permanent.", Color.Warning))
+        {
+            var client = NetworkClientFactory.Create();
+            var result = await client.ArchiveAsync(new() { NetworkId = Network.Id });
+            if (result.Success)
+            {
+                await Archived.InvokeAsync();
+
+                if (MudDialog is not null)
+                    MudDialog.Close<Network>(Network);
+            }
+            else
+                messages.Add(result.Message);
+
+        }
+    }
+    async Task OnSave()
+    {
+        messages = new();
+
+        if(string.IsNullOrWhiteSpace(Network.Name))
+        {
+            messages.Add("Name is required.");
+        }
+        if(string.IsNullOrWhiteSpace(Network.Description))
+        {
+            messages.Add("Description is required.");
+        }
+
+        if (messages.Any()){
+
+            return;
+        }
+
+        processing = true;
+        var client = NetworkClientFactory.Create();
+
+        if (IsNew)
+        {
+            try
+            {
+                var result = await client.CreateAsync(new CreateNetworkRequest() { Network = Network });
+                if (result.Network is null)
+                {
+                    messages.Add("An error occurred while creating the network");
+                    processing = false;
+                    return;
+                }
+            }
+            catch(Exception exc)
+            {
+                messages.Add($"An error occurred: {exc.Message}");
+                processing = false;
+                return;
+
+            }
+        }
+        else
+        {
+            try
+            {
+                var result = await client.UpdateAsync(new() { Network = Network });
+                if (result.Success)
+                    return;
+                else
+                {
+                    messages.Add($"A server error occurred while updating the network: {result.Message}");
+                    processing = false;
+                    return;
+                }
+            }
+            catch (Exception exc)
+            {
+                messages.Add($"An error occurred: {exc.Message}");
+                processing = false;
+                return;
+
+            }
+        }
+
+        if (MudDialog is not null)
+            MudDialog.Close<Network>(Network);
+
+        processing = false;
+
+    }
+}

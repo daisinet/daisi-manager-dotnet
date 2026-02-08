@@ -1,0 +1,185 @@
+﻿
+<div class="row">
+    <div class="col"><h3>Orcs</h3></div>
+    <div class="col-12 col-md-auto">
+        <SearchBox Disabled="processing" OnSearch="OnSearch" Placeholder="Search Orcs">
+            <button class="btn btn-outline-success" @onclick="OnCreate"><i class="fa-duotone fa-plus"></i> Create</button>
+        </SearchBox>
+
+     
+    </div>
+</div>
+
+
+@if (OrcsResponse is null)
+{
+    <p>Loading Orcs... </p>
+}
+else if (OrcsResponse.TotalCount == 0)
+{
+    <div class="alert alert-warning mt-3">There are no Orcs to show.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table mt-md-3">
+            <thead>
+                <tr>
+                    <th>Status</th>
+                    <th>Name</th>
+                    <th>Networks</th>
+                    <th>Domain</th>
+                    <th class="text-center"># Hosts</th>
+                    <th class="text-center">Port</th>
+                    <th class="text-center">Required SSL</th>
+                    <th class="text-center"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var orc in OrcsResponse.Orcs)
+                {
+                    <tr>
+                        <td>
+                            @if (orc.Status == OrcStatus.Online)
+                            {
+                                <i title="Online" class="fa-duotone fa-dot text-success fa-2x p-0"></i>
+                            }
+                            else if (orc.Status == OrcStatus.Offline)
+                            {
+                                <i title="Offline" class="fa-duotone fa-dot text-danger fa-2x p-0"></i>
+                            }
+                            else
+                            {
+                                <i title="Unknown" class="fa-duotone fa-dot text-info fa-2x p-0"></i>
+                            }
+
+                        </td>
+                        <td>@orc.Name</td>
+                        <td>
+                            @foreach (var net in orc.Networks)
+                            {
+                                <span class="badge border border-success me-1">@net.Name.ToLower()</span>
+                            }
+                        </td>
+                        <td>@orc.Domain</td>
+                        <td class="text-center">@orc.OpenConnectionCount</td>
+                        <td class="text-center">@orc.Port</td>
+                        <td class="text-center">@orc.RequiresSSL</td>
+                        <td class="text-end">
+                            @if (orc.AccountId == accountId)
+                            {
+                                <button class="btn btn-sm p-0" @onclick=@(async (_) => await OnEdit(orc))><i class="fa-duotone fa-edit"></i></button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <Daisi.Razor.Components.Pager.PagingComponent TotalCount="OrcsResponse.TotalCount" Paging="Paging"></Daisi.Razor.Components.Pager.PagingComponent>
+}
+
+@code {
+    [Inject] IDialogService DialogService { get; set; }
+    [Inject] OrcClientFactory OrcClientFactory { get; set; }
+    [Inject] IToastService ToastService { get; set; }
+    [Inject] AuthService AuthService { get; set; }
+
+    GetOrcsResponse OrcsResponse { get; set; }
+    PagingInfo Paging { get; set; } = new() { PageIndex = 0, PageSize = 10 };
+    string? searchTerm = string.Empty;
+    bool processing = false;
+    string accountId = string.Empty;
+
+    protected async override Task OnInitializedAsync()
+    {
+        accountId = await AuthService.GetAccountIdAsync();
+        await RefreshOrcs();
+    }
+
+    async Task RefreshOrcs()
+    {
+        processing = true;
+
+        var client = OrcClientFactory.Create();
+        Paging.SearchTerm = searchTerm ?? string.Empty;
+        OrcsResponse = await client.GetAsync(new GetOrcsRequest() { Paging = Paging });
+
+        processing = false;
+    }
+    async Task OnSearch(string term)
+    {
+        searchTerm = term;
+        await RefreshOrcs();
+    }
+    async Task OnCreate()
+    {
+        var orc = new Orchestrator()
+        {
+            Port = 443,
+            RequiresSSL = true,
+            Status = OrcStatus.Offline
+        };
+
+        DialogParameters dparams = new DialogParameters<UpdateOrcComponent>()
+        {
+            { c => c.Orc, orc  }
+        };
+
+        DialogOptions options = new DialogOptions()
+        {
+            CloseButton = true,
+            BackdropClick = true,
+            CloseOnEscapeKey = true
+        };
+
+        var result = await DialogService.ShowAsync<UpdateOrcComponent>("Create an Orc", dparams, options);
+        if (result.Result is not null)
+        {
+            var res = await result.Result;
+            if (res is not null)
+            {
+                var createdOrc = res.Data as Orchestrator;
+                if (createdOrc is not null)
+                {
+                    OrcsResponse.Orcs.Insert(0, orc);
+                }
+            }
+        }
+    }
+    async Task OnArchived(Orchestrator orchestrator)
+    {
+        OrcsResponse.Orcs.Remove(orchestrator);
+        ToastService.ShowSuccess("Orc archived");
+    }
+    async Task OnEdit(Orchestrator orchestrator)
+    {
+        DialogParameters dparams = new DialogParameters<UpdateOrcComponent>()
+        {
+            { c => c.Orc, orchestrator  },
+            { c => c.Archived, (new EventCallbackFactory()).Create(orchestrator, async () => await OnArchived(orchestrator) ) }
+        };
+
+        DialogOptions options = new DialogOptions()
+        {
+            CloseButton = true,
+            BackdropClick = true,
+            CloseOnEscapeKey = true
+        };
+
+        var result = await DialogService.ShowAsync<UpdateOrcComponent>("Update Orc", dparams, options);
+
+        if (result?.Result is not null)
+        {
+            var res = await result.Result;
+            if (res is not null)
+            {
+                var updatedOrc = res.Data as Orchestrator;
+                if (updatedOrc is not null)
+                {
+                    await RefreshOrcs();
+                }
+            }
+        }
+    }
+}

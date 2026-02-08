@@ -1,0 +1,265 @@
+﻿<nav>
+    <div class="nav nav-tabs nav-justified" id="nav-tab" role="tablist">
+        <button class="nav-link active" id="nav-public-tab" data-bs-toggle="tab" data-bs-target="#nav-public" type="button" role="tab" aria-controls="nav-public" aria-selected="true">Public Networks</button>
+        <button class="nav-link" id="nav-private-tab" data-bs-toggle="tab" data-bs-target="#nav-private" type="button" role="tab" aria-controls="nav-private" aria-selected="false">Private Networks</button>
+    </div>
+</nav>
+
+<div class="tab-content" id="nav-tabContent">
+    <div class="tab-pane fade show active border border-top-0 p-4" id="nav-public" role="tabpanel" aria-labelledby="nav-public-tab" tabindex="0">
+
+        <div class="row mt-3">
+            <div class="col">
+                <SearchBox Placeholder="Search Public Networks" OnSearch="OnSearchPublic"></SearchBox>
+
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-success" @onclick="OnCreatePublicNetwork"><i class="fa-duotone fa-plus"></i> Create Public Network</button>
+            </div>
+        </div>
+        <div class="mt-4">
+            @if (PublicNetworks is null)
+            {
+                <p>Loading Public Networks... </p>
+            }
+            else
+            {
+                @if (PublicNetworks.Networks.Any())
+                {
+                    @foreach (var net in PublicNetworks.Networks)
+                    {
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <i class="fa-duotone fa-computer me-3 @(net.Status == NetworkStatus.Approved ? "text-success" : "text-danger")"></i> @(net.Name.ToLower()).daisinet.com
+                                @if (net.Status == NetworkStatus.Approved)
+                                {
+                                    <span class=""> (Approved)</span>
+                                }
+                                else
+                                {
+                                    <span class=""> (Unapproved)</span>
+                                }
+
+                                @if (net.AccountId == accountId)
+                                {
+                                    <button class="btn btn-sm p-0 btn-default float-end" title="Update the network" @onclick=@(async (_) => await OnUpdateNetwork(net))><i class="fa-duotone fa-edit"></i></button>
+                                    <button class="btn btn-sm p-0 btn-default float-end me-2" title="Update the Orchestration" @onclick=@(async (_) => await OnUpdateOrcs(net))><i class="fa-duotone fa-chart-network"></i></button>
+                                }
+                            </div>
+                            <div class="card-body">
+                                @net.Description
+                            </div>
+                        </div>
+                    }
+                    <Daisi.Razor.Components.Pager.PagingComponent TotalCount="@PublicNetworks.TotalCount" Paging="PublicPaging"></Daisi.Razor.Components.Pager.PagingComponent>
+                }
+                else
+                {
+                    <div class="alert alert-warning">
+                        No public networks to show.
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    <div class="tab-pane fade border border-top-0 p-4" id="nav-private" role="tabpanel" aria-labelledby="nav-private-tab" tabindex="0">
+
+        <div class="row mt-3">
+            <div class="col">
+                <SearchBox Placeholder="Search Private Networks" OnSearch="OnSearchPrivate" Disabled="processing"></SearchBox>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-success" @onclick="OnCreatePrivateNetwork"><i class="fa-duotone fa-plus"></i> Create Private Network</button>
+            </div>
+        </div>
+        <div class="mt-4">
+            @if (PrivateNetworks is null)
+            {
+                <p>Loading Private Networks... </p>
+            }
+            else
+            {
+                @if (PrivateNetworks.Networks.Any())
+                {
+                    @foreach (var net in PrivateNetworks.Networks)
+                    {
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <i class="fa-duotone fa-computer me-3 @(net.Status == NetworkStatus.Approved ? "text-success" : "text-danger")"></i> @(net.Name.ToLower()).daisinet.com
+                                @if (net.Status == NetworkStatus.Approved)
+                                {
+                                    <span class=""> (Approved)</span>
+                                }
+                                else
+                                {
+                                    <span class=""> (Unapproved)</span>
+                                }
+
+                                <button class="btn btn-sm p-0 btn-default float-end" title="Update the network" @onclick=@(async (_) => await OnUpdateNetwork(net))><i class="fa-duotone fa-edit"></i></button>
+                                <button class="btn btn-sm p-0 btn-default float-end me-2" title="Update the Orchestration" @onclick=@(async (_) => await OnUpdateOrcs(net))><i class="fa-duotone fa-chart-network"></i></button>
+                            </div>
+                            <div class="card-body">
+                                @net.Description
+                            </div>
+                        </div>
+                    }
+                    <Daisi.Razor.Components.Pager.PagingComponent TotalCount="@PrivateNetworks.TotalCount" Paging="PrivatePaging"></Daisi.Razor.Components.Pager.PagingComponent>
+
+                }
+                else
+                {
+                    <div class="alert alert-warning">
+                        No private networks to show.
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+
+@code {
+    [Inject] NetworkClientFactory NetworkClientFactory { get; set; }
+    [Inject] IDialogService DialogService { get; set; }
+    [Inject] AuthService AuthService { get; set; }
+    [Inject] IToastService ToastService { get; set; }
+
+    bool processing = false;
+    string? accountId = string.Empty;
+
+    GetNetworksResponse? PublicNetworks { get; set; }
+    PagingInfo PublicPaging { get; set; } = new() { PageIndex = 0, PageSize = 5 };
+
+
+    GetNetworksResponse? PrivateNetworks { get; set; }
+    PagingInfo PrivatePaging { get; set; } = new() { PageIndex = 0, PageSize = 5 };
+
+    protected async override Task OnInitializedAsync()
+    {
+        accountId = await AuthService.GetAccountIdAsync();
+
+        await RefreshPublicNetworks();
+        await RefreshPrivateNetworks();
+    }
+
+    async Task RefreshPublicNetworks()
+    {
+        processing = true;
+        var client = NetworkClientFactory.Create();
+        PublicNetworks = client.Get(new() { IsPublic = true, Paging = PublicPaging });
+        processing = false;
+
+    }
+    async Task OnSearchPublic(string value)
+    {
+        PublicPaging.SearchTerm = value;
+        PublicPaging.PageIndex = 0;
+        await RefreshPublicNetworks();
+    }
+    async Task RefreshPrivateNetworks()
+    {
+        processing = true;
+        var client = NetworkClientFactory.Create();
+        PrivateNetworks = client.Get(new() { IsPublic = false, Paging = PrivatePaging });
+        processing = false;
+    }
+    async Task OnSearchPrivate(string value)
+    {
+        PrivatePaging.SearchTerm = value;
+        PrivatePaging.PageIndex = 0;
+        await RefreshPrivateNetworks();
+    }
+
+    async Task OnCreatePrivateNetwork() => await CreateNetwork(false);
+    async Task OnCreatePublicNetwork() => await CreateNetwork(true);
+    async Task CreateNetwork(bool isPublic)
+    {
+
+        var dialogParameters = new DialogParameters<UpdateNetworkComponent>()
+        {
+            { (c) => c.Network, new Network(){ IsPublic = isPublic, Status = NetworkStatus.Approved } }
+        };
+        var dialogOptions = new DialogOptions()
+        {
+            BackdropClick = true,
+            CloseButton = true,
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium
+        };
+
+        var response = await DialogService.ShowAsync<UpdateNetworkComponent>("Create a Network", dialogParameters, dialogOptions);
+
+        if (response.Result is not null)
+        {
+            var net = (await response.Result).Data as Network;
+
+            if (net is not null)
+            {
+                if (isPublic)
+                    PublicNetworks.Networks.Add(net);
+                else
+                    PrivateNetworks.Networks.Add(net);
+            }
+        }
+
+    }
+    async Task OnArchived(Network network)
+    {
+        if (network.IsPublic)
+            PublicNetworks.Networks.Remove(network);
+        else
+            PrivateNetworks.Networks.Remove(network);
+    }
+    async Task OnUpdateOrcs(Network network)
+    {
+
+    }
+    async Task OnUpdateNetwork(Network network)
+    {
+        var clone = network.Clone();
+
+        var dialogParameters = new DialogParameters<UpdateNetworkComponent>()
+        {
+            { (c) => c.Network, clone },
+            { (c) => c.Archived, (new EventCallbackFactory()).Create(network, async() => await OnArchived(network))}
+        };
+        var dialogOptions = new DialogOptions()
+        {
+            BackdropClick = true,
+            CloseButton = true,
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium
+        };
+
+        var response = await DialogService.ShowAsync<UpdateNetworkComponent>("Update Network", dialogParameters, dialogOptions);
+
+        if (response.Result is not null)
+        {
+            var r = await response.Result;
+            if (r.Data is not null)
+            {
+                var nc = r.Data as Network;
+
+                if (nc is not null)
+                {
+                    var client = NetworkClientFactory.Create();
+
+                    var result = await client.UpdateAsync(new() { Network = nc });
+                    if (result.Success)
+                    {
+                        network.MergeFrom(nc);
+                        ToastService.ShowSuccess($"Network updated successfully.");
+                    }
+                    else
+                    {
+                        ToastService.ShowError($"Error updating network: {result.Message}");
+                    }
+                }
+            }
+
+        }
+
+
+    }
+}

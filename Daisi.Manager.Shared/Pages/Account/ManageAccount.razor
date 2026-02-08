@@ -1,0 +1,147 @@
+﻿@page "/account/manage"
+@using Daisi.Manager.Shared.Services
+<div class="row align-items-stretch">
+    @if (UserRole >= UserRoles.Manager)
+    {
+        <div class="d-md-none mt-3 mb-3">
+            <select class="form-control" @onchange=OnChangePage">
+                <option value="@AccountPages.Profile">Your Profile</option>
+                <option value="@AccountPages.General">Account Info</option>
+                <option value="@AccountPages.Users">Users</option>
+                <option value="@AccountPages.Apps">Apps</option>
+                <option value="@AccountPages.Hosts">Hosts</option>
+                <option value="@AccountPages.Orcs">Orcs</option>
+                <option value="@AccountPages.Networks">Networks</option>
+                <option value="@AccountPages.Payouts">Payouts</option>
+                <option value="@AccountPages.Subscriptions">Subscriptions</option>
+            </select>
+        </div>
+    }
+    <div class="d-none d-md-block col-12 col-md-4 bg-dark-subtle border-end py-4 @(FormFactor.GetFormFactor() != "Mobile" ? "vh-100" : "")">
+        <h2>Your Account</h2>
+        <div class="list-group">
+            <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AccountPages.Profile ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AccountPages.Profile">
+                <h4 class="mt-2">
+                    <i class="fa-duotone fa-user me-2"></i> Your Profile
+                </h4>
+            </a>
+            @if (UserRole >= UserRoles.Manager)
+            {
+                <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AccountPages.General ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AccountPages.General">
+                    <h4 class="mt-2">
+                        <i class="fa-duotone fa-info-circle me-2"></i> Account Info
+                    </h4>
+                </a>
+                @if (UserRole >= UserRoles.Owner)
+                {
+                    <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AccountPages.Users ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AccountPages.Users">
+                        <h4 class="mt-2">
+                            <i class="fa-duotone fa-people me-2"></i> Users
+                        </h4>
+                    </a>
+                }
+                <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AccountPages.Apps ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AccountPages.Apps">
+                    <h4 class="mt-2">
+                        <i class="fa-duotone fa-code me-2"></i> Apps
+                    </h4>
+                </a>
+                <a href="/hosts" class="list-group-item">
+                    <h4 class="mt-2">
+                        <i class="fa-duotone fa-computer me-2"></i> Hosts
+                    </h4>
+                </a>
+                <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AccountPages.Orcs ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AccountPages.Orcs">
+                    <h4 class="mt-2">
+                        <i class="fa-duotone fa-chart-network me-2"></i> Orcs
+                    </h4>
+                </a>
+                <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AccountPages.Networks ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AccountPages.Networks">
+                    <h4 class="mt-2">
+                        <i class="fa-duotone fa-network-wired me-2"></i> Networks
+                    </h4>
+                </a>
+                <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AccountPages.Payouts ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AccountPages.Payouts">
+                    <h4 class="mt-2">
+                        <i class="fa-duotone fa-dollar me-2"></i> Payouts
+                    </h4>
+                </a>
+                <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AccountPages.Subscriptions ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AccountPages.Subscriptions">
+                    <h4 class="mt-2">
+                        <i class="fa-duotone fa-refresh me-2"></i> Subscriptions
+                    </h4>
+                </a>
+            }
+
+        </div>
+
+    </div>
+
+    <div class="col-12 col-md-8 mt-2 pt-md-4 px-md-4">
+        @if (CurrentPage == AccountPages.General)
+        {
+            <Daisi.Manager.Shared.Pages.Account.GeneralComponents.AccountGeneralInformationComponent></Daisi.Manager.Shared.Pages.Account.GeneralComponents.AccountGeneralInformationComponent>
+        }
+        else if (CurrentPage == AccountPages.Users)
+        {
+            <Daisi.Manager.Shared.Pages.Account.UserComponents.AccountUsersComponent></Daisi.Manager.Shared.Pages.Account.UserComponents.AccountUsersComponent>
+        }
+        else if (CurrentPage == AccountPages.Apps)
+        {
+            <Daisi.Manager.Shared.Pages.Account.AppComponents.AccountAppsComponent></Daisi.Manager.Shared.Pages.Account.AppComponents.AccountAppsComponent>
+        }
+        else if (CurrentPage == AccountPages.Orcs)
+        {
+            <Daisi.Manager.Shared.Pages.Account.OrcComponents.AccountOrcsComponent></Daisi.Manager.Shared.Pages.Account.OrcComponents.AccountOrcsComponent>
+        }
+        else if (CurrentPage == AccountPages.Networks)
+        {
+            <Daisi.Manager.Shared.Pages.Account.NetworkComponents.AccountNetworksComponent></Daisi.Manager.Shared.Pages.Account.NetworkComponents.AccountNetworksComponent>
+        }
+        else if (CurrentPage == AccountPages.Profile)
+        {
+            <Daisi.Manager.Shared.Pages.Account.ProfileComponents.UserProfileComponent></Daisi.Manager.Shared.Pages.Account.ProfileComponents.UserProfileComponent>
+        }
+        else if (CurrentPage == AccountPages.Payouts)
+        {
+            <Daisi.Manager.Shared.Pages.Account.PayoutComponents.AccountPayoutsComponent></Daisi.Manager.Shared.Pages.Account.PayoutComponents.AccountPayoutsComponent>
+        }
+        else if (CurrentPage == AccountPages.Subscriptions)
+        {
+            <Daisi.Manager.Shared.Pages.Account.SubscriptionsComponents.AccountSubscriptionsComponent></Daisi.Manager.Shared.Pages.Account.SubscriptionsComponents.AccountSubscriptionsComponent>
+        }
+    </div>
+</div>
+@code {
+    enum AccountPages
+    {
+        Profile,
+        General,
+        Users,
+        Apps,
+        Hosts,
+        Orcs,
+        Networks,
+        Payouts,
+        Subscriptions
+    }
+
+    public UserRoles? UserRole { get; set; }
+    AccountPages CurrentPage { get; set; }
+
+    [Inject] public IFormFactor FormFactor { get; set; }
+    [Inject] public AuthService AuthService { get; set; }
+    [Inject] public NavigationManager NavigationManager { get; set; }
+
+    protected async override Task OnInitializedAsync()
+    {
+        UserRole = await AuthService.GetUserRoleAsync();
+    }
+
+    async Task OnChangePage(ChangeEventArgs e)
+    {
+        CurrentPage = e.Value is not null ? Enum.Parse<AccountPages>(e.Value.ToString()) : AccountPages.Profile;
+        if (CurrentPage == AccountPages.Hosts)
+            NavigationManager.NavigateTo("/hosts");
+    }
+
+}

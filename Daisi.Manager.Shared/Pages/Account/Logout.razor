@@ -1,0 +1,23 @@
+﻿@page "/account/logout"
+@layout BlankLayout
+@using Daisi.Manager.Shared.Services
+<div class="container mt-3">
+	<h3 class="">Logging out... stand by</h3>
+
+</div>
+
+@code {
+	[Inject] NavigationManager NavigationManager { get; set; }
+
+	protected override void OnAfterRender(bool firstRender)
+	{
+		if (firstRender)
+		{
+			NavigationManager.NavigateTo("/account/login", true);			
+		}
+		base.OnAfterRender(firstRender);
+	}
+
+
+
+}

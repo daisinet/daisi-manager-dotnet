@@ -1,0 +1,296 @@
+﻿@page "/hosts"
+@attribute [Manager]
+@using Blazored.Toast.Services
+@using Daisi.Manager.Shared.Pages.Hosts.SettingsComponents
+@using Daisi.Manager.Shared.Parts
+@using Daisi.Manager.Shared.Services
+@using Daisi.Razor.Components.Dialogs
+@using Daisi.SDK.Web.Authorization
+<PageTitle>DAISI Hosts</PageTitle>
+
+<div class="d-md-none mt-3">
+    <a href="/account/manage" class="btn btn-outline-success w-100"><i class="fa-duotone fa-arrow-left"></i> Manage Account</a>
+</div>
+
+<div class="row align-items-stretch">
+    <div class="d-none d-md-block col-12 col-md-4 bg-dark-subtle border-end py-4 @(FormFactor.GetFormFactor() != "Mobile" ? "vh-100" : "")">
+        <a href="/account/manage" class="text-white"><i class="fa-duotone fa-arrow-left"></i> Account Management</a>
+        <h3 class="mt-3 w-100 clearfix">
+            <span class="float-start">Your Hosts</span>
+
+            <a href="/hosts/setup" class="btn btn-outline-success float-end"><i class="fa-duotone fa-plus"></i> New Host</a>
+
+        </h3>
+
+        <div class="my-2 input-group">
+            <input disabled="@loadingHosts" class="form-control" @bind=SearchTerm placeholder="Search Your Account's Hosts" @onkeyup=OnSearchKeyUp />
+            <button class="btn btn-outline-success" @onclick=LoadHostsAsync>
+                <i class="fa-duotone fa-search"></i>
+            </button>
+        </div>
+        @if (Hosts.Any())
+        {
+            <ul class="list-group">
+                @foreach (var host in Hosts)
+                {
+                    <a href="#" @onclick:preventDefault class="list-group-item @(host.Id == SelectedHost?.Id ? "active" : "") cursor-pointer" @onclick="() => SelectHost(host)">
+                        <h4 class="mt-2">
+
+                            <OnlineStatusIcon Online="@(host.Status == HostStatus.Online)"></OnlineStatusIcon>
+
+                            @host.Name
+                        </h4>
+                    </a>
+                }
+
+            </ul>
+
+            <div class="btn-group w-100 mt-2">
+                @if (pageIndex > 0)
+                {
+                    <button class="btn btn-outline-success" @onclick=OnPreviousPage><i class="fa-duotone fa-arrow-left"></i> Prev Page</button>
+
+                }
+
+                @if (MoreHosts)
+                {
+                    <button class="btn btn-outline-success" @onclick=OnNextPage> Next Page <i class="fa-duotone fa-arrow-right"></i></button>
+                }
+            </div>
+
+        }
+        else if (loadingHosts)
+        {
+            <p>Loading Hosts... </p>
+        }
+        else
+        {
+            <p class="mt-3">No hosts found. <a href="/hosts/setup">Set up a host now.</a></p>
+        }
+    </div>
+    <div class="col-12 col-md-8 mt-2 pt-md-4 px-md-4">
+
+        @if (SelectedHost != null)
+        {
+            <nav class="navbar navbar-expand-lg bg-body-tertiary">
+                <div class="container-fluid">
+                    <a class="navbar-brand user-select-none d-none d-md-block">
+                        <OnlineStatusIcon Online="@(SelectedHost.Status == HostStatus.Online)"></OnlineStatusIcon> @SelectedHost.Name
+                    </a>
+                    <div class="dropdown d-block d-md-none">
+                        <a class="btn dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <OnlineStatusIcon Online="@(SelectedHost.Status == HostStatus.Online)"></OnlineStatusIcon> @SelectedHost.Name
+                        </a>
+
+                        <ul class="dropdown-menu pt-0">
+                            <li>
+                                <div class="input-group">
+                                    <input disabled="@loadingHosts" class="form-control" @bind=SearchTerm placeholder="Search Hosts" @onkeyup=OnSearchKeyUp />
+                                    <button class="btn btn-outline-success" @onclick=LoadHostsAsync @onclick:stopPropagation>
+                                        <i class="fa-duotone fa-search"></i>
+                                    </button>
+                                </div>
+                            </li>
+
+                            @foreach (var hostGroup in Hosts.GroupBy(h => h.Status))
+                            {
+
+                                <li><h6 class="dropdown-header @GetStatusClass(hostGroup.Key)">@hostGroup.Key</h6></li>
+
+                                @foreach (var h in hostGroup)
+                                {
+                                    <li><a class="dropdown-item" href="#" @onclick:preventDefault @onclick=@(() => SelectHost(h))>@h.Name</a></li>
+                                }
+
+                            }
+                        </ul>
+
+                    </div>
+                    @if (pageIndex > 0)
+                    {
+                        <button class="btn btn-outline-success" @onclick=OnPreviousPage><i class="fa-duotone fa-arrow-left"></i></button>
+
+                    }
+
+                    @if (MoreHosts)
+                    {
+                        <button class="btn btn-outline-success" @onclick=OnNextPage><i class="fa-duotone fa-arrow-right"></i></button>
+                    }
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarHost" aria-controls="navbarHost" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarHost">
+                        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                            <li class="nav-item">
+                                <a class="nav-link @(CurrentPage == HostPages.Dashboard ? "active" : "")" aria-current="page" href="#" @onclick:preventDefault @onclick=@((_) => CurrentPage = HostPages.Dashboard)>Dashboard</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @(CurrentPage == HostPages.Settings ? "active" : "")" aria-current="page" href="#" @onclick:preventDefault @onclick=@((_) => CurrentPage = HostPages.Settings)>Settings</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @(CurrentPage == HostPages.Chat ? "active" : "")" href="#" @onclick:preventDefault @onclick=@((_) => CurrentPage = HostPages.Chat)>Chat</a>
+                            </li>
+                            <li class="nav-item dropdown @(CurrentPage == HostPages.TestPeerConnect || CurrentPage == HostPages.TestDirectConnect || CurrentPage == HostPages.LiveLog ? "active" : "")">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Other
+                                </a>
+                                <ul class="dropdown-menu">
+                                    @* @if (SelectedHost.DirectConnect)
+                                    {
+                                        <li><a class="dropdown-item @(CurrentPage == HostPages.TestDirectConnect ? "active" : "")" href="#" @onclick:preventDefault @onclick=@((_) => CurrentPage = HostPages.TestDirectConnect)>Test Direct Connect</a></li>
+                                        @if (SelectedHost.PeerConnect)
+                                        {
+                                            <li><a class="dropdown-item @(CurrentPage == HostPages.TestPeerConnect ? "active" : "")" href="#" @onclick:preventDefault @onclick=@((_) => CurrentPage = HostPages.TestPeerConnect)>Test Peer Connect</a></li>
+                                        }
+                                        <li><hr class="dropdown-divider"></li>
+                                    } *@
+                                    <li><a class="dropdown-item" href="#" @onclick:preventDefault @onclick=OnArchiveSelectedHost>Archive Host</a></li>
+                                    <li><a class="dropdown-item @(CurrentPage == HostPages.LiveLog ? "active" : "")" href="#" @onclick:preventDefault @onclick=@((_) => CurrentPage = HostPages.LiveLog)>Live Logging</a></li>
+                                </ul>
+                            </li>
+
+                        </ul>
+                        @* <form class="d-flex" role="search">
+                            <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" />
+                            <button class="btn btn-outline-success" type="submit">Search</button>
+                        </form> *@
+                    </div>
+                </div>
+            </nav>
+            @switch (CurrentPage)
+            {
+                case HostPages.Dashboard:
+                    <Daisi.Manager.Shared.Pages.Hosts.DashboardComponents.DashboardComponent SelectedHost="@SelectedHost"></Daisi.Manager.Shared.Pages.Hosts.DashboardComponents.DashboardComponent>
+                    break;
+                case HostPages.Settings:
+                    <SettingsComponent SelectedHost="@SelectedHost"></SettingsComponent>
+                    break;
+                case HostPages.Chat:
+                    <Daisi.Manager.Shared.Pages.Hosts.ChatComponents.HostChatComponent SelectedHost="@SelectedHost"></Daisi.Manager.Shared.Pages.Hosts.ChatComponents.HostChatComponent>
+                    break;
+                case HostPages.TestDirectConnect:
+                    <Daisi.Manager.Shared.Pages.Hosts.TestingComponents.TestDirectConnectComponent SelectedHost="@SelectedHost"></Daisi.Manager.Shared.Pages.Hosts.TestingComponents.TestDirectConnectComponent>
+                    break;
+                case HostPages.TestPeerConnect:
+                    <Daisi.Manager.Shared.Pages.Hosts.TestingComponents.TestPeerConnectComponent SelectedHost="@SelectedHost"></Daisi.Manager.Shared.Pages.Hosts.TestingComponents.TestPeerConnectComponent>
+                    break;
+                case HostPages.LiveLog:
+                    <Daisi.Manager.Shared.Pages.Hosts.TestingComponents.LiveLogComponent SelectedHost="@SelectedHost"></Daisi.Manager.Shared.Pages.Hosts.TestingComponents.LiveLogComponent>
+                    break;
+            }
+        }
+        else
+        {
+            <h3 class="mt-3">Host Details</h3>
+            <p>Select a host from those available to view its details.</p>
+        }
+    </div>
+</div>
+
+@code {
+    public enum HostPages
+    {
+        Dashboard,
+        Settings,
+        Chat,
+        TestDirectConnect,
+        TestPeerConnect,
+        LiveLog
+    }
+
+    HostPages CurrentPage { get; set; } = HostPages.Dashboard;
+
+    List<Host> Hosts { get; set; } = new();
+    Host? SelectedHost { get; set; }
+    string SearchTerm { get; set; }
+    int pageIndex = 0;
+    int pageSize = 10;
+    bool loadingHosts = false;
+    int totalHostCount = 0;
+
+    bool MoreHosts => totalHostCount > (pageIndex + 1) * pageSize;
+
+    [Inject] public IFormFactor FormFactor { get; set; }
+    [Inject] public HostClientFactory HostClientFactory { get; set; }
+    [Inject] public IDialogService DialogService { get; set; }
+
+    protected async override Task OnInitializedAsync()
+    {
+        await LoadHostsAsync();
+    }
+    async Task OnSearchKeyUp(KeyboardEventArgs keyboardEventArgs)
+    {
+        if (keyboardEventArgs.Key?.ToLower() == "enter")
+        {
+            pageIndex = 0;
+            await LoadHostsAsync();
+        }
+    }
+    async Task LoadHostsAsync()
+    {
+        loadingHosts = true;
+
+        var request = new GetHostsRequest();        
+        request.Paging.PageIndex = pageIndex;
+        request.Paging.PageSize = pageSize;
+        request.Paging.SearchTerm = SearchTerm ?? string.Empty;
+
+        var response = await HostClientFactory.Create().GetHostsAsync(request);
+        totalHostCount = response.TotalCount;
+
+        Hosts = response.Hosts.OrderBy(h => h.Name).ToList();
+        var firstHost = Hosts.FirstOrDefault();
+        if (firstHost is not null)
+            await SelectHost(firstHost);
+
+        loadingHosts = false;
+    }
+    async Task OnPreviousPage()
+    {
+        pageIndex--;
+        await LoadHostsAsync();
+    }
+    async Task OnNextPage()
+    {
+        pageIndex++;
+        await LoadHostsAsync();
+    }
+
+    async Task OnArchiveSelectedHost()
+    {
+        if (SelectedHost is null) return;
+
+        var dialogResponse = await DialogService.ConfirmAsync($"Archive {SelectedHost.Name}", "Are you sure that you want to archive this host?", Color.Warning);
+        if (dialogResponse)
+        {
+            var hostClient = HostClientFactory.Create();
+            var response = await hostClient.ArchiveAsync(SelectedHost.Id);
+            if (response.Success)
+            {
+                Hosts.Remove(SelectedHost);
+                SelectedHost = Hosts.FirstOrDefault();
+            }
+        }
+    }
+    async Task SelectHost(Host host)
+    {
+        //CurrentPage = HostPages.Dashboard;
+        SelectedHost = host;
+        StateHasChanged();
+    }
+    string GetStatusClass(Host host)
+    {
+        return GetStatusClass(host.Status);
+    }
+    string GetStatusClass(HostStatus status)
+    {
+        return status switch
+        {
+            HostStatus.Online => "text-success",
+            HostStatus.Offline => "text-danger",
+            _ => "text-secondary"
+        };
+    }
+
+
+}

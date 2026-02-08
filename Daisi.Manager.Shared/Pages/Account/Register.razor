@@ -1,0 +1,134 @@
+﻿@page "/account/register"
+@using Microsoft.AspNetCore.Authorization
+@using System.Text.RegularExpressions
+@layout BlankLayout
+
+<PageTitle>DAISI Account Registration</PageTitle>
+
+<div class="container pt-2 pt-md-5 d-flex flex-fill">
+    <div class="row d-flex flex-fill" style="height: 90vh">
+        <div class="col col-md-6 align-content-center pb-5">
+            @if (accountCreated)
+            {
+                <h3 class="mt-3">You've Joined the AI Rebellion</h3>
+                <div class="alert alert-success mt-3" role="alert">
+                    You account has been created successfully. Login to continue.
+                </div>
+
+                <a href="/account/login" class="btn btn-success">Continue to Login</a>
+            }
+            else
+            {
+                <div class="d-md-none img-fluid mb-3" style="width: 100%; height: 200px; background-image: url('_content/Daisi.Manager.Shared/img/cyber-orc.jpg');background-size:cover; background-repeat:no-repeat;background-position:center;filter:brightness(70%) grayscale(50%)">
+                    &nbsp;
+                </div>
+                <a class="text-white my-2" href="/account/login"><i class="fa-duotone fa-arrow-left"></i> Return to Login</a>
+                <h3 class="mt-3">Join the AI Rebellion</h3>
+                @if (!string.IsNullOrWhiteSpace(errorMessage))
+                {
+                    <div class="alert alert-danger" role="alert">
+                        @errorMessage
+                    </div>
+
+                }
+
+                <div class="mt-4">
+                    <label class="fw-bold">Account Name *</label>
+                    <p>An account can have multiple Users. This is the legal name of the entity that will be responsible for the account and its Users.</p>
+                    <input class="form-control" @bind="createUserRequest.AccountName" placeholder="Your Account Name" />
+                </div>
+                <div class="mt-4">
+                    <label class="fw-bold">Account Owner First and Last Name *</label>
+                    <p>This will become the primary user for the account.</p>
+                    <input class="form-control" @bind="createUserRequest.User.Name" placeholder="Kyle Reese" />
+                </div>
+                <div class="mt-4">
+                    <label class="fw-bold">Account Owner Email Address *</label>
+                    <p>Users login using their email addresses. It is important that this is correct.</p>
+                    <input class="form-control" @bind="createUserRequest.User.EmailAddress" placeholder="kyle@@skynet.com" />
+                </div>
+                <div class="mt-4">
+                    <label class="fw-bold">Account Owner Phone Number *</label>
+                    <p>Your phone number will be used as a secondary authentication method. Make sure it is accurate.</p>
+                    <input class="form-control" @bind="createUserRequest.User.Phone" placeholder="555-555-4242" />
+                </div>
+                <div class="mt-4">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="switchTerms" @bind="createUserRequest.User.AllowedToLogin">
+                        <label class="form-check-label" for="switchTerms">I have read and agree to the DAISI <a tabindex="-1" href="https://daisi.ai/terms" target="_blank">terms of service</a> and <a tabindex="-1" href="https://daisi.ai/privacy" target="_blank">privacy policy</a>.</label>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="switchContact" @bind="createUserRequest.User.AllowEmail">
+                        <label class="form-check-label" for="switchContact">I agree that DAISI can contact me via text message and email regarding my account and the network status. Reply STOP to end messages at any time.</label>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <button class="btn btn-success w-100" @onclick=OnJoinNow>Join Now</button>
+                </div>
+            }
+        </div>
+
+    </div>
+
+</div>
+
+<div class="d-none d-md-block position-fixed v-100 p-0" style="right:0; top: 56px; width: 35%; height: 100%; background-image: url('_content/Daisi.Manager.Shared/img/cyber-orc.jpg');background-size:cover; background-repeat:no-repeat;background-position:center;filter:brightness(70%) grayscale(50%)">
+    &nbsp;
+</div>
+
+
+@code {
+    [Inject] AccountClientFactory AccountClientFactory { get; set; }
+
+    string errorMessage;
+
+    CreateUserRequest createUserRequest = new() { User = new() { Role = UserRoles.Owner } };
+
+    bool accountCreated = false;
+
+    async Task OnJoinNow()
+    {
+        var user = createUserRequest.User;
+        if (string.IsNullOrWhiteSpace(createUserRequest.AccountName))
+        {
+            errorMessage = "Account Name is required.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(user.Name))
+        {
+            errorMessage = "Owner's legal First and Last name is required.";
+            return;
+        }
+        if (Regex.IsMatch(user.EmailAddress ?? string.Empty, @"^[^@\s]+@[^@\s]+\.[^@\s]+$") == false)
+        {
+            errorMessage = "Owner's email address is required and must be valid.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(user.Phone))
+        {
+            errorMessage = "Owner's phone number is required.";
+            return;
+        }
+        if (!user.AllowedToLogin)
+        {
+            errorMessage = "You must agree to the terms of service and privacy policy.";
+            return;
+        }
+        if (!user.AllowEmail)
+        {
+            errorMessage = "You must agree to getting contacted by emails and text messeages.";
+            return;
+        }
+
+        var client = AccountClientFactory.Create();
+        var response = await client.CreateUserAsync(createUserRequest);
+        if (response.Success)
+        {
+            accountCreated = true;
+        }
+        else
+            errorMessage = response.Message;
+    }
+}

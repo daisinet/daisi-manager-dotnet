@@ -1,0 +1,22 @@
+﻿<h3>Your Personal Profile</h3>
+@if(User is null)
+{
+    <p>Loading User Profile...</p>
+}
+else
+{
+    <Daisi.Manager.Shared.Pages.Account.UserComponents.UserUpdateComponent AllowManagement=false User=@User></Daisi.Manager.Shared.Pages.Account.UserComponents.UserUpdateComponent>
+}
+
+@code {
+    [Inject] public AuthClientFactory AuthClientFactory { get; set; }
+
+    public User User { get; set; }
+
+    protected async override Task OnInitializedAsync()
+    {
+        var authClient = AuthClientFactory.Create();
+        var userResponse = await authClient.GetAuthenticatedUserAsync();
+        User = userResponse.User;
+    }
+}

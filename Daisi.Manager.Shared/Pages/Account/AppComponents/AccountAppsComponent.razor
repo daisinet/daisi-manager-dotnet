@@ -1,0 +1,228 @@
+﻿@using Daisi.Razor.Components.Dialogs
+<div class="row">
+    <div class="col mt-1 mt-md-0"><h3>Apps</h3></div>
+    <div class="col-12 col-md-auto">
+        <div class="input-group">
+            <input class="form-control" @bind=searchTerm placeholder="Search Your Apps" />
+            <button class="btn btn-outline-success me-1" @onclick=RefreshAsync><i class="fa-duotone fa-search"></i></button>
+
+            <button class="btn btn-outline-success" @onclick=OnCreateDapp>
+                <i class="fa-duotone fa-plus"></i> Create App
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<div class="mt-3">
+    @if (DappsResponse is null)
+    {
+        <p>Loading Apps... </p>
+    }
+    else
+    {
+        if (DappsResponse.TotalCount == 0)
+        {
+            <div class="alert alert-warning">
+                Your account does not currently have any apps.
+            </div>
+        }
+        else
+        {
+            @foreach (var dapp in DappsResponse.Dapps)
+            {
+                <div class="card mb-3">
+                    <div class="card-header">
+                        @dapp.Name <button class="btn btn-default btn-sm p-0 mb-1" @onclick=@(async (_) => await OnEditName(dapp))><i class="fa-duotone fa-edit"></i></button>
+                        @if (dapp.DateApproved is null)
+                        {
+                            <span class="badge bg-danger float-end">NOT APPROVED</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success float-end">APPROVED</span>
+
+                        }
+                    </div>
+                    <div class="card-body">
+                        <div class="">
+                            <strong>App ID</strong>: @dapp.Id <button @onclick=@(async (_) => await OnCopyDappId(dapp)) class="btn btn-sm p-0 mb-1"><i class="fa-duotone fa-copy"></i></button>
+                        </div>
+                        <div class="mt-1">
+                            <strong>Secret Key</strong>: <span class="text-warning">secret-XXXXXXXXXXXXXX</span> <button @onclick=@(async (_) => await OnCopySecretKey(dapp)) class="btn btn-sm p-0 mb-1"><i class="fa-duotone fa-copy"></i></button> <button @onclick=@(async (_) => await OnResetSecretKey(dapp)) class="btn btn-sm p-0 mb-1"><i class="fa-duotone fa-refresh"></i></button>
+                        </div>
+                        <div class="mt-2">
+                            DAISI Networks: <span class="badge bg-success">DEVNET</span>
+                        </div>
+                        <div class="mt-2 float-start">
+                            Private Networks: None
+                        </div>
+                        <div class="mt-2 float-end">
+                            <a class="text-danger" href="#" @onclick:preventDefault @onclick=@(async (_) => await OnDeleteDapp(dapp))>Delete App</a>
+                        </div>
+                    </div>
+                </div>
+            }
+            <Daisi.Razor.Components.Pager.PagingComponent PageIndexChanged=OnPageIndexChanged TotalCount="DappsResponse.TotalCount" Paging="@Paging"></Daisi.Razor.Components.Pager.PagingComponent>
+        }
+    }
+</div>
+
+@code {
+    [Inject] public DappClientFactory DappClientFactory { get; set; }
+    [Inject] public IDialogService DialogService { get; set; }
+    [Inject] public IJSRuntime JS { get; set; }
+    [Inject] public IToastService ToastService { get; set; }
+
+    GetDappResponse? DappsResponse { get; set; }
+    PagingInfo Paging { get; set; } = new PagingInfo() { PageIndex = 0, PageSize = 10 };
+    string searchTerm = string.Empty;
+
+    protected async override Task OnInitializedAsync()
+    {
+        await RefreshAsync();
+    }
+    async Task OnCreateDapp()
+    {
+        var nameResponse = await DialogService.PromptAsync("New App Name", "Enter the name of your app.", Color.Success);
+        if (!string.IsNullOrWhiteSpace(nameResponse?.Trim()))
+        {
+            try
+            {
+                var client = DappClientFactory.Create();
+                var createResponse = await client.CreateAsync(new() { Name = nameResponse, Type = DappTypes.DappConsumer });
+                DappsResponse.Dapps.Insert(0, createResponse.Dapp);
+                ToastService.ShowSuccess($"{nameResponse} created successfully.");
+            }
+            catch (Exception exc)
+            {
+                ToastService.ShowError($"Error creating app: {exc.GetBaseException().Message}");
+            }
+        }
+    }
+    async Task OnDeleteDapp(Dapp dapp)
+    {
+        var confirmResponse = await DialogService.ConfirmAsync("Delete App", $"Are you sure that you want to delete the app named \"{dapp.Name}\". This is permanent and immediate.", Color.Error);
+        if (confirmResponse)
+        {
+            try
+            {
+                var client = DappClientFactory.Create();
+                var deleteResponse = await client.DeleteAsync(new DeleteDappRequest() { DappId = dapp.Id });
+                if (deleteResponse.Success)
+                {
+                    DappsResponse.Dapps.Remove(dapp);
+                    ToastService.ShowSuccess($"App deleted successfully.");
+                }
+                else
+                    ToastService.ShowError($"Error deleting app: {deleteResponse.Message}");
+
+            }
+            catch (Exception exc)
+            {
+                ToastService.ShowError($"Error deleting app: {exc.GetBaseException().Message}");
+            }
+        }
+    }
+    async Task OnEditName(Dapp dapp)
+    {
+        var nameResponse = await DialogService.PromptAsync("New App Name", "Enter the name of your app.", Color.Success, dapp.Name);
+        if (!string.IsNullOrWhiteSpace(nameResponse?.Trim()) && nameResponse?.Trim() != dapp.Name)
+        {
+            try
+            {
+                var client = DappClientFactory.Create();
+
+                var clone = dapp.Clone();
+
+                clone.Name = nameResponse;
+
+                var createResponse = await client.UpdateAsync(new() { Dapp = clone });
+
+                if (createResponse.Success)
+                {
+                    dapp.MergeFrom(clone);
+                    ToastService.ShowSuccess($"{nameResponse} updated successfully.");
+                }
+                else
+                    ToastService.ShowError($"Error creating app: {createResponse.Message}");
+
+            }
+            catch (Exception exc)
+            {
+                ToastService.ShowError($"Error creating app: {exc.GetBaseException().Message}");
+            }
+        }
+    }
+    async Task OnCopyDappId(Dapp dapp)
+    {
+        await CopyToClipboard(dapp.Id);
+        ToastService.ShowInfo($"{dapp.Name}'s ID was copied to your clipboard.");
+    }
+    async Task OnCopySecretKey(Dapp dapp)
+    {
+        try
+        {
+            var client = DappClientFactory.Create();
+            var response = await client.GetSecretKeyAsync(new() { DappId = dapp.Id });
+            if (string.IsNullOrWhiteSpace(response.SecretKey))
+            {
+                ToastService.ShowError("Error resetting secret key");
+            }
+            else
+            {
+                await CopyToClipboard(response.SecretKey);
+                ToastService.ShowInfo($"{dapp.Name}'s Secret Key was copied to your clipboard.");
+            }
+        }
+        catch (Exception exc)
+        {
+            ToastService.ShowError($"Error resetting secret key: {exc.GetBaseException().Message}");
+
+        }
+    }
+    async Task OnResetSecretKey(Dapp dapp)
+    {
+        var confirmed = await DialogService.ConfirmAsync("Reset Secret Key?", "Are you sure that you want to reset the secret key for this app? All use of the current key will become invalid, including any client keys produced using the key.");
+
+        if (confirmed)
+        {
+            try
+            {
+                var client = DappClientFactory.Create();
+                var response = await client.ResetAsync(new() { DappId = dapp.Id });
+                if (string.IsNullOrWhiteSpace(response.SecretKey))
+                {
+                    ToastService.ShowError("Error resetting secret key");
+                }
+                else
+                {
+                    await CopyToClipboard(response.SecretKey);
+                    var mb = await DialogService.ShowMessageBox("New Secret Key", $"Your key has been reset to {response.SecretKey}. The key was copied to your clipboard.");
+                }
+            }
+            catch (Exception exc)
+            {
+                ToastService.ShowError($"Error resetting secret key: {exc.GetBaseException().Message}");
+
+            }
+        }
+    }
+    async Task CopyToClipboard(string text)
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
+    }
+    async Task RefreshAsync()
+    {
+        DappsResponse = null;
+
+        var client = DappClientFactory.Create();
+        Paging.SearchTerm = searchTerm ?? string.Empty;
+        DappsResponse = await client.GetAsync(new() { Paging = Paging });
+    }
+    async Task OnPageIndexChanged(int pageIndex)
+    {
+        Paging.PageIndex = pageIndex;
+        await RefreshAsync();
+    }
+}

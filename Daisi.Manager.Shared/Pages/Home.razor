@@ -1,0 +1,84 @@
+﻿@page "/"
+@using Daisi.Manager.Shared.Services
+
+@inject IFormFactor FormFactor
+
+<PageTitle>DAISI Manager</PageTitle>
+
+<div class="row">
+    <div class="col-12 col-md-8 py-5">
+        <h1><i class="fa-duotone fa-computer"></i> Let's Plan Some DAISI Hosts</h1>
+        <p>It takes very little time to start earning, so let's get started now.</p>
+
+        <a class="btn btn-primary" href="/hosts/setup">Setup A Host</a>
+        <a class="btn btn-primary" href="/hosts/">Host Management</a>
+
+        <hr class="my-5" />
+
+        <h2><i class="fa-duotone fa-comments"></i> Chat For Free</h2>
+        <p>With your own hosts, you always chat for free. It's easy to use and saves tons vs paying the other guys.</p>
+
+        <a class="btn btn-primary" href="/chats">Chat Now</a>
+
+        <hr class="my-5" />
+
+        <h2><i class="fa-duotone fa-robot"></i> Earn More With Agent Workflows</h2>
+        <div class="alert alert-info">Coming Soon</div>
+        <p>Did you know that you can create your own agents and workflows and sell them to others? It's an agent marketplace where the best prompts win!</p>
+
+        <a class="btn btn-primary" href="/agents/create">Create An Agent</a>
+        <a class="btn btn-primary" href="/agents">Search Agents</a>
+
+        <hr class="my-5" />
+
+        <h2><i class="fa-duotone fa-diagram-project"></i> Stay Organized With Projects</h2>
+        <div class="alert alert-info">Coming Soon</div>
+        <p>Need a place to keep related chat threads and files? Look no further than a DAISI project. Relate files and keep a collaborative history of your chats within that project.</p>
+
+        <a class="btn btn-primary" href="/projects/create">Start A Project</a>
+        <a class="btn btn-primary" href="/projects">View Your Projects</a>
+
+        <hr class="my-5" />
+
+        <h2><i class="fa-duotone fa-files"></i> Secure and Dependable File Storage</h2>
+        <div class="alert alert-info">Coming Soon</div>
+        <p>Your files are always encrypted and split among multiple hosts so that no one host has the whole file until you release it to them. Our algorithm makes sure that you can always access your files, even if numerous hosts go offline.</p>
+
+        <a class="btn btn-primary" href="/docs/files">Learn More</a>
+        <a class="btn btn-primary" href="/files">View Your Files</a>
+
+    </div>
+    <div class="col bg-dark-subtle border-start py-4 vh-100">
+        <h3 class="py-4">Need Some Help?</h3>
+        <div class="border rounded p-4 bg-light-subtle mt-2">
+            <h4 class="text-light"><i class="fa-duotone fa-book-sparkles"></i> Documentation</h4>
+            <p>Learn more about how to use Daisi Manager and its features.</p>
+            <a href="https://daisi.ai/learn/sdk" target="_blank" class="btn btn-outline-warning">Read Docs</a>
+            <a href="https://github.com/daisinet" target="_blank" class="btn btn-outline-warning">Repos</a>
+        </div>
+        <div class="border rounded p-4 bg-light-subtle mt-4">
+            <h4 class="text-light"><i class="fa-duotone fa-webhook"></i> SDK Access</h4>
+            <p>Daisi was built to be used by developers! We have an SDK for DotNet. We have a path to produce them for Python and TypeScript as well. </p>
+            <a href="https://daisi.ai/downloads" target="_blank" class="btn btn-outline-warning">Get An SDK</a>
+        </div>
+        <div class="border rounded p-4 bg-light-subtle mt-4">
+            <h4 class="text-light"><i class="fa-duotone fa-newspaper"></i> News and Social Media</h4>
+            <p>Keep up to date with everything going on in the DAISI network. Follow us!</p>
+            <a href="https://daisi.ai/news" target="_blank" class="btn btn-outline-warning">Latest News</a>
+            <a href="https://x.com/daisinet" target="_blank" class="btn btn-outline-warning"><i class="fa-brands fa-x-twitter"></i></a>
+            <a href="https://linkedin.com/company/daisinet" target="_blank" class="btn btn-outline-warning"><i class="fa-brands fa-linkedin"></i></a>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    private string factor => FormFactor.GetFormFactor();
+    private string platform => FormFactor.GetPlatform();
+
+    protected override Task OnParametersSetAsync()
+    {
+        return base.OnParametersSetAsync();
+    }
+
+}

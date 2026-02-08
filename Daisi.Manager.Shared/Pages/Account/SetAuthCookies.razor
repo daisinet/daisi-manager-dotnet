@@ -1,0 +1,26 @@
+﻿@page "/account/setauthcookies"
+@using Daisi.Manager.Shared.Services
+@using Microsoft.AspNetCore.Http
+@layout BlankLayout
+@inject NavigationManager nav
+
+@code {
+	[Inject] AuthService AuthService { get; set; }
+	[Inject] NavigationManager Navigation { get; set; }
+	[Inject] IHttpContextAccessor HttpContextAccessor { get; set; }
+	[SupplyParameterFromQuery] public string accountName { get; set; }
+	[SupplyParameterFromQuery] public string userName { get; set; }
+	[SupplyParameterFromQuery] public string clientKey { get; set; }
+	[SupplyParameterFromQuery] public string keyExpiration { get; set; }
+	[SupplyParameterFromQuery] public string returnUrl { get; set; }
+
+	protected async override Task OnParametersSetAsync()
+	{
+
+
+	}
+	protected async override Task OnInitializedAsync()
+	{
+		Navigation.NavigateTo(returnUrl ?? "/");
+	}
+}

@@ -1,0 +1,32 @@
+﻿<div class="alert alert-info mt-4">
+    We are still working on this dashboard. It's just a placeholder for now.
+</div>
+<div class="mt-3">
+    <div class="row mt-5">
+        <div class="col">
+            <MudSkeleton />
+            <MudSkeleton SkeletonType="SkeletonType.Circle" Width="50px" Height="50px" />
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="110px" />
+        </div>
+        <div class="col">
+            <MudSkeleton />
+            <MudSkeleton SkeletonType="SkeletonType.Circle" Width="50px" Height="50px" />
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="110px" />
+        </div>
+    </div>
+    <div class="row mt-5">
+        <div class="col">
+            <MudSkeleton />
+            <MudSkeleton SkeletonType="SkeletonType.Circle" Width="50px" Height="50px" />
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="110px" />
+        </div>
+        <div class="col">
+            <MudSkeleton />
+            <MudSkeleton SkeletonType="SkeletonType.Circle" Width="50px" Height="50px" />
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="110px" />
+        </div>
+    </div>
+</div>
+@code {
+    [Parameter] public Host SelectedHost { get; set; }
+}

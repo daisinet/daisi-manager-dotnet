@@ -1,0 +1,148 @@
+﻿@using Daisi.Manager.Shared.Services
+@inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
+@if (isAuthenticated)
+{
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+        <div class="@(FormFactor.GetFormFactor() == "Desktop" ? "container-fluid" : "container")">
+            <a class="navbar-brand me-md-4" href="/">
+                <img src="_content/Daisi.Manager.Shared/img/daisi-logo-color-white@@4x.png" height="25" />
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item me-md-3">
+                        <NavLink class="nav-link" href="hosts">
+                            <span class="fa-duotone fa-computer" aria-hidden="true"></span> Hosts
+                        </NavLink>
+                    </li> 
+                    <li class="nav-item me-md-3">
+                        <NavLink class="nav-link" href="account/manage">
+                            <span class="fa-duotone fa-user" aria-hidden="true"></span> Account
+                        </NavLink>
+                    </li>
+                    @* <li class="nav-item me-md-3">
+                        <NavLink class="nav-link" href="chats">
+                            <span class="fa-duotone fa-comments" aria-hidden="true"></span> Chats
+                        </NavLink>
+                    </li>
+                   <li class="nav-item me-md-3">
+					<NavLink class="nav-link" href="agents">
+						<span class="fa-duotone fa-robot" aria-hidden="true"></span> Agents
+					</NavLink>
+				</li> 
+                    <li class="nav-item me-md-3">
+                        <NavLink class="nav-link" href="projects">
+                            <span class="fa-duotone fa-diagram-project" aria-hidden="true"></span> Projects
+                        </NavLink>
+                    </li>
+                    <li class="nav-item me-md-3">
+                        <NavLink class="nav-link" href="files">
+                            <span class="fa-duotone fa-files" aria-hidden="true"></span> Files
+                        </NavLink>
+                    </li>*@
+
+                </ul>
+                <div class="d-flex">
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="fa-duotone fa-user" aria-hidden="true"></span> @(UserName ?? "ACCOUNT")
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            @* <li><a class="dropdown-item" href="/account/manage">Manage Account</a></li> *@
+                            <li><a class="dropdown-item" href="#" @onclick:preventDefault @onclick=@((_) => NavigationManager.NavigateTo("/account/logout", true))>Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+                @* <form class="d-flex" role="search">
+                <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" />
+                <button class="btn btn-outline-success" type="submit">Search</button>
+            </form> *@
+            </div>
+
+        </div>
+    </nav>
+
+
+    <div class="@(FormFactor.GetFormFactor() == "Desktop" ? "container-fluid" : "container")">
+        <CascadingValue Name="IsAuthenticated" Value="isAuthenticated">
+            @if (isAuthenticated)
+            {
+                @Body
+            }
+        </CascadingValue>
+    </div>
+
+    <nav class="navbar navbar-expand-md bg-body-tertiary d-none d-md-block">
+        <div class="@(FormFactor.GetFormFactor() == "Desktop" ? "container-fluid" : "container")">
+            <a class="navbar-brand" href="#">&copy; @DateTime.UtcNow.Year Distributed AI Systems, Inc. All Rights Reserved.</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavBottom" aria-controls="navbarNavBottom" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNavBottom">
+                <ul class="navbar-nav">
+                    <li class="nav-item me-md-3">
+                        <a class="nav-link" href="https://daisi.ai/learn" target="_blank">Documentation</a>
+                    </li>
+                    <li class="nav-item me-md-3">
+                        <a class="nav-link" href="https://daisi.ai/learn/sdk" target="_blank">SDK Reference</a>
+                    </li>
+                    <li class="nav-item me-md-3">
+                        <a class="nav-link" href="https://daisi.ai/news" target="_blank">Articles</a>
+                    </li>
+                    <li class="nav-item me-md-3">
+                        <a class="nav-link" href="https://x.com/daisinet" target="_blank"><i class="fa-brands fa-x-twitter"></i></a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+}
+<BlazoredToasts />
+@* Required *@
+<MudThemeProvider IsDarkMode="true" />
+<MudPopoverProvider />
+
+@* Needed for dialogs *@
+<MudDialogProvider />
+
+@* Needed for snackbars *@
+<MudSnackbarProvider />
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    [Inject] IFormFactor FormFactor { get; set; }
+    [Inject] AuthService auth { get; set; }
+
+    string UserName;
+    bool isAuthenticated = false;
+
+    protected async override Task OnInitializedAsync()
+    {
+        try
+        {
+            isAuthenticated = await auth.IsAuthenticatedAsync();
+            if (!isAuthenticated)
+            {
+                NavigationManager.NavigateTo("/account/login?returnUrl=" + Uri.EscapeDataString(NavigationManager.Uri), true);
+            }
+            else
+            {
+                UserName = await auth.GetUserNameAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            //await auth.LogoutAsync();
+            Console.WriteLine($"Error during authentication check: {ex.Message}");
+            NavigationManager.NavigateTo("/account/logout", true);
+        }
+    }
+}

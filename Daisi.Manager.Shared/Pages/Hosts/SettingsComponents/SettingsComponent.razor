@@ -1,0 +1,183 @@
+﻿@using Daisi.SDK.Interfaces
+@using Daisi.SDK.Interfaces.Authentication
+@if (!string.IsNullOrWhiteSpace(message))
+{
+    <div class="alert alert-danger bg-danger text-white">
+        @message
+    </div>
+}
+<h3 class="mt-3">
+    Orc Settings
+</h3>
+<div>
+    <p><strong>Status:</strong> <i class="fa-duotone fa-computer me-1 @GetStatusClass(SelectedHost)"></i> @SelectedHost.Status</p>
+    @if (SelectedHost.Status != HostStatus.Unknown && !string.IsNullOrWhiteSpace(SelectedHost.IpAddress))
+    {
+        <p><strong>IP Address:</strong> @SelectedHost.IpAddress : @SelectedHost.Port</p>
+    }
+    @if (SelectedHost.OperatingSystem != null)
+    {
+        <p><strong>Operating System:</strong> @SelectedHost.OperatingSystem</p>
+    }
+    @if (SelectedHost.Region != null)
+    {
+        <p><strong>Region:</strong> @SelectedHost.Region</p>
+    }
+    @if (SelectedHost.DateLastHeartbeat != null)
+    {
+        <p><strong>Last Heartbeat:</strong> @SelectedHost.DateLastHeartbeat.ToDateTime().ToString("g")</p>
+    }
+    @if (SelectedHost.DateLastSession != null)
+    {
+        <p><strong>Last Session:</strong> @SelectedHost.DateLastSession.ToDateTime().ToString("g")</p>
+    }
+
+
+
+    <div class="mt-3">
+        @if (SelectedHost.DateStarted != null)
+        {
+            <p><strong>Date Started:</strong> @SelectedHost.DateStarted.ToDateTime().ToString("g")</p>
+            <p><strong>Uptime:</strong> @((DateTime.UtcNow - SelectedHost.DateStarted.ToDateTime()).ToString(@"dd\:hh\:mm\:ss"))</p>
+        }
+        @if (SelectedHost.DateStopped != null)
+        {
+            <p><strong>Date DateStopped:</strong> @SelectedHost.DateStopped.ToDateTime().ToString("g")</p>
+        }
+    </div>
+    <div class="mt-3">
+        <p><strong>Connection Types:</strong></p>
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="switchCheckChecked" checked="@SelectedHost.DirectConnect" @onchange="OnDirectConnectChanged">
+            <label class="form-check-label" for="switchCheckChecked">Allow <InfoLink Contents="Direct Connect is the fastest way for consumers to connect with your host, bypassing full orchestration. Requires setup." Text="Direct Connect"></InfoLink></label>
+        </div>
+    </div>
+    @if (SelectedHost.DirectConnect)
+    {
+        <div class="mt-3">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="switchCheckChecked" checked="@SelectedHost.PeerConnect" @onchange="OnPeerConnectChanged">
+                <label class="form-check-label" for="switchCheckChecked">Allow <InfoLink Contents="Peer Connect allows other hosts to connect directly to you to share workload. Direct Connect must be enabled to use Peer Connect." Text="Peer Connect"></InfoLink></label>
+            </div>
+        </div>
+    }
+
+    @if (SelectedHost.DateStarted == null)
+    {
+        <div class="mt-5">
+            <h4>Your host is nearly ready to start earning, but first you need to login to this portal on the device that will act as the host and install the host app.</h4>
+            <a href="/hosts/downloads" class="btn btn-success mt-2"><i class="fa-duotone fa-download"></i> Download DAISI Host Installer</a>
+        </div>
+    }
+</div>
+@if (loadingSettings)
+{
+    <div class="alert alert-info mt-4">Loading Settings</div>
+}
+else if (Settings is not null)
+{
+    <h3 class="mt-5">@SelectedHost.Name Local Settings</h3>
+    <div class="mt-4">
+        <LocalSettingsComponent Settings=@Settings SaveSettings=@OnSaveSettings></LocalSettingsComponent>
+    </div>
+}
+
+@code {
+    Host _selectedHost;
+    [Parameter] public Host SelectedHost { get { return _selectedHost; } set { _selectedHost = value; StateHasChanged(); } }
+    [Inject] public HostClientFactory HostClientFactory { get; set; }
+    [Inject] public SettingsClientFactory SettingClientFactory { get; set; }
+    [Inject] public IToastService ToastService { get; set; }
+    [Inject] public IClientKeyProvider ClientKeyProvider { get; set; }
+    bool loadingSettings = false;
+    Daisi.Protos.V1.Settings Settings { get; set; }
+    string message = default!;
+    protected async override Task OnInitializedAsync()
+    {
+        // await ResetSelectedHost();
+    }
+    protected override async Task OnParametersSetAsync()
+    {
+        await ResetSelectedHost();
+    }
+    async Task ResetSelectedHost()
+    {
+        Settings = default!;
+        message = default!;
+
+
+
+        if (SelectedHost.Status == HostStatus.Online)
+        {
+            await RefreshSelectedHostSettings();
+        }
+        else
+        {
+            message = "You cannot update the host's local settings when it is offline.";
+        }
+    }
+    async Task OnSaveSettings(Settings settings)
+    {
+        loadingSettings = true;
+
+        var client = SettingClientFactory.Create(SelectedHost.Id);
+        var response = await client.SetAllAsync(new() { Settings = settings });
+        ToastService.ShowSuccess("Settings Set On Host");
+
+        SelectedHost.Name = settings.Host.Name;
+
+        await SaveSelectedHostToDb();
+
+        loadingSettings = false;
+
+    }
+    async Task SaveSelectedHostToDb()
+    {
+        var hostClient = HostClientFactory.Create();
+        var hostUpdateResponse = await hostClient.UpdateAsync(new() { Host = SelectedHost });
+
+        if (!hostUpdateResponse.Success)
+        {
+            message = $"Could not update host on server: {hostUpdateResponse.Message}";
+        }
+        ToastService.ShowSuccess("Settings Saved to DAISI Server");
+    }
+    async Task RefreshSelectedHostSettings()
+    {
+        loadingSettings = true;
+        try
+        {
+            var client = SettingClientFactory.Create(SelectedHost.Id);
+            var response = await client.GetAllAsync();
+            Settings = response.Settings;
+        }
+        catch (Exception exc)
+        {
+            message = $"Error loading settings: {exc.GetBaseException().Message}";
+        }
+
+        loadingSettings = false;
+
+    }
+    async Task OnDirectConnectChanged(ChangeEventArgs e)
+    {
+        SelectedHost.DirectConnect = e.Value?.ToString()?.ToLower() == "true";
+        await SaveSelectedHostToDb();
+    }
+    async Task OnPeerConnectChanged(ChangeEventArgs e)
+    {
+        SelectedHost.PeerConnect = e.Value?.ToString()?.ToLower() == "true";
+        await SaveSelectedHostToDb();
+
+    }
+
+    string GetStatusClass(Host host)
+    {
+        return host.Status switch
+        {
+            HostStatus.Online => "text-success",
+            HostStatus.Offline => "text-danger",
+            _ => "text-secondary"
+        };
+    }
+}

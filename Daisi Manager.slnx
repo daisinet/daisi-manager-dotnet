@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/Manager/">
+    <Project Path="Daisi.Manager.Maui/Daisi.Manager.Maui.csproj" />
+    <Project Path="Daisi.Manager.Shared/Daisi.Manager.Shared.csproj" />
+    <Project Path="Daisi.Manager.Web/Daisi.Manager.Web.csproj" />
+  </Folder>
+  <Folder Name="/SDK/">
+    <Project Path="../daisi-sdk-dotnet/Daisi.SDK.Razor/Daisi.SDK.Razor.csproj" />
+    <Project Path="../daisi-sdk-dotnet/Daisi.SDK.Web/Daisi.SDK.Web.csproj" />
+    <Project Path="../daisi-sdk-dotnet/Daisi.SDK/Daisi.SDK.csproj" />
+  </Folder>
+</Solution>

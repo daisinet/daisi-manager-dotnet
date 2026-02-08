@@ -1,0 +1,11 @@
+﻿@if (Online)
+{
+    <img src="_content/Daisi.Manager.Shared/img/logomark/daisi-logomark-light.svg" style="filter: invert(42%) sepia(93%) saturate(1352%) hue-rotate(87deg) brightness(119%) contrast(119%);" height="16" class="me-2 mb-1" />
+}
+else
+{
+    <img src="_content/Daisi.Manager.Shared/img/logomark/daisi-logomark-light.svg" style="filter: brightness(0) saturate(100%) invert(19%) sepia(52%) saturate(6816%) hue-rotate(354deg) brightness(100%) contrast(124%);" height="16" class="me-2 mb-1" />
+}
+@code {
+    [Parameter] public bool Online { get; set; } = false;
+}

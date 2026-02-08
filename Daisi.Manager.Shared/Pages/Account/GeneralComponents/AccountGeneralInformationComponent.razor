@@ -1,0 +1,55 @@
+﻿<h3>General Information</h3>
+@if (AccountResponse is not null && AccountResponse.Account is not null)
+{
+    <div class="mt-3">
+        <label class="fw-bold">Account Name *</label>
+        <p>
+            This is the legal account name that will be paid out for hosting and that will be responsible for billing. 
+            Can be a company or an individual.
+        </p>
+        <input class="form-control" @bind=AccountResponse.Account.Name placeholder="(required)" />
+    </div>
+    <div class="mt-3">
+        <label class="fw-bold">Account Tax ID *</label>
+        <p>
+            This is the legal identifier for the account name listed above.
+            Can be a company or an individual. <strong>Limited to US Citizens SSNs or US Corporation EINs</strong> at this time.
+        </p>
+        <input class="form-control" @bind=AccountResponse.Account.TaxId placeholder="@(AccountResponse.HasTaxId ? "*** already provided ***" : "(required for payouts)")" />
+    </div>
+    <div class="mt-3">
+        <button class="btn btn-primary" @onclick=OnSave>Save General Info</button>
+    </div>
+
+}
+else
+{
+    <p>Loading Account... </p>
+}
+@code {
+    public GetAccountResponse AccountResponse { get; set; }
+
+    [Inject] public AccountClientFactory AccountClientFactory { get; set; }
+    [Inject] public IToastService ToastService { get; set; }
+
+    protected async override Task OnInitializedAsync()
+    {
+        var client = AccountClientFactory.Create();
+        AccountResponse = await client.GetAsync(new());
+    }
+
+    async Task OnSave()
+    {
+        var client = AccountClientFactory.Create();
+        var updateAccountResponse = await client.UpdateAsync(new() { Account = AccountResponse.Account });
+        if (updateAccountResponse.Success)
+        {
+            ToastService.ShowSuccess("Account updated successfully.");
+        }
+        else
+        {
+            ToastService.ShowError($"An Error occurred while updating your account. {updateAccountResponse.Message}");
+
+        }
+    }
+}

@@ -1,0 +1,95 @@
+﻿<h3>Model Settings</h3>
+<div class="form mt-4">
+	<div class="">
+		<label class="fw-bold">Model Folder Path</label>
+		<input class="form-control" @bind="Settings.Model.ModelFolderPath" />
+	</div>
+	<div class="mt-3">
+		<label class="fw-bold">GPU/CPU Runtimes</label>
+		<select class="form-control" value="@(((int)Settings.Model.LLama.Runtime).ToString())">
+			<option value="0">Auto-Detect</option>
+			<option value="1">CUDA</option>
+			<option value="2">Vulkan</option>
+			<option value="3">AVX</option>
+			<option value="4">AVX2</option>
+			<option value="5">AVX512</option>
+		</select>
+	</div>
+	<div class="mt-3">
+		<label class="fw-bold">Skip Runtime Check</label>
+		<p>Determines whether the host will try to check that the runtime selected is correct. Usually, you want to allow the check to occur to avoid runtime issues.</p>
+		<MudSwitch @bind-Value="Settings.Model.LLama.SkipCheck" Color="Color.Success" UncheckedColor="Color.Secondary" Label="@(Settings.Model.LLama.SkipCheck ? "Skips the runtime check" : "Performs the runtime check (default)")"></MudSwitch>
+	</div>
+	<div class="mt-3">
+		<label class="fw-bold">Logging</label>
+		<p>When using the console application, the system can show verbose logs from the LLM engine.</p>
+		<MudSwitch @bind-Value="Settings.Model.LLama.ShowLogs" Color="Color.Success" UncheckedColor="Color.Secondary" Label="@(Settings.Model.LLama.ShowLogs ? "Logs are shown" : "Logs are limited")"></MudSwitch>
+	</div>
+	<div class="mt-3">
+		<label class="fw-bold">Context Size <code>@Settings.Model.LLama.ContextSize</code></label>
+		<p>Sets the context size for the LLM engine. The default value is <code>1024</code>.</p>
+		<MudSlider T="uint" Min="256" Max="10240" Step="1" @bind-Value="Settings.Model.LLama.ContextSize"></MudSlider>
+	</div>
+	<div class="mt-3">
+		<label class="fw-bold">GPU Layer Count <code>@Settings.Model.LLama.GpuLayerCount</code></label>
+        <p>This sets the number of layers (or processors) that the GPC can use. The default is <code>-1</code>, which will use all available.</p>
+		<MudSlider T="int" Min="-1" Max="100" Step="1" @bind-Value="Settings.Model.LLama.GpuLayerCount"></MudSlider>
+	</div>
+	<div class="mt-3">
+		<label class="fw-bold">Batch Size <code>@Settings.Model.LLama.BatchSize</code></label>
+		<p>This sets the size for each batch that is processed by the Host. The default value is <code>128</code>.</p>
+		<MudSlider T="uint" Min="64" Max="512" Step="1" @bind-Value="Settings.Model.LLama.BatchSize"></MudSlider>
+	</div>
+	<div class="mt-5">
+		<table class="table">
+			<thead>
+				<tr>
+					<th>Model Name</th>
+					<th class="text-center"><InfoLink Contents="If a model is enabled, it means that a consumer can request this model for chats to be run." Title="What Does Enabled Mean?" Text="Enabled"></InfoLink></th>
+					<th class="text-center"><InfoLink Contents="If checked, the host will load this model on startup. If unchecked, the model can still be used, but will be loaded one time at the time of first request." Title="Load On Start" Text="Load On Start"></InfoLink></th>
+					<th class="text-center">Is Default</th>
+				</tr>
+			</thead>
+			<tbody>
+				@foreach (var model in Settings.Model.Models.OrderBy(m => m.Name))
+				{
+					var tmpModel = model;
+
+					<tr>
+						<td>@model.Name</td>
+						<td class="text-center">
+							<input type="checkbox" @bind="model.Enabled" />
+						</td>
+						<td class="text-center">
+							<input type="checkbox" @bind="model.LoadAtStartup" />
+						</td>
+						<td class="text-center">
+							@if (model.IsDefault)
+							{
+								<span class="badge bg-primary">Default</span>
+							}
+							else if (model.Enabled)
+							{
+								<button class="btn btn-sm btn-outline-primary" @onclick="() => OnSetToDefault(tmpModel)">Set as Default</button>
+							}
+
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+</div>
+@code {
+	[Parameter] public Settings Settings { get; set; }
+
+	void OnSetToDefault(AIModel model)
+	{
+		foreach (var m in Settings.Model.Models)
+		{
+			m.IsDefault = false;
+		}
+		model.IsDefault = true;
+	}
+
+}
