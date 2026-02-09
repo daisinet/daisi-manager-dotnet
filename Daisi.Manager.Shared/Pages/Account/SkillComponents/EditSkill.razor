@@ -1,0 +1,184 @@
+@page "/account/manage/skills/new"
+@page "/account/manage/skills/{Id}"
+@using Daisi.Orc.Core.Data.Db
+@using Daisi.Orc.Core.Data.Models.Skills
+@using Daisi.Manager.Shared.Services
+
+<h2>@(IsEdit ? "Edit Skill" : "Create New Skill")</h2>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="mb-3">
+            <label class="form-label">Skill Name</label>
+            <input type="text" class="form-control" @bind="_skill.Name" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Short Description</label>
+            <input type="text" class="form-control" @bind="_skill.ShortDescription" maxlength="120" />
+            <small class="text-muted">Max 120 characters</small>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Version</label>
+            <input type="text" class="form-control" @bind="_skill.Version" style="max-width: 200px;" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Full Description (Markdown)</label>
+            <textarea class="form-control" rows="8" @bind="_skill.Description"></textarea>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Tags (comma-separated)</label>
+            <input type="text" class="form-control" @bind="_tagsInput" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Required Tool Groups</label>
+            @foreach (var group in _allToolGroups)
+            {
+                var isChecked = _skill.RequiredToolGroups.Contains(group);
+                var isElevated = _elevatedGroups.Contains(group);
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" checked="@isChecked"
+                           @onchange="@(e => ToggleToolGroup(group, (bool)(e.Value ?? false)))" />
+                    <label class="form-check-label">
+                        @group
+                        @if (isElevated)
+                        {
+                            <span class="badge bg-warning text-dark ms-1">Elevated</span>
+                        }
+                    </label>
+                </div>
+            }
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">System Prompt Template</label>
+            <textarea class="form-control" rows="6" @bind="_skill.SystemPromptTemplate"
+                      placeholder="The prompt injected when this skill is active..."></textarea>
+            <small class="text-muted">This prompt will be added to the agent's system prompt when this skill is enabled.</small>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Visibility</label>
+            <select class="form-select" @bind="_skill.Visibility">
+                <option value="Private">Private (your account only)</option>
+                <option value="Public">Public (requires DAISI employee approval)</option>
+            </select>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <button class="btn btn-primary" @onclick="SaveAsync" disabled="@_saving">
+                @if (_saving) { <span class="spinner-border spinner-border-sm"></span> }
+                Save
+            </button>
+
+            @if (IsEdit && _skill.Status is "Draft" or "Rejected" && _skill.Visibility == "Public")
+            {
+                <button class="btn btn-warning" @onclick="SubmitForReviewAsync">Submit for Review</button>
+            }
+
+            <a href="/account/manage/skills" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="alert alert-danger mt-3">@_error</div>
+        }
+        @if (!string.IsNullOrEmpty(_success))
+        {
+            <div class="alert alert-success mt-3">@_success</div>
+        }
+
+        @if (IsEdit && !string.IsNullOrEmpty(_skill.RejectionReason))
+        {
+            <div class="alert alert-warning mt-3">
+                <strong>Rejection Reason:</strong> @_skill.RejectionReason
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? Id { get; set; }
+
+    [Inject] public Cosmo Cosmo { get; set; } = default!;
+    [Inject] public AuthService AuthService { get; set; } = default!;
+    [Inject] public NavigationManager Navigation { get; set; } = default!;
+
+    private bool IsEdit => !string.IsNullOrEmpty(Id);
+    private Skill _skill = new();
+    private string _tagsInput = string.Empty;
+    private bool _saving;
+    private string _error = string.Empty;
+    private string _success = string.Empty;
+
+    private static readonly string[] _allToolGroups =
+        ["InformationTools", "FileTools", "MathTools", "CommunicationTools", "CodingTools", "MediaTools", "IntegrationTools", "SocialTools"];
+
+    private static readonly HashSet<string> _elevatedGroups = ["FileTools", "CommunicationTools", "IntegrationTools"];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsEdit)
+        {
+            var skill = await Cosmo.GetSkillByIdAsync(Id!);
+            if (skill is not null)
+            {
+                _skill = skill;
+                _tagsInput = string.Join(", ", skill.Tags);
+            }
+        }
+    }
+
+    private void ToggleToolGroup(string group, bool enabled)
+    {
+        if (enabled && !_skill.RequiredToolGroups.Contains(group))
+            _skill.RequiredToolGroups.Add(group);
+        else if (!enabled)
+            _skill.RequiredToolGroups.Remove(group);
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        _error = string.Empty;
+        _success = string.Empty;
+
+        try
+        {
+            _skill.AccountId = await AuthService.GetAccountIdAsync() ?? string.Empty;
+            _skill.Author = await AuthService.GetUserNameAsync() ?? string.Empty;
+            _skill.Tags = _tagsInput.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(t => t.Trim()).Where(t => !string.IsNullOrEmpty(t)).ToList();
+
+            if (IsEdit)
+            {
+                await Cosmo.UpdateSkillAsync(_skill);
+                _success = "Skill updated successfully.";
+            }
+            else
+            {
+                await Cosmo.CreateSkillAsync(_skill);
+                _success = "Skill created successfully.";
+                Navigation.NavigateTo("/account/manage/skills");
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+
+        _saving = false;
+    }
+
+    private async Task SubmitForReviewAsync()
+    {
+        _skill.Status = "PendingReview";
+        _skill.UpdatedAt = DateTime.UtcNow;
+        await Cosmo.UpdateSkillAsync(_skill);
+        _success = "Skill submitted for review.";
+    }
+}

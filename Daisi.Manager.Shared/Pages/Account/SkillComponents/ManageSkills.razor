@@ -1,0 +1,116 @@
+@page "/account/manage/skills"
+@using Daisi.Orc.Core.Data.Db
+@using Daisi.Orc.Core.Data.Models.Skills
+@using Daisi.Manager.Shared.Services
+
+<h2>Skills</h2>
+<p class="text-muted">Manage your bot skills. Create private skills for your account or submit public skills for review.</p>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div></div>
+    <a href="/account/manage/skills/new" class="btn btn-primary">
+        <i class="fa-duotone fa-plus me-1"></i> New Skill
+    </a>
+</div>
+
+@if (_loading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (_skills.Count == 0)
+{
+    <div class="alert alert-info">
+        No skills yet. Create your first skill to get started.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Version</th>
+                    <th>Status</th>
+                    <th>Visibility</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var skill in _skills)
+                {
+                    <tr>
+                        <td><strong>@skill.Name</strong></td>
+                        <td>@skill.Version</td>
+                        <td>
+                            <span class="badge @GetStatusBadge(skill.Status)">@skill.Status</span>
+                        </td>
+                        <td>@skill.Visibility</td>
+                        <td>@skill.CreatedAt.ToString("MMM d, yyyy")</td>
+                        <td>
+                            <a href="/account/manage/skills/@skill.Id" class="btn btn-sm btn-outline-primary me-1">Edit</a>
+                            @if (skill.Status is "Draft" or "Rejected" && skill.Visibility == "Public")
+                            {
+                                <button class="btn btn-sm btn-outline-warning" @onclick="@(() => SubmitForReview(skill))">
+                                    Submit for Review
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (_isEmployee)
+{
+    <hr />
+    <h3>
+        <i class="fa-duotone fa-shield-check me-2"></i> Skill Reviews
+        <a href="/account/manage/skills/reviews" class="btn btn-sm btn-outline-info ms-2">View Review Queue</a>
+    </h3>
+}
+
+@code {
+    [Inject] public Cosmo Cosmo { get; set; } = default!;
+    [Inject] public AuthService AuthService { get; set; } = default!;
+
+    private List<Skill> _skills = [];
+    private bool _loading = true;
+    private bool _isEmployee;
+    private string _accountId = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _accountId = await AuthService.GetAccountIdAsync() ?? string.Empty;
+        if (!string.IsNullOrEmpty(_accountId))
+        {
+            var userName = await AuthService.GetUserNameAsync();
+            _isEmployee = !string.IsNullOrEmpty(userName) &&
+                          userName.EndsWith("@daisi.ai", StringComparison.OrdinalIgnoreCase);
+            _skills = await Cosmo.GetSkillsByAccountAsync(_accountId);
+        }
+        _loading = false;
+    }
+
+    private async Task SubmitForReview(Skill skill)
+    {
+        skill.Status = "PendingReview";
+        skill.UpdatedAt = DateTime.UtcNow;
+        await Cosmo.UpdateSkillAsync(skill);
+        _skills = await Cosmo.GetSkillsByAccountAsync(_accountId);
+    }
+
+    private static string GetStatusBadge(string status) => status switch
+    {
+        "Draft" => "bg-secondary",
+        "PendingReview" => "bg-warning text-dark",
+        "Approved" => "bg-success",
+        "Rejected" => "bg-danger",
+        _ => "bg-secondary"
+    };
+}

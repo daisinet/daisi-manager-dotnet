@@ -1,0 +1,207 @@
+@page "/account/manage/skills/reviews/{Id}"
+@using Daisi.Orc.Core.Data.Db
+@using Daisi.Orc.Core.Data.Models.Skills
+@using Daisi.Manager.Shared.Services
+
+<h2><i class="fa-duotone fa-shield-check me-2"></i> Review Skill</h2>
+
+@if (!_isEmployee)
+{
+    <div class="alert alert-warning">
+        <strong>Access Denied.</strong> Only DAISI employees can review skills.
+    </div>
+}
+else if (_skill is null)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card bg-dark mb-4">
+                <div class="card-body">
+                    <h3>@_skill.Name <span class="badge bg-warning text-dark">Pending Review</span></h3>
+                    <p class="text-muted">v@(_skill.Version) by @_skill.Author | Account: @_skill.AccountId</p>
+
+                    <h5>Short Description</h5>
+                    <p>@_skill.ShortDescription</p>
+
+                    <h5>Tags</h5>
+                    <div class="mb-3">
+                        @foreach (var tag in _skill.Tags)
+                        {
+                            <span class="badge bg-secondary me-1">@tag</span>
+                        }
+                    </div>
+
+                    <h5>Required Tool Groups</h5>
+                    <div class="mb-3">
+                        @foreach (var group in _skill.RequiredToolGroups)
+                        {
+                            var isElevated = _elevatedGroups.Contains(group);
+                            <div class="alert @(isElevated ? "alert-warning" : "alert-info") py-2 mb-2">
+                                <strong>@group</strong> @(isElevated ? "(Elevated - grants significant access)" : "(Standard)")
+                            </div>
+                        }
+                    </div>
+
+                    <h5>System Prompt Template</h5>
+                    <div class="alert alert-secondary">
+                        <pre class="mb-0" style="white-space: pre-wrap;">@_skill.SystemPromptTemplate</pre>
+                    </div>
+                    <small class="text-warning">
+                        <i class="fa-duotone fa-triangle-exclamation me-1"></i>
+                        Review this prompt carefully for security issues, injection attempts, or harmful instructions.
+                    </small>
+
+                    <h5 class="mt-4">Full Description</h5>
+                    <div class="border rounded p-3 mb-3">
+                        @((MarkupString)_skill.Description)
+                    </div>
+                </div>
+            </div>
+
+            @if (_reviews.Count > 0)
+            {
+                <h5>Review History</h5>
+                @foreach (var review in _reviews)
+                {
+                    <div class="card bg-dark mb-2">
+                        <div class="card-body py-2">
+                            <strong>@review.ReviewerEmail</strong> - <span class="badge @(review.Status == "Approved" ? "bg-success" : "bg-danger")">@review.Status</span>
+                            <br /><small class="text-muted">@review.Timestamp.ToString("MMM d, yyyy HH:mm")</small>
+                            @if (!string.IsNullOrWhiteSpace(review.Comment))
+                            {
+                                <p class="mb-0 mt-1">@review.Comment</p>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+
+            <div class="card bg-dark mt-4">
+                <div class="card-body">
+                    <h5>Your Review</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Comment</label>
+                        <textarea class="form-control" rows="3" @bind="_comment"
+                                  placeholder="@(_rejecting ? "Required: Explain why this skill was rejected..." : "Optional comment...")"></textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-success" @onclick="Approve" disabled="@_submitting">
+                            <i class="fa-duotone fa-check me-1"></i> Approve
+                        </button>
+                        <button class="btn btn-danger" @onclick="Reject" disabled="@_submitting">
+                            <i class="fa-duotone fa-xmark me-1"></i> Reject
+                        </button>
+                        <a href="/account/manage/skills/reviews" class="btn btn-outline-secondary">Back to Queue</a>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(_error))
+                    {
+                        <div class="alert alert-danger mt-3">@_error</div>
+                    }
+                    @if (!string.IsNullOrEmpty(_success))
+                    {
+                        <div class="alert alert-success mt-3">@_success</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+
+    [Inject] public Cosmo Cosmo { get; set; } = default!;
+    [Inject] public AuthService AuthService { get; set; } = default!;
+    [Inject] public NavigationManager Navigation { get; set; } = default!;
+
+    private Skill? _skill;
+    private List<SkillReview> _reviews = [];
+    private bool _isEmployee;
+    private string _reviewerEmail = string.Empty;
+    private string _comment = string.Empty;
+    private bool _submitting;
+    private bool _rejecting;
+    private string _error = string.Empty;
+    private string _success = string.Empty;
+
+    private static readonly HashSet<string> _elevatedGroups = ["FileTools", "CommunicationTools", "IntegrationTools"];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var userName = await AuthService.GetUserNameAsync();
+        _isEmployee = !string.IsNullOrEmpty(userName) &&
+                      userName.EndsWith("@daisi.ai", StringComparison.OrdinalIgnoreCase);
+        _reviewerEmail = userName ?? string.Empty;
+
+        if (_isEmployee && !string.IsNullOrEmpty(Id))
+        {
+            _skill = await Cosmo.GetSkillByIdAsync(Id);
+            _reviews = await Cosmo.GetSkillReviewsAsync(Id);
+        }
+    }
+
+    private async Task Approve()
+    {
+        _submitting = true;
+        _error = string.Empty;
+        try
+        {
+            _skill!.Status = "Approved";
+            _skill.ReviewedBy = _reviewerEmail;
+            _skill.ReviewedAt = DateTime.UtcNow;
+            await Cosmo.UpdateSkillAsync(_skill);
+
+            await Cosmo.CreateSkillReviewAsync(new SkillReview
+            {
+                SkillId = Id,
+                ReviewerEmail = _reviewerEmail,
+                Status = "Approved",
+                Comment = _comment
+            });
+
+            _success = "Skill approved! It will now appear on the public marketplace.";
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        _submitting = false;
+    }
+
+    private async Task Reject()
+    {
+        if (string.IsNullOrWhiteSpace(_comment))
+        {
+            _error = "A comment is required when rejecting a skill.";
+            _rejecting = true;
+            return;
+        }
+
+        _submitting = true;
+        _error = string.Empty;
+        try
+        {
+            _skill!.Status = "Rejected";
+            _skill.ReviewedBy = _reviewerEmail;
+            _skill.ReviewedAt = DateTime.UtcNow;
+            _skill.RejectionReason = _comment;
+            await Cosmo.UpdateSkillAsync(_skill);
+
+            await Cosmo.CreateSkillReviewAsync(new SkillReview
+            {
+                SkillId = Id,
+                ReviewerEmail = _reviewerEmail,
+                Status = "Rejected",
+                Comment = _comment
+            });
+
+            _success = "Skill rejected. The author will see your feedback.";
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        _submitting = false;
+    }
+}

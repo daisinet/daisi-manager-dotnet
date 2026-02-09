@@ -20,6 +20,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <ProjectReference Include="..\..\daisi-orc-dotnet\Daisi.Orc.Core\Daisi.Orc.Core.csproj" />
 	  <ProjectReference Include="..\..\daisi-sdk-dotnet\Daisi.SDK.Razor\Daisi.SDK.Razor.csproj" />
 	  <ProjectReference Include="..\..\daisi-sdk-dotnet\Daisi.SDK.Web\Daisi.SDK.Web.csproj" />
 	  <ProjectReference Include="..\..\daisi-sdk-dotnet\Daisi.SDK\Daisi.SDK.csproj" />

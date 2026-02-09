@@ -1,0 +1,92 @@
+@page "/account/manage/skills/reviews"
+@using Daisi.Orc.Core.Data.Db
+@using Daisi.Orc.Core.Data.Models.Skills
+@using Daisi.Manager.Shared.Services
+
+<h2><i class="fa-duotone fa-shield-check me-2"></i> Skill Review Queue</h2>
+
+@if (!_isEmployee)
+{
+    <div class="alert alert-warning">
+        <strong>Access Denied.</strong> Only DAISI employees (@("@daisi.ai") email) can review skills.
+    </div>
+}
+else
+{
+    <p class="text-muted">Review and approve or reject skill submissions from the community.</p>
+
+    @if (_loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else if (_pendingSkills.Count == 0)
+    {
+        <div class="alert alert-info">
+            No skills pending review. All caught up!
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Skill Name</th>
+                        <th>Author</th>
+                        <th>Account</th>
+                        <th>Submitted</th>
+                        <th>Tool Groups</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var skill in _pendingSkills)
+                    {
+                        <tr>
+                            <td><strong>@skill.Name</strong> v@(skill.Version)</td>
+                            <td>@skill.Author</td>
+                            <td>@skill.AccountId</td>
+                            <td>@skill.UpdatedAt.ToString("MMM d, yyyy")</td>
+                            <td>
+                                @foreach (var group in skill.RequiredToolGroups)
+                                {
+                                    var isElevated = _elevatedGroups.Contains(group);
+                                    <span class="badge @(isElevated ? "bg-warning text-dark" : "bg-info") me-1">@group</span>
+                                }
+                            </td>
+                            <td>
+                                <a href="/account/manage/skills/reviews/@skill.Id" class="btn btn-sm btn-primary">Review</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    [Inject] public Cosmo Cosmo { get; set; } = default!;
+    [Inject] public AuthService AuthService { get; set; } = default!;
+
+    private List<Skill> _pendingSkills = [];
+    private bool _loading = true;
+    private bool _isEmployee;
+
+    private static readonly HashSet<string> _elevatedGroups = ["FileTools", "CommunicationTools", "IntegrationTools"];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userName = await AuthService.GetUserNameAsync();
+        _isEmployee = !string.IsNullOrEmpty(userName) &&
+                      userName.EndsWith("@daisi.ai", StringComparison.OrdinalIgnoreCase);
+
+        if (_isEmployee)
+        {
+            _pendingSkills = await Cosmo.GetPendingReviewSkillsAsync();
+        }
+        _loading = false;
+    }
+}
