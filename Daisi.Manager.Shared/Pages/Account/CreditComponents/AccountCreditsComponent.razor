@@ -1,0 +1,181 @@
+@using Daisi.Manager.Shared.Services
+
+<h3>Credits</h3>
+
+@if (IsLoading)
+{
+    <p>Loading credit information...</p>
+}
+else if (ErrorMessage is not null)
+{
+    <div class="alert alert-danger mt-3">@ErrorMessage</div>
+}
+else
+{
+    <div class="row mt-3">
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card bg-dark-subtle">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle text-muted">Balance</h6>
+                    <h2 class="card-title mt-2">@Balance.ToString("N0")</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card bg-dark-subtle">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle text-muted">Total Earned</h6>
+                    <h2 class="card-title mt-2">@TotalEarned.ToString("N0")</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card bg-dark-subtle">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle text-muted">Total Spent</h6>
+                    <h2 class="card-title mt-2">@TotalSpent.ToString("N0")</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card bg-dark-subtle">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle text-muted">Total Purchased</h6>
+                    <h2 class="card-title mt-2">@TotalPurchased.ToString("N0")</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-md-6 mb-3">
+            <div class="card bg-dark-subtle">
+                <div class="card-body">
+                    <h5>Multipliers</h5>
+                    <div class="mt-2">
+                        <label class="fw-bold">Token Earn Multiplier</label>
+                        <input type="number" step="0.1" min="0.1" class="form-control" @bind="TokenEarnMultiplier" disabled="@(!IsAdmin)" />
+                    </div>
+                    <div class="mt-2">
+                        <label class="fw-bold">Uptime Earn Multiplier</label>
+                        <input type="number" step="0.1" min="0.1" class="form-control" @bind="UptimeEarnMultiplier" disabled="@(!IsAdmin)" />
+                    </div>
+                    @if (IsAdmin)
+                    {
+                        <button class="btn btn-primary mt-3" @onclick="OnSaveMultipliers">Save Multipliers</button>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="card bg-dark-subtle">
+                <div class="card-body">
+                    <h5>Purchase Credits</h5>
+                    <div class="mt-2">
+                        <label class="fw-bold">Amount</label>
+                        <input type="number" min="1" class="form-control" @bind="PurchaseAmount" />
+                    </div>
+                    <button class="btn btn-success mt-3" @onclick="OnPurchase">Purchase</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="mt-4">Transaction History</h4>
+    @if (Transactions.Count == 0)
+    {
+        <p class="text-muted">No transactions yet.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Balance</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var tx in Transactions)
+                    {
+                        <tr>
+                            <td>@tx.DateCreated.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@tx.Type</td>
+                            <td class="@(tx.Amount >= 0 ? "text-success" : "text-danger")">
+                                @(tx.Amount >= 0 ? "+" : "")@tx.Amount.ToString("N0")
+                            </td>
+                            <td>@tx.Balance.ToString("N0")</td>
+                            <td>@tx.Description</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    bool IsLoading { get; set; } = true;
+    bool IsAdmin { get; set; }
+    string? ErrorMessage { get; set; }
+
+    long Balance { get; set; }
+    long TotalEarned { get; set; }
+    long TotalSpent { get; set; }
+    long TotalPurchased { get; set; }
+    double TokenEarnMultiplier { get; set; } = 1.0;
+    double UptimeEarnMultiplier { get; set; } = 1.0;
+    long PurchaseAmount { get; set; } = 100;
+
+    List<TransactionDisplay> Transactions { get; set; } = new();
+
+    [Inject] public AuthService AuthService { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var role = await AuthService.GetUserRoleAsync();
+            IsAdmin = role >= UserRoles.Admin;
+
+            // TODO: Call CreditsProto.GetCreditAccount and GetCreditTransactions
+            // once the gRPC client factory is generated from Credits.proto.
+            // For now, initialize with defaults.
+            Balance = 0;
+            TotalEarned = 0;
+            TotalSpent = 0;
+            TotalPurchased = 0;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading credit information: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    async Task OnSaveMultipliers()
+    {
+        // TODO: Call CreditsProto.SetMultipliers once client is available
+    }
+
+    async Task OnPurchase()
+    {
+        // TODO: Call CreditsProto.PurchaseCredits once client is available
+    }
+
+    class TransactionDisplay
+    {
+        public DateTime DateCreated { get; set; }
+        public string Type { get; set; }
+        public long Amount { get; set; }
+        public long Balance { get; set; }
+        public string Description { get; set; }
+    }
+}
