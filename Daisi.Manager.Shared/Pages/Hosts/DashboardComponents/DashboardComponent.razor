@@ -1,32 +1,355 @@
-﻿<div class="alert alert-info mt-4">
-    We are still working on this dashboard. It's just a placeholder for now.
-</div>
-<div class="mt-3">
-    <div class="row mt-5">
-        <div class="col">
-            <MudSkeleton />
-            <MudSkeleton SkeletonType="SkeletonType.Circle" Width="50px" Height="50px" />
-            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="110px" />
+﻿<div class="mt-3">
+    <div class="row g-3">
+        @* Card 1: Host Info *@
+        <div class="col-md-6">
+            <div class="card bg-dark h-100">
+                <div class="card-header">
+                    <i class="fa-duotone fa-computer me-2"></i> Host Info
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <span class="badge @GetStatusBadge(SelectedHost.Status) fs-6">
+                            <i class="fa-duotone fa-circle me-1"></i> @SelectedHost.Status
+                        </span>
+                    </div>
+                    <table class="table table-dark table-borderless mb-0">
+                        <tbody>
+                            @if (!string.IsNullOrWhiteSpace(SelectedHost.Region))
+                            {
+                                <tr>
+                                    <td class="text-secondary" style="width: 140px;"><i class="fa-duotone fa-globe me-1"></i> Region</td>
+                                    <td>@SelectedHost.Region</td>
+                                </tr>
+                            }
+                            @if (SelectedHost.OperatingSystem != null)
+                            {
+                                <tr>
+                                    <td class="text-secondary"><i class="fa-duotone fa-desktop me-1"></i> OS</td>
+                                    <td>
+                                        @SelectedHost.OperatingSystem
+                                        @if (SelectedHost.OperatingSystemVersion != null)
+                                        {
+                                            <span class="text-secondary ms-1">@SelectedHost.OperatingSystemVersion</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                            @if (SelectedHost.AppVersion != null)
+                            {
+                                <tr>
+                                    <td class="text-secondary"><i class="fa-duotone fa-code-branch me-1"></i> App Version</td>
+                                    <td>@SelectedHost.AppVersion</td>
+                                </tr>
+                            }
+                            @if (SelectedHost.ReleaseGroup != null)
+                            {
+                                <tr>
+                                    <td class="text-secondary"><i class="fa-duotone fa-layer-group me-1"></i> Release Group</td>
+                                    <td><span class="badge border border-info">@SelectedHost.ReleaseGroup</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-        <div class="col">
-            <MudSkeleton />
-            <MudSkeleton SkeletonType="SkeletonType.Circle" Width="50px" Height="50px" />
-            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="110px" />
+
+        @* Card 2: Connectivity *@
+        <div class="col-md-6">
+            <div class="card bg-dark h-100">
+                <div class="card-header">
+                    <i class="fa-duotone fa-network-wired me-2"></i> Connectivity
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center mb-2">
+                            @if (SelectedHost.DirectConnect)
+                            {
+                                <i class="fa-duotone fa-circle-check text-success me-2"></i>
+                                <span>Direct Connect</span>
+                                <span class="badge bg-success ms-2">Enabled</span>
+                            }
+                            else
+                            {
+                                <i class="fa-duotone fa-circle-xmark text-danger me-2"></i>
+                                <span>Direct Connect</span>
+                                <span class="badge bg-secondary ms-2">Disabled</span>
+                            }
+                        </div>
+                        <div class="d-flex align-items-center">
+                            @if (SelectedHost.PeerConnect)
+                            {
+                                <i class="fa-duotone fa-circle-check text-success me-2"></i>
+                                <span>Peer Connect</span>
+                                <span class="badge bg-success ms-2">Enabled</span>
+                            }
+                            else
+                            {
+                                <i class="fa-duotone fa-circle-xmark text-danger me-2"></i>
+                                <span>Peer Connect</span>
+                                <span class="badge bg-secondary ms-2">Disabled</span>
+                            }
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(SelectedHost.IpAddress))
+                    {
+                        <hr class="border-secondary" />
+                        <div>
+                            <span class="text-secondary"><i class="fa-duotone fa-ethernet me-1"></i> IP Address</span>
+                            <div class="mt-1">
+                                <code>@SelectedHost.IpAddress:@SelectedHost.Port</code>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
         </div>
     </div>
-    <div class="row mt-5">
-        <div class="col">
-            <MudSkeleton />
-            <MudSkeleton SkeletonType="SkeletonType.Circle" Width="50px" Height="50px" />
-            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="110px" />
+
+    @* Card 3: Activity & Uptime *@
+    <div class="row g-3 mt-0">
+        <div class="col-12">
+            <div class="card bg-dark">
+                <div class="card-header">
+                    <i class="fa-duotone fa-clock me-2"></i> Activity & Uptime
+                </div>
+                <div class="card-body">
+                    @if (SelectedHost.Status == HostStatus.Online && SelectedHost.DateStarted != null)
+                    {
+                        <div class="mb-3">
+                            <span class="text-secondary">Uptime</span>
+                            <div class="fs-4 text-success">
+                                <i class="fa-duotone fa-arrow-up me-1"></i> @GetDuration(SelectedHost.DateStarted)
+                            </div>
+                        </div>
+                        <hr class="border-secondary" />
+                    }
+                    else if (SelectedHost.Status == HostStatus.Offline && SelectedHost.DateStopped != null)
+                    {
+                        <div class="mb-3">
+                            <span class="text-secondary">Downtime</span>
+                            <div class="fs-4 text-danger">
+                                <i class="fa-duotone fa-arrow-down me-1"></i> @GetDuration(SelectedHost.DateStopped)
+                            </div>
+                        </div>
+                        <hr class="border-secondary" />
+                    }
+                    <div class="row g-3">
+                        @if (SelectedHost.DateStarted != null)
+                        {
+                            <div class="col-md-3 col-sm-6">
+                                <div class="text-secondary mb-1"><i class="fa-duotone fa-play me-1"></i> Date Started</div>
+                                <div>@SelectedHost.DateStarted.ToDateTime().ToString("MMM d, yyyy HH:mm")</div>
+                                <small class="text-secondary">@GetRelativeTime(SelectedHost.DateStarted)</small>
+                            </div>
+                        }
+                        @if (SelectedHost.DateLastHeartbeat != null)
+                        {
+                            <div class="col-md-3 col-sm-6">
+                                <div class="text-secondary mb-1"><i class="fa-duotone fa-heart-pulse me-1"></i> Last Heartbeat</div>
+                                <div>@SelectedHost.DateLastHeartbeat.ToDateTime().ToString("MMM d, yyyy HH:mm")</div>
+                                <small class="text-secondary">@GetRelativeTime(SelectedHost.DateLastHeartbeat)</small>
+                            </div>
+                        }
+                        @if (SelectedHost.DateLastSession != null)
+                        {
+                            <div class="col-md-3 col-sm-6">
+                                <div class="text-secondary mb-1"><i class="fa-duotone fa-bolt me-1"></i> Last Session</div>
+                                <div>@SelectedHost.DateLastSession.ToDateTime().ToString("MMM d, yyyy HH:mm")</div>
+                                <small class="text-secondary">@GetRelativeTime(SelectedHost.DateLastSession)</small>
+                            </div>
+                        }
+                        @if (SelectedHost.DateStopped != null)
+                        {
+                            <div class="col-md-3 col-sm-6">
+                                <div class="text-secondary mb-1"><i class="fa-duotone fa-stop me-1"></i> Date Stopped</div>
+                                <div>@SelectedHost.DateStopped.ToDateTime().ToString("MMM d, yyyy HH:mm")</div>
+                                <small class="text-secondary">@GetRelativeTime(SelectedHost.DateStopped)</small>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="col">
-            <MudSkeleton />
-            <MudSkeleton SkeletonType="SkeletonType.Circle" Width="50px" Height="50px" />
-            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="110px" />
+    </div>
+
+    @* Card 4: Tokens Processed Chart *@
+    <div class="row g-3 mt-0">
+        <div class="col-12">
+            <div class="card bg-dark">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <span><i class="fa-duotone fa-chart-bar me-2"></i> Tokens Processed</span>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn @(selectedTimeframe == "today" ? "btn-success" : "btn-outline-success")" @onclick='() => OnTimeframeChanged("today")'>Today</button>
+                        <button class="btn @(selectedTimeframe == "week" ? "btn-success" : "btn-outline-success")" @onclick='() => OnTimeframeChanged("week")'>This Week</button>
+                        <button class="btn @(selectedTimeframe == "month" ? "btn-success" : "btn-outline-success")" @onclick='() => OnTimeframeChanged("month")'>This Month</button>
+                        <button class="btn @(selectedTimeframe == "year" ? "btn-success" : "btn-outline-success")" @onclick='() => OnTimeframeChanged("year")'>This Year</button>
+                        <button class="btn @(selectedTimeframe == "all" ? "btn-success" : "btn-outline-success")" @onclick='() => OnTimeframeChanged("all")'>All Time</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (loadingStats)
+                    {
+                        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="300px" />
+                    }
+                    else if (!string.IsNullOrEmpty(statsError))
+                    {
+                        <div class="text-secondary text-center py-5">
+                            <i class="fa-duotone fa-triangle-exclamation me-1"></i> @statsError
+                        </div>
+                    }
+                    else if (chartSeries.Any() && chartSeries[0].Data.Any(d => d > 0))
+                    {
+                        <div class="d-flex justify-content-center mb-3">
+                            <span class="text-secondary me-3">
+                                <i class="fa-duotone fa-coins me-1"></i> Total: <strong class="text-white">@totalTokens.ToString("N0")</strong> tokens
+                            </span>
+                            <span class="text-secondary">
+                                <i class="fa-duotone fa-clock me-1"></i> Processing: <strong class="text-white">@FormatProcessingTime(totalProcessingSeconds)</strong>
+                            </span>
+                        </div>
+                        <MudChart ChartType="ChartType.Bar" ChartSeries="@chartSeries" XAxisLabels="@chartLabels" Width="100%" Height="300px" ChartOptions="@chartOptions" />
+                    }
+                    else
+                    {
+                        <div class="text-secondary text-center py-5">
+                            <i class="fa-duotone fa-chart-bar me-2"></i> No token processing data for this period
+                        </div>
+                    }
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
 @code {
     [Parameter] public Host SelectedHost { get; set; }
+    [Inject] public HostClientFactory HostClientFactory { get; set; }
+
+    string selectedTimeframe = "month";
+    bool loadingStats = false;
+    string statsError = "";
+    List<ChartSeries> chartSeries = new();
+    string[] chartLabels = Array.Empty<string>();
+    ChartOptions chartOptions = new() { ShowLegend = false };
+    long totalTokens = 0;
+    long totalProcessingSeconds = 0;
+    string _lastHostId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (SelectedHost?.Id != _lastHostId)
+        {
+            _lastHostId = SelectedHost?.Id;
+            await LoadStatsAsync();
+        }
+    }
+
+    async Task OnTimeframeChanged(string timeframe)
+    {
+        selectedTimeframe = timeframe;
+        await LoadStatsAsync();
+    }
+
+    async Task LoadStatsAsync()
+    {
+        if (SelectedHost == null) return;
+
+        loadingStats = true;
+        statsError = "";
+        StateHasChanged();
+
+        try
+        {
+            var request = new GetHostStatsRequest
+            {
+                HostId = SelectedHost.Id,
+                Timeframe = selectedTimeframe switch
+                {
+                    "today" => Timeframe.Day,
+                    "week" => Timeframe.Week,
+                    "month" => Timeframe.Month,
+                    "year" => Timeframe.Year,
+                    _ => Timeframe.Second
+                }
+            };
+
+            var response = await HostClientFactory.Create().GetHostStatsAsync(request);
+
+            totalTokens = response.Stats.Sum(s => s.TokenCount);
+            totalProcessingSeconds = response.Stats.Sum(s => s.SecondsProcessingTokens);
+
+            chartSeries = new List<ChartSeries>
+            {
+                new ChartSeries
+                {
+                    Name = "Tokens",
+                    Data = response.Stats.Select(s => (double)s.TokenCount).ToArray()
+                }
+            };
+
+            chartLabels = response.Stats.Select(s => FormatBucketLabel(s)).ToArray();
+        }
+        catch
+        {
+            statsError = "Unable to load token stats";
+            chartSeries = new();
+            chartLabels = Array.Empty<string>();
+            totalTokens = 0;
+            totalProcessingSeconds = 0;
+        }
+
+        loadingStats = false;
+        StateHasChanged();
+    }
+
+    string FormatBucketLabel(HostStat stat)
+    {
+        if (stat.Date == null) return stat.Part.ToString();
+        var dt = stat.Date.ToDateTime();
+        return selectedTimeframe switch
+        {
+            "today" => dt.ToString("h tt"),
+            "week" => dt.ToString("ddd"),
+            "month" => dt.ToString("MMM d"),
+            "year" => dt.ToString("MMM"),
+            _ => dt.ToString("MMM yy")
+        };
+    }
+
+    string FormatProcessingTime(long seconds)
+    {
+        if (seconds < 60) return $"{seconds}s";
+        if (seconds < 3600) return $"{seconds / 60}m {seconds % 60}s";
+        return $"{seconds / 3600}h {(seconds % 3600) / 60}m";
+    }
+
+    string GetStatusBadge(HostStatus status) => status switch
+    {
+        HostStatus.Online => "bg-success",
+        HostStatus.Offline => "bg-danger",
+        HostStatus.Maintenance => "bg-warning text-dark",
+        HostStatus.Archived => "bg-secondary",
+        _ => "bg-secondary"
+    };
+
+    string GetRelativeTime(Google.Protobuf.WellKnownTypes.Timestamp ts)
+    {
+        if (ts == null) return "";
+        var span = DateTime.UtcNow - ts.ToDateTime();
+        if (span.TotalMinutes < 1) return "just now";
+        if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}m ago";
+        if (span.TotalHours < 24) return $"{(int)span.TotalHours}h ago";
+        if (span.TotalDays < 30) return $"{(int)span.TotalDays}d ago";
+        return $"{(int)(span.TotalDays / 30)}mo ago";
+    }
+
+    string GetDuration(Google.Protobuf.WellKnownTypes.Timestamp from)
+    {
+        if (from == null) return "";
+        var span = DateTime.UtcNow - from.ToDateTime();
+        if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}m";
+        if (span.TotalHours < 24) return $"{(int)span.TotalHours}h {span.Minutes}m";
+        return $"{(int)span.TotalDays}d {span.Hours}h {span.Minutes}m";
+    }
 }
