@@ -13,27 +13,38 @@
         </select>
     </div>
     <div class="mt-3">
-        <label class="fw-bold">Version *</label>
-        <p>The version identifier for this release (e.g. 1.2.3).</p>
-        <input class="form-control" @bind="version" />
-    </div>
-    <div class="mt-3">
-        <label class="fw-bold">Download URL *</label>
-        <p>The URL where hosts can download this release.</p>
-        <input class="form-control" @bind="downloadUrl" />
-    </div>
-    <div class="mt-3">
         <label class="fw-bold">Release Notes</label>
         <textarea class="form-control" rows="3" @bind="releaseNotes"></textarea>
     </div>
     <div class="mt-3">
         <label class="fw-bold">Required Orc Version</label>
-        <p>Minimum Orc version required for this release.</p>
-        <input class="form-control" @bind="requiredOrcVersion" />
+        <p class="text-secondary small mb-1">Minimum Orc version hosts must be connected to for this release.</p>
+        @if (loadingOrcs)
+        {
+            <select class="form-control" disabled><option>Loading versions...</option></select>
+        }
+        else
+        {
+            <select class="form-control" @bind="requiredOrcVersion">
+                <option value="">-- None --</option>
+                @foreach (var v in orcVersions)
+                {
+                    <option value="@v">@v</option>
+                }
+            </select>
+        }
     </div>
     <div class="mt-3">
         <label class="fw-bold">Activate Immediately</label>
         <MudSwitch Color="Color.Success" UncheckedColor="Color.Default" @bind-Value="activateImmediately" Label=@(activateImmediately ? "Will activate on create" : "Will not activate on create")></MudSwitch>
+    </div>
+    <div class="mt-3">
+        <label class="fw-bold">Version</label>
+        <p class="form-control-plaintext">@version</p>
+    </div>
+    <div class="mt-3">
+        <label class="fw-bold">Download URL</label>
+        <p class="form-control-plaintext text-break">@downloadUrl</p>
     </div>
     <div class="mt-3">
         <button class="btn btn-success" disabled="@processing" @onclick="OnSave">Create</button>
@@ -42,16 +53,43 @@
 
 @code {
     [Inject] public ReleaseClientFactory ReleaseClientFactory { get; set; }
+    [Inject] public OrcClientFactory OrcClientFactory { get; set; }
     [CascadingParameter] public IMudDialogInstance MudDialog { get; set; }
 
     string releaseGroup = "";
     string version = "";
-    string downloadUrl = "";
     string releaseNotes = "";
     string requiredOrcVersion = "";
-    bool activateImmediately = false;
+    bool activateImmediately = true;
     bool processing = false;
+    bool loadingOrcs = true;
     List<string> messages = new();
+    List<string> orcVersions = new();
+
+    string downloadUrl => $"https://daisi.blob.core.windows.net/releases/{version}/latest-desktop.zip";
+
+    protected override async Task OnInitializedAsync()
+    {
+        version = DateTime.UtcNow.ToString("yyyy.MM.dd.HHmm");
+
+        try
+        {
+            var client = OrcClientFactory.Create();
+            var response = await client.GetAsync(new GetOrcsRequest { Paging = new PagingInfo { PageSize = 100 } });
+            orcVersions = response.Orcs
+                .Where(o => !string.IsNullOrWhiteSpace(o.Version))
+                .Select(o => o.Version)
+                .Distinct()
+                .OrderByDescending(v => v)
+                .ToList();
+
+            if (orcVersions.Any())
+                requiredOrcVersion = orcVersions.First();
+        }
+        catch { }
+
+        loadingOrcs = false;
+    }
 
     async Task OnSave()
     {
@@ -59,12 +97,6 @@
 
         if (string.IsNullOrWhiteSpace(releaseGroup))
             messages.Add("Release Group is required.");
-
-        if (string.IsNullOrWhiteSpace(version))
-            messages.Add("Version is required.");
-
-        if (string.IsNullOrWhiteSpace(downloadUrl))
-            messages.Add("Download URL is required.");
 
         if (messages.Any())
             return;
