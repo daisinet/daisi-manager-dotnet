@@ -1,0 +1,209 @@
+
+<div class="row">
+    <div class="col"><h3>Releases</h3></div>
+    <div class="col-12 col-md-auto d-flex align-items-center gap-2">
+        <select class="form-control" style="max-width:200px;" @bind="selectedGroup">
+            <option value="">All Groups</option>
+            @foreach (var g in releaseGroups)
+            {
+                <option value="@g">@g</option>
+            }
+        </select>
+        <button class="btn btn-outline-success" @onclick="OnCreate"><i class="fa-duotone fa-plus"></i> Create</button>
+    </div>
+</div>
+
+@if (loading)
+{
+    <p>Loading Releases...</p>
+}
+else if (!FilteredReleases.Any())
+{
+    <div class="alert alert-warning mt-3">There are no releases to show.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table mt-md-3">
+            <thead>
+                <tr>
+                    <th>Status</th>
+                    <th>Version</th>
+                    <th>Group</th>
+                    <th>Release Notes</th>
+                    <th>Req. Orc Version</th>
+                    <th>Date</th>
+                    <th class="text-center"># Hosts</th>
+                    <th class="text-center"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var release in FilteredReleases)
+                {
+                    <tr>
+                        <td>
+                            @if (release.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inactive</span>
+                            }
+                        </td>
+                        <td>@release.Version</td>
+                        <td><span class="badge border border-info">@release.ReleaseGroup</span></td>
+                        <td>@(release.ReleaseNotes ?? "")</td>
+                        <td>@(release.RequiredOrcVersion ?? "")</td>
+                        <td>@release.DateCreated?.ToDateTime().ToString("yyyy-MM-dd HH:mm")</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-info" @onclick="@(() => OnViewHosts(release))">
+                                @GetHostCount(release) hosts
+                            </button>
+                        </td>
+                        <td class="text-end">
+                            @if (!release.IsActive)
+                            {
+                                <button class="btn btn-sm btn-outline-success" @onclick="@(() => OnActivate(release))">
+                                    <i class="fa-duotone fa-power-off"></i> Activate
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    [Inject] IDialogService DialogService { get; set; }
+    [Inject] ReleaseClientFactory ReleaseClientFactory { get; set; }
+    [Inject] HostClientFactory HostClientFactory { get; set; }
+    [Inject] IToastService ToastService { get; set; }
+
+    List<HostReleaseInfo> allReleases = new();
+    List<Host> allHosts = new();
+    bool loading = true;
+    string selectedGroup = "";
+
+    static readonly string[] releaseGroups = ["beta", "group1", "group2", "production"];
+
+    IEnumerable<HostReleaseInfo> FilteredReleases =>
+        string.IsNullOrEmpty(selectedGroup)
+            ? allReleases
+            : allReleases.Where(r => r.ReleaseGroup == selectedGroup);
+
+    protected async override Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    async Task LoadData()
+    {
+        loading = true;
+
+        try
+        {
+            var releaseClient = ReleaseClientFactory.Create();
+            var hostClient = HostClientFactory.Create();
+
+            var hostsCall = hostClient.GetHostsAsync(new GetHostsRequest());
+
+            var releaseTasks = releaseGroups.Select(g =>
+                releaseClient.GetReleasesAsync(new GetReleasesRequest { ReleaseGroup = g }).ResponseAsync);
+
+            var releaseResponses = await Task.WhenAll(releaseTasks);
+            allReleases = releaseResponses.SelectMany(r => r.Releases).OrderByDescending(r => r.DateCreated?.ToDateTime()).ToList();
+
+            var hostsResponse = await hostsCall;
+            allHosts = hostsResponse.Hosts.ToList();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error loading releases: {ex.Message}");
+        }
+
+        loading = false;
+    }
+
+    int GetHostCount(HostReleaseInfo release)
+    {
+        return allHosts.Count(h =>
+            h.AppVersion == release.Version &&
+            h.ReleaseGroup == release.ReleaseGroup);
+    }
+
+    async Task OnCreate()
+    {
+        DialogOptions options = new DialogOptions()
+        {
+            CloseButton = true,
+            BackdropClick = true,
+            CloseOnEscapeKey = true
+        };
+
+        var result = await DialogService.ShowAsync<CreateReleaseComponent>("Create Release", options);
+        if (result?.Result is not null)
+        {
+            var res = await result.Result;
+            if (res?.Data is HostReleaseInfo created)
+            {
+                allReleases.Insert(0, created);
+                StateHasChanged();
+            }
+        }
+    }
+
+    async Task OnActivate(HostReleaseInfo release)
+    {
+        try
+        {
+            var client = ReleaseClientFactory.Create();
+            var response = await client.ActivateAsync(new ActivateReleaseRequest
+            {
+                ReleaseId = release.Id,
+                ReleaseGroup = release.ReleaseGroup
+            });
+
+            if (response.Release is not null)
+            {
+                // Deactivate previous active release in same group
+                foreach (var r in allReleases.Where(r => r.ReleaseGroup == release.ReleaseGroup))
+                {
+                    r.IsActive = false;
+                }
+                release.IsActive = true;
+
+                ToastService.ShowSuccess($"Release {release.Version} activated for {release.ReleaseGroup}");
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error activating release: {ex.Message}");
+        }
+    }
+
+    async Task OnViewHosts(HostReleaseInfo release)
+    {
+        var hostsInGroup = allHosts.Where(h => h.ReleaseGroup == release.ReleaseGroup).ToList();
+
+        DialogParameters dparams = new DialogParameters<ViewReleaseHostsComponent>()
+        {
+            { c => c.Release, release },
+            { c => c.HostsInGroup, hostsInGroup }
+        };
+
+        DialogOptions options = new DialogOptions()
+        {
+            CloseButton = true,
+            BackdropClick = true,
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        await DialogService.ShowAsync<ViewReleaseHostsComponent>($"Hosts - {release.Version} ({release.ReleaseGroup})", dparams, options);
+    }
+}
