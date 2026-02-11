@@ -2,9 +2,14 @@
 
 The Manager is the user-facing application where the "Start Release" button lives. It calls the ORC's `TriggerRelease` gRPC endpoint, which dispatches the full release pipeline. The Manager itself does not need any release-specific secrets — it just needs to be deployed with the updated UI.
 
+## Detailed Setup Guides
+
+- **[GitPATSetup.md](GitPATSetup.md)** — Step-by-step instructions for creating `SDK_PAT` in the GitHub portal
+- **[AzureADSetup.md](AzureADSetup.md)** — Step-by-step instructions for Azure AD app registration, federated credentials, and RBAC role assignments
+
 ## Prerequisites
 
-- The ORC must be deployed with the `TriggerRelease` endpoint and `GitHub:ReleasePAT` configured (see [daisi-orc-dotnet/ReleaseSetup.md](../daisi-orc-dotnet/ReleaseSetup.md))
+- The ORC must be deployed with the `TriggerRelease` endpoint and `GitHub:ReleasePAT` configured (see [daisi-orc-dotnet/ReleaseSetup.md](https://github.com/daisinet/daisi-orc-dotnet/blob/main/ReleaseSetup.md))
 - The Manager must be deployed after the ORC so the proto-generated client includes the new RPC
 
 ---

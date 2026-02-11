@@ -31,4 +31,6 @@ To get a SecretKey for your manager to run against the public Orc network, go to
 ## One-Click Release Automation
 The Manager provides a "Start Release" button on the Releases page that triggers the full DAISI release pipeline — SDK publish (if changed), ORC deploy, and Host release — with a single click.
 
-See **[ReleaseSetup.md](ReleaseSetup.md)** for setup and verification steps.
+See **[ReleaseSetup.md](ReleaseSetup.md)** for setup and verification steps, or jump directly to:
+- **[GitPATSetup.md](GitPATSetup.md)** — Step-by-step GitHub PAT creation for `SDK_PAT`
+- **[AzureADSetup.md](AzureADSetup.md)** — Azure AD app registration, federated credentials, and RBAC roles
