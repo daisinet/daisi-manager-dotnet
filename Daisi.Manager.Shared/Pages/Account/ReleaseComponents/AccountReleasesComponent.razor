@@ -9,7 +9,7 @@
                 <option value="@g">@g</option>
             }
         </select>
-        <button class="btn btn-outline-success" @onclick="OnCreate"><i class="fa-duotone fa-plus"></i> Create</button>
+        <button class="btn btn-outline-success" @onclick="OnCreate"><i class="fa-duotone fa-rocket"></i> Start Release</button>
     </div>
 </div>
 
@@ -62,6 +62,9 @@ else
                             </button>
                         </td>
                         <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary me-1" @onclick="@(() => OnPromote(release))">
+                                <i class="fa-duotone fa-arrow-up-right"></i> Promote
+                            </button>
                             @if (!release.IsActive)
                             {
                                 <button class="btn btn-sm btn-outline-success" @onclick="@(() => OnActivate(release))">
@@ -143,14 +146,13 @@ else
             CloseOnEscapeKey = true
         };
 
-        var result = await DialogService.ShowAsync<CreateReleaseComponent>("Create Release", options);
+        var result = await DialogService.ShowAsync<CreateReleaseComponent>("Start Release", options);
         if (result?.Result is not null)
         {
             var res = await result.Result;
-            if (res?.Data is HostReleaseInfo created)
+            if (res?.Data is string version)
             {
-                allReleases.Insert(0, created);
-                StateHasChanged();
+                ToastService.ShowSuccess($"Release {version} pipeline started. Build and deploy in progress.");
             }
         }
     }
@@ -182,6 +184,34 @@ else
         catch (Exception ex)
         {
             ToastService.ShowError($"Error activating release: {ex.Message}");
+        }
+    }
+
+    async Task OnPromote(HostReleaseInfo release)
+    {
+        DialogParameters<PromoteReleaseComponent> dparams = new()
+        {
+            { c => c.SourceRelease, release },
+            { c => c.AllReleases, allReleases }
+        };
+
+        DialogOptions options = new DialogOptions()
+        {
+            CloseButton = true,
+            BackdropClick = true,
+            CloseOnEscapeKey = true
+        };
+
+        var result = await DialogService.ShowAsync<PromoteReleaseComponent>($"Promote {release.Version}", dparams, options);
+        if (result?.Result is not null)
+        {
+            var res = await result.Result;
+            if (res?.Data is HostReleaseInfo promoted)
+            {
+                allReleases.Insert(0, promoted);
+                ToastService.ShowSuccess($"Release {promoted.Version} promoted to {promoted.ReleaseGroup}");
+                StateHasChanged();
+            }
         }
     }
 
