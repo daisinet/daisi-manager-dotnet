@@ -1,6 +1,9 @@
-# Release Automation Setup — daisi-manager-dotnet
+# Release Automation Setup — Manager Repo
 
 The Manager is the user-facing application where the "Start Release" button lives. It calls the ORC's `TriggerRelease` gRPC endpoint, which dispatches the full release pipeline. The Manager itself does not need any release-specific secrets — it just needs to be deployed with the updated UI.
+
+> **Naming conventions used in this guide:**
+> Values like `daisinet`, `daisi-manager`, and `manager.daisinet.com` are examples from our deployment. Replace them with your own organization name, App Service name, and domain.
 
 ## Detailed Setup Guides
 
@@ -9,7 +12,7 @@ The Manager is the user-facing application where the "Start Release" button live
 
 ## Prerequisites
 
-- The ORC must be deployed with the `TriggerRelease` endpoint and `GitHub:ReleasePAT` configured (see [daisi-orc-dotnet/ReleaseSetup.md](https://github.com/daisinet/daisi-orc-dotnet/blob/main/ReleaseSetup.md))
+- The ORC must be deployed with the `TriggerRelease` endpoint and `GitHub:ReleasePAT` configured (see [ORC repo ReleaseSetup.md](https://github.com/daisinet/daisi-orc-dotnet/blob/main/ReleaseSetup.md) — replace with your ORC repo URL if different)
 - The Manager must be deployed after the ORC so the proto-generated client includes the new RPC
 
 ---
@@ -18,15 +21,15 @@ The Manager is the user-facing application where the "Start Release" button live
 
 These are the existing secrets for deploying the Manager web app — no new secrets are needed for release automation.
 
-Go to **daisi-manager-dotnet** repo: **Settings > Secrets and variables > Actions > New repository secret**
+Go to your Manager repo: **Settings > Secrets and variables > Actions > New repository secret**
 
-| Secret Name | Value | Purpose |
+| Secret Name | Description | Example |
 |---|---|---|
-| `AZURE_CLIENT_ID` | Azure AD app registration client ID | Federated identity login |
-| `AZURE_TENANT_ID` | Azure AD tenant ID | Federated identity login |
-| `AZURE_SUBSCRIPTION_ID` | Azure subscription ID | Azure CLI context |
-| `AZURE_WEBAPP_NAME` | Manager App Service name (e.g. `daisi-manager`) | Deploy target |
-| `SDK_PAT` | GitHub PAT with read access to `daisi-sdk-dotnet` and `daisi-orc-dotnet` | Checkout dependencies |
+| `AZURE_CLIENT_ID` | The Application (client) ID from your Azure AD app registration. Identifies the service principal for OIDC login. See [AzureADSetup.md](AzureADSetup.md). | `a1b2c3d4-e5f6-...` |
+| `AZURE_TENANT_ID` | The Directory (tenant) ID from your Azure AD tenant. See [AzureADSetup.md](AzureADSetup.md). | `f7e8d9c0-b1a2-...` |
+| `AZURE_SUBSCRIPTION_ID` | The ID of the Azure subscription containing your resources. See [AzureADSetup.md](AzureADSetup.md). | `1a2b3c4d-5e6f-...` |
+| `AZURE_WEBAPP_NAME` | The name of the Azure App Service where the Manager is deployed. This is the name shown in the portal (same as the subdomain in `<name>.azurewebsites.net`). | `daisi-manager` |
+| `SDK_PAT` | A GitHub PAT with **Contents: Read** access to the SDK and ORC repos. Used by `actions/checkout` to clone dependencies. See [GitPATSetup.md](GitPATSetup.md). | `github_pat_...` |
 
 ---
 
@@ -41,7 +44,7 @@ The Manager deploys automatically on push to `main`, or manually via workflow di
 
 ## Step 3: Verify the Release Button
 
-1. Navigate to the Manager web app (e.g. `https://manager.daisinet.com`)
+1. Navigate to the Manager web app
 2. Go to **Account > Releases**
 3. Click **Start Release**
 4. You should see a dialog with:
@@ -51,7 +54,7 @@ The Manager deploys automatically on push to `main`, or manually via workflow di
    - **Start Release** button
 5. Select `beta`, click **Start Release**
 6. You should see a success toast: "Release {version} pipeline started. Build and deploy in progress."
-7. Check the **daisi-orc-dotnet** repo > **Actions** tab to see the orchestration workflow running
+7. Check the ORC repo > **Actions** tab to see the orchestration workflow running
 
 ---
 
@@ -94,7 +97,7 @@ After this initial manual deployment, all future releases are one-click from the
 
 **Toast says success but no pipeline runs**
 - The ORC successfully called the GitHub API, but the workflow might have failed to dispatch. Check:
-  - The `RELEASE_PAT` has access to `daisi-orc-dotnet`
+  - The `RELEASE_PAT` has access to the ORC repo
   - The `orchestrate-release.yml` file exists on the `main` branch
 
 **Dialog still shows old "Create" UI**
