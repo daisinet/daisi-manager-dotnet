@@ -1,6 +1,4 @@
 @page "/account/manage/skills/reviews"
-@using Daisi.Orc.Core.Data.Db
-@using Daisi.Orc.Core.Data.Models.Skills
 @using Daisi.Manager.Shared.Services
 
 <h2><i class="fa-duotone fa-shield-check me-2"></i> Skill Review Queue</h2>
@@ -48,7 +46,7 @@ else
                             <td><strong>@skill.Name</strong> v@(skill.Version)</td>
                             <td>@skill.Author</td>
                             <td>@skill.AccountId</td>
-                            <td>@skill.UpdatedAt.ToString("MMM d, yyyy")</td>
+                            <td>@skill.UpdatedAt?.ToDateTime().ToString("MMM d, yyyy")</td>
                             <td>
                                 @foreach (var group in skill.RequiredToolGroups)
                                 {
@@ -68,10 +66,10 @@ else
 }
 
 @code {
-    [Inject] public Cosmo Cosmo { get; set; } = default!;
+    [Inject] public SkillClientFactory SkillClientFactory { get; set; } = default!;
     [Inject] public AuthService AuthService { get; set; } = default!;
 
-    private List<Skill> _pendingSkills = [];
+    private List<SkillInfo> _pendingSkills = [];
     private bool _loading = true;
     private bool _isEmployee;
 
@@ -85,7 +83,9 @@ else
 
         if (_isEmployee)
         {
-            _pendingSkills = await Cosmo.GetPendingReviewSkillsAsync();
+            var client = SkillClientFactory.Create();
+            var response = await client.GetPendingReviewSkillsAsync(new GetPendingReviewSkillsRequest());
+            _pendingSkills = response.Skills.ToList();
         }
         _loading = false;
     }

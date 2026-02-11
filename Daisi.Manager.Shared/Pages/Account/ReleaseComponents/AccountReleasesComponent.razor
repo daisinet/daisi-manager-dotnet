@@ -219,7 +219,7 @@ else
     {
         var hostsInGroup = allHosts.Where(h => h.ReleaseGroup == release.ReleaseGroup).ToList();
 
-        DialogParameters dparams = new DialogParameters<ViewReleaseHostsComponent>()
+        var dparams = new DialogParameters<ViewReleaseHostsComponent>()
         {
             { c => c.Release, release },
             { c => c.HostsInGroup, hostsInGroup }

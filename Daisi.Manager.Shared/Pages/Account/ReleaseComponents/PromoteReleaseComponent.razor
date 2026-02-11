@@ -1,0 +1,103 @@
+
+<div class="px-4 pb-4">
+    <Daisi.SDK.Razor.Components.Validation.ValidationAlert Messages=messages></Daisi.SDK.Razor.Components.Validation.ValidationAlert>
+
+    <div class="">
+        <label class="fw-bold">Source</label>
+        <p class="form-control-plaintext">@SourceRelease.Version — <span class="badge border border-info">@SourceRelease.ReleaseGroup</span></p>
+    </div>
+    <div class="mt-3">
+        <label class="fw-bold">Target Group *</label>
+        <select class="form-control" @bind="targetGroup">
+            <option value="">-- Select Group --</option>
+            @foreach (var g in availableGroups)
+            {
+                <option value="@g">@g</option>
+            }
+        </select>
+    </div>
+    <div class="mt-3">
+        <label class="fw-bold">Activate Immediately</label>
+        <MudSwitch Color="Color.Success" UncheckedColor="Color.Default" @bind-Value="activateImmediately" Label=@(activateImmediately ? "Will activate on promote" : "Will not activate on promote")></MudSwitch>
+    </div>
+    <div class="mt-3">
+        <button class="btn btn-success" disabled="@processing" @onclick="OnPromote">Promote</button>
+    </div>
+</div>
+
+@code {
+    [Inject] public ReleaseClientFactory ReleaseClientFactory { get; set; }
+    [CascadingParameter] public IMudDialogInstance MudDialog { get; set; }
+    [Parameter] public HostReleaseInfo SourceRelease { get; set; }
+    [Parameter] public List<HostReleaseInfo> AllReleases { get; set; } = new();
+
+    string targetGroup = "";
+    bool activateImmediately = true;
+    bool processing = false;
+    List<string> messages = new();
+
+    static readonly string[] releaseGroups = ["beta", "group1", "group2", "production"];
+
+    List<string> availableGroups = new();
+
+    protected override void OnInitialized()
+    {
+        var groupsWithSameVersion = AllReleases
+            .Where(r => r.Version == SourceRelease.Version)
+            .Select(r => r.ReleaseGroup)
+            .ToHashSet();
+
+        availableGroups = releaseGroups
+            .Where(g => !groupsWithSameVersion.Contains(g))
+            .ToList();
+    }
+
+    async Task OnPromote()
+    {
+        messages = new();
+
+        if (string.IsNullOrWhiteSpace(targetGroup))
+            messages.Add("Target Group is required.");
+
+        if (messages.Any())
+            return;
+
+        processing = true;
+
+        try
+        {
+            var client = ReleaseClientFactory.Create();
+            var request = new CreateReleaseRequest
+            {
+                ReleaseGroup = targetGroup,
+                Version = SourceRelease.Version,
+                DownloadUrl = SourceRelease.DownloadUrl,
+                Activate = activateImmediately
+            };
+
+            if (!string.IsNullOrWhiteSpace(SourceRelease.ReleaseNotes))
+                request.ReleaseNotes = SourceRelease.ReleaseNotes;
+
+            if (!string.IsNullOrWhiteSpace(SourceRelease.RequiredOrcVersion))
+                request.RequiredOrcVersion = SourceRelease.RequiredOrcVersion;
+
+            var response = await client.CreateAsync(request);
+
+            if (response.Release is null)
+            {
+                messages.Add("An error occurred while promoting the release.");
+                processing = false;
+                return;
+            }
+
+            if (MudDialog is not null)
+                MudDialog.Close<HostReleaseInfo>(response.Release);
+        }
+        catch (Exception ex)
+        {
+            messages.Add($"An error occurred: {ex.Message}");
+        }
+
+        processing = false;
+    }
+}

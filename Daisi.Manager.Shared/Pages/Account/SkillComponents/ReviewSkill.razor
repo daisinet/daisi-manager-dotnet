@@ -1,6 +1,4 @@
 @page "/account/manage/skills/reviews/{Id}"
-@using Daisi.Orc.Core.Data.Db
-@using Daisi.Orc.Core.Data.Models.Skills
 @using Daisi.Manager.Shared.Services
 
 <h2><i class="fa-duotone fa-shield-check me-2"></i> Review Skill</h2>
@@ -72,7 +70,7 @@ else
                     <div class="card bg-dark mb-2">
                         <div class="card-body py-2">
                             <strong>@review.ReviewerEmail</strong> - <span class="badge @(review.Status == "Approved" ? "bg-success" : "bg-danger")">@review.Status</span>
-                            <br /><small class="text-muted">@review.Timestamp.ToString("MMM d, yyyy HH:mm")</small>
+                            <br /><small class="text-muted">@review.Timestamp?.ToDateTime().ToString("MMM d, yyyy HH:mm")</small>
                             @if (!string.IsNullOrWhiteSpace(review.Comment))
                             {
                                 <p class="mb-0 mt-1">@review.Comment</p>
@@ -117,12 +115,12 @@ else
 @code {
     [Parameter] public string Id { get; set; } = string.Empty;
 
-    [Inject] public Cosmo Cosmo { get; set; } = default!;
+    [Inject] public SkillClientFactory SkillClientFactory { get; set; } = default!;
     [Inject] public AuthService AuthService { get; set; } = default!;
     [Inject] public NavigationManager Navigation { get; set; } = default!;
 
-    private Skill? _skill;
-    private List<SkillReview> _reviews = [];
+    private SkillInfo? _skill;
+    private List<SkillReviewInfo> _reviews = [];
     private bool _isEmployee;
     private string _reviewerEmail = string.Empty;
     private string _comment = string.Empty;
@@ -142,8 +140,12 @@ else
 
         if (_isEmployee && !string.IsNullOrEmpty(Id))
         {
-            _skill = await Cosmo.GetSkillByIdAsync(Id);
-            _reviews = await Cosmo.GetSkillReviewsAsync(Id);
+            var client = SkillClientFactory.Create();
+            var skillResponse = await client.GetSkillByIdAsync(new GetSkillByIdRequest { Id = Id });
+            _skill = skillResponse.Skill;
+
+            var reviewsResponse = await client.GetSkillReviewsAsync(new GetSkillReviewsRequest { SkillId = Id });
+            _reviews = reviewsResponse.Reviews.ToList();
         }
     }
 
@@ -153,12 +155,14 @@ else
         _error = string.Empty;
         try
         {
+            var client = SkillClientFactory.Create();
+
             _skill!.Status = "Approved";
             _skill.ReviewedBy = _reviewerEmail;
-            _skill.ReviewedAt = DateTime.UtcNow;
-            await Cosmo.UpdateSkillAsync(_skill);
+            _skill.ReviewedAt = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.UtcNow);
+            await client.UpdateSkillAsync(new UpdateSkillRequest { Skill = _skill });
 
-            await Cosmo.CreateSkillReviewAsync(new SkillReview
+            await client.CreateSkillReviewAsync(new CreateSkillReviewRequest
             {
                 SkillId = Id,
                 ReviewerEmail = _reviewerEmail,
@@ -185,13 +189,15 @@ else
         _error = string.Empty;
         try
         {
+            var client = SkillClientFactory.Create();
+
             _skill!.Status = "Rejected";
             _skill.ReviewedBy = _reviewerEmail;
-            _skill.ReviewedAt = DateTime.UtcNow;
+            _skill.ReviewedAt = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.UtcNow);
             _skill.RejectionReason = _comment;
-            await Cosmo.UpdateSkillAsync(_skill);
+            await client.UpdateSkillAsync(new UpdateSkillRequest { Skill = _skill });
 
-            await Cosmo.CreateSkillReviewAsync(new SkillReview
+            await client.CreateSkillReviewAsync(new CreateSkillReviewRequest
             {
                 SkillId = Id,
                 ReviewerEmail = _reviewerEmail,

@@ -1,7 +1,5 @@
 @page "/account/manage/skills/new"
 @page "/account/manage/skills/{Id}"
-@using Daisi.Orc.Core.Data.Db
-@using Daisi.Orc.Core.Data.Models.Skills
 @using Daisi.Manager.Shared.Services
 
 <h2>@(IsEdit ? "Edit Skill" : "Create New Skill")</h2>
@@ -10,23 +8,23 @@
     <div class="col-md-8">
         <div class="mb-3">
             <label class="form-label">Skill Name</label>
-            <input type="text" class="form-control" @bind="_skill.Name" />
+            <input type="text" class="form-control" @bind="_name" />
         </div>
 
         <div class="mb-3">
             <label class="form-label">Short Description</label>
-            <input type="text" class="form-control" @bind="_skill.ShortDescription" maxlength="120" />
+            <input type="text" class="form-control" @bind="_shortDescription" maxlength="120" />
             <small class="text-muted">Max 120 characters</small>
         </div>
 
         <div class="mb-3">
             <label class="form-label">Version</label>
-            <input type="text" class="form-control" @bind="_skill.Version" style="max-width: 200px;" />
+            <input type="text" class="form-control" @bind="_version" style="max-width: 200px;" />
         </div>
 
         <div class="mb-3">
             <label class="form-label">Full Description (Markdown)</label>
-            <textarea class="form-control" rows="8" @bind="_skill.Description"></textarea>
+            <textarea class="form-control" rows="8" @bind="_description"></textarea>
         </div>
 
         <div class="mb-3">
@@ -38,7 +36,7 @@
             <label class="form-label">Required Tool Groups</label>
             @foreach (var group in _allToolGroups)
             {
-                var isChecked = _skill.RequiredToolGroups.Contains(group);
+                var isChecked = _requiredToolGroups.Contains(group);
                 var isElevated = _elevatedGroups.Contains(group);
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" checked="@isChecked"
@@ -56,14 +54,14 @@
 
         <div class="mb-3">
             <label class="form-label">System Prompt Template</label>
-            <textarea class="form-control" rows="6" @bind="_skill.SystemPromptTemplate"
+            <textarea class="form-control" rows="6" @bind="_systemPromptTemplate"
                       placeholder="The prompt injected when this skill is active..."></textarea>
             <small class="text-muted">This prompt will be added to the agent's system prompt when this skill is enabled.</small>
         </div>
 
         <div class="mb-3">
             <label class="form-label">Visibility</label>
-            <select class="form-select" @bind="_skill.Visibility">
+            <select class="form-select" @bind="_visibility">
                 <option value="Private">Private (your account only)</option>
                 <option value="Public">Public (requires DAISI employee approval)</option>
             </select>
@@ -75,7 +73,7 @@
                 Save
             </button>
 
-            @if (IsEdit && _skill.Status is "Draft" or "Rejected" && _skill.Visibility == "Public")
+            @if (IsEdit && _status is "Draft" or "Rejected" && _visibility == "Public")
             {
                 <button class="btn btn-warning" @onclick="SubmitForReviewAsync">Submit for Review</button>
             }
@@ -92,10 +90,10 @@
             <div class="alert alert-success mt-3">@_success</div>
         }
 
-        @if (IsEdit && !string.IsNullOrEmpty(_skill.RejectionReason))
+        @if (IsEdit && !string.IsNullOrEmpty(_rejectionReason))
         {
             <div class="alert alert-warning mt-3">
-                <strong>Rejection Reason:</strong> @_skill.RejectionReason
+                <strong>Rejection Reason:</strong> @_rejectionReason
             </div>
         }
     </div>
@@ -104,13 +102,27 @@
 @code {
     [Parameter] public string? Id { get; set; }
 
-    [Inject] public Cosmo Cosmo { get; set; } = default!;
+    [Inject] public SkillClientFactory SkillClientFactory { get; set; } = default!;
     [Inject] public AuthService AuthService { get; set; } = default!;
     [Inject] public NavigationManager Navigation { get; set; } = default!;
 
     private bool IsEdit => !string.IsNullOrEmpty(Id);
-    private Skill _skill = new();
+
+    // Editable fields (bound to form inputs)
+    private string _name = string.Empty;
+    private string _shortDescription = string.Empty;
+    private string _version = "1.0.0";
+    private string _description = string.Empty;
     private string _tagsInput = string.Empty;
+    private List<string> _requiredToolGroups = [];
+    private string _systemPromptTemplate = string.Empty;
+    private string _visibility = "Private";
+    private string _status = "Draft";
+    private string _rejectionReason = string.Empty;
+
+    // The full proto object (only populated on edit)
+    private SkillInfo? _existingSkill;
+
     private bool _saving;
     private string _error = string.Empty;
     private string _success = string.Empty;
@@ -124,21 +136,31 @@
     {
         if (IsEdit)
         {
-            var skill = await Cosmo.GetSkillByIdAsync(Id!);
-            if (skill is not null)
+            var client = SkillClientFactory.Create();
+            var response = await client.GetSkillByIdAsync(new GetSkillByIdRequest { Id = Id! });
+            if (response.Skill is not null)
             {
-                _skill = skill;
-                _tagsInput = string.Join(", ", skill.Tags);
+                _existingSkill = response.Skill;
+                _name = _existingSkill.Name;
+                _shortDescription = _existingSkill.ShortDescription;
+                _version = _existingSkill.Version;
+                _description = _existingSkill.Description;
+                _tagsInput = string.Join(", ", _existingSkill.Tags);
+                _requiredToolGroups = _existingSkill.RequiredToolGroups.ToList();
+                _systemPromptTemplate = _existingSkill.SystemPromptTemplate;
+                _visibility = _existingSkill.Visibility;
+                _status = _existingSkill.Status;
+                _rejectionReason = _existingSkill.RejectionReason;
             }
         }
     }
 
     private void ToggleToolGroup(string group, bool enabled)
     {
-        if (enabled && !_skill.RequiredToolGroups.Contains(group))
-            _skill.RequiredToolGroups.Add(group);
+        if (enabled && !_requiredToolGroups.Contains(group))
+            _requiredToolGroups.Add(group);
         else if (!enabled)
-            _skill.RequiredToolGroups.Remove(group);
+            _requiredToolGroups.Remove(group);
     }
 
     private async Task SaveAsync()
@@ -149,19 +171,47 @@
 
         try
         {
-            _skill.AccountId = await AuthService.GetAccountIdAsync() ?? string.Empty;
-            _skill.Author = await AuthService.GetUserNameAsync() ?? string.Empty;
-            _skill.Tags = _tagsInput.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            var accountId = await AuthService.GetAccountIdAsync() ?? string.Empty;
+            var author = await AuthService.GetUserNameAsync() ?? string.Empty;
+            var tags = _tagsInput.Split(',', StringSplitOptions.RemoveEmptyEntries)
                 .Select(t => t.Trim()).Where(t => !string.IsNullOrEmpty(t)).ToList();
 
-            if (IsEdit)
+            var client = SkillClientFactory.Create();
+
+            if (IsEdit && _existingSkill is not null)
             {
-                await Cosmo.UpdateSkillAsync(_skill);
+                _existingSkill.Name = _name;
+                _existingSkill.ShortDescription = _shortDescription;
+                _existingSkill.Version = _version;
+                _existingSkill.Description = _description;
+                _existingSkill.RequiredToolGroups.Clear();
+                _existingSkill.RequiredToolGroups.AddRange(_requiredToolGroups);
+                _existingSkill.Tags.Clear();
+                _existingSkill.Tags.AddRange(tags);
+                _existingSkill.SystemPromptTemplate = _systemPromptTemplate;
+                _existingSkill.Visibility = _visibility;
+                _existingSkill.Author = author;
+
+                await client.UpdateSkillAsync(new UpdateSkillRequest { Skill = _existingSkill });
                 _success = "Skill updated successfully.";
             }
             else
             {
-                await Cosmo.CreateSkillAsync(_skill);
+                var request = new CreateSkillRequest
+                {
+                    AccountId = accountId,
+                    Name = _name,
+                    ShortDescription = _shortDescription,
+                    Version = _version,
+                    Description = _description,
+                    SystemPromptTemplate = _systemPromptTemplate,
+                    Visibility = _visibility,
+                    Author = author
+                };
+                request.RequiredToolGroups.AddRange(_requiredToolGroups);
+                request.Tags.AddRange(tags);
+
+                await client.CreateSkillAsync(request);
                 _success = "Skill created successfully.";
                 Navigation.NavigateTo("/account/manage/skills");
             }
@@ -176,9 +226,12 @@
 
     private async Task SubmitForReviewAsync()
     {
-        _skill.Status = "PendingReview";
-        _skill.UpdatedAt = DateTime.UtcNow;
-        await Cosmo.UpdateSkillAsync(_skill);
+        if (_existingSkill is null) return;
+
+        _existingSkill.Status = "PendingReview";
+        var client = SkillClientFactory.Create();
+        await client.UpdateSkillAsync(new UpdateSkillRequest { Skill = _existingSkill });
+        _status = "PendingReview";
         _success = "Skill submitted for review.";
     }
 }

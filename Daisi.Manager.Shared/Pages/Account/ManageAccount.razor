@@ -15,7 +15,6 @@
                 <option value="@AccountPages.Payouts">Payouts</option>
                 <option value="@AccountPages.Subscriptions">Subscriptions</option>
                 <option value="@AccountPages.Credits">Credits</option>
-                <option value="@AccountPages.Releases">Releases</option>
             </select>
         </div>
     }
@@ -77,11 +76,6 @@
                         <i class="fa-duotone fa-coins me-2"></i> Credits
                     </h4>
                 </a>
-                <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AccountPages.Releases ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AccountPages.Releases">
-                    <h4 class="mt-2">
-                        <i class="fa-duotone fa-rocket me-2"></i> Releases
-                    </h4>
-                </a>
                 <a href="/account/manage/skills" class="list-group-item">
                     <h4 class="mt-2">
                         <i class="fa-duotone fa-puzzle-piece me-2"></i> Skills
@@ -130,10 +124,6 @@
         {
             <Daisi.Manager.Shared.Pages.Account.CreditComponents.AccountCreditsComponent></Daisi.Manager.Shared.Pages.Account.CreditComponents.AccountCreditsComponent>
         }
-        else if (CurrentPage == AccountPages.Releases)
-        {
-            <Daisi.Manager.Shared.Pages.Account.ReleaseComponents.AccountReleasesComponent></Daisi.Manager.Shared.Pages.Account.ReleaseComponents.AccountReleasesComponent>
-        }
     </div>
 </div>
 @code {
@@ -148,8 +138,7 @@
         Networks,
         Payouts,
         Subscriptions,
-        Credits,
-        Releases
+        Credits
     }
 
     public UserRoles? UserRole { get; set; }

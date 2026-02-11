@@ -24,6 +24,14 @@
                             <span class="fa-duotone fa-user" aria-hidden="true"></span> Account
                         </NavLink>
                     </li>
+                    @if (UserRole >= UserRoles.Admin)
+                    {
+                        <li class="nav-item me-md-3">
+                            <NavLink class="nav-link" href="admin">
+                                <span class="fa-duotone fa-shield-halved" aria-hidden="true"></span> Admin
+                            </NavLink>
+                        </li>
+                    }
                     @* <li class="nav-item me-md-3">
                         <NavLink class="nav-link" href="chats">
                             <span class="fa-duotone fa-comments" aria-hidden="true"></span> Chats
@@ -123,6 +131,7 @@
 
     string UserName;
     bool isAuthenticated = false;
+    UserRoles? UserRole;
 
     protected async override Task OnInitializedAsync()
     {
@@ -136,6 +145,7 @@
             else
             {
                 UserName = await auth.GetUserNameAsync();
+                UserRole = await auth.GetUserRoleAsync();
             }
         }
         catch (Exception ex)

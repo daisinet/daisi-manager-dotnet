@@ -1,6 +1,4 @@
 @page "/account/manage/skills"
-@using Daisi.Orc.Core.Data.Db
-@using Daisi.Orc.Core.Data.Models.Skills
 @using Daisi.Manager.Shared.Services
 
 <h2>Skills</h2>
@@ -49,7 +47,7 @@ else
                             <span class="badge @GetStatusBadge(skill.Status)">@skill.Status</span>
                         </td>
                         <td>@skill.Visibility</td>
-                        <td>@skill.CreatedAt.ToString("MMM d, yyyy")</td>
+                        <td>@skill.CreatedAt?.ToDateTime().ToString("MMM d, yyyy")</td>
                         <td>
                             <a href="/account/manage/skills/@skill.Id" class="btn btn-sm btn-outline-primary me-1">Edit</a>
                             @if (skill.Status is "Draft" or "Rejected" && skill.Visibility == "Public")
@@ -76,10 +74,10 @@ else
 }
 
 @code {
-    [Inject] public Cosmo Cosmo { get; set; } = default!;
+    [Inject] public SkillClientFactory SkillClientFactory { get; set; } = default!;
     [Inject] public AuthService AuthService { get; set; } = default!;
 
-    private List<Skill> _skills = [];
+    private List<SkillInfo> _skills = [];
     private bool _loading = true;
     private bool _isEmployee;
     private string _accountId = string.Empty;
@@ -92,17 +90,22 @@ else
             var userName = await AuthService.GetUserNameAsync();
             _isEmployee = !string.IsNullOrEmpty(userName) &&
                           userName.EndsWith("@daisi.ai", StringComparison.OrdinalIgnoreCase);
-            _skills = await Cosmo.GetSkillsByAccountAsync(_accountId);
+
+            var client = SkillClientFactory.Create();
+            var response = await client.GetSkillsByAccountAsync(new GetSkillsByAccountRequest { AccountId = _accountId });
+            _skills = response.Skills.ToList();
         }
         _loading = false;
     }
 
-    private async Task SubmitForReview(Skill skill)
+    private async Task SubmitForReview(SkillInfo skill)
     {
         skill.Status = "PendingReview";
-        skill.UpdatedAt = DateTime.UtcNow;
-        await Cosmo.UpdateSkillAsync(skill);
-        _skills = await Cosmo.GetSkillsByAccountAsync(_accountId);
+        var client = SkillClientFactory.Create();
+        await client.UpdateSkillAsync(new UpdateSkillRequest { Skill = skill });
+
+        var response = await client.GetSkillsByAccountAsync(new GetSkillsByAccountRequest { AccountId = _accountId });
+        _skills = response.Skills.ToList();
     }
 
     private static string GetStatusBadge(string status) => status switch

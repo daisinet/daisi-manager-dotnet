@@ -1,0 +1,52 @@
+@page "/admin"
+@using Daisi.Manager.Shared.Services
+<div class="row align-items-stretch">
+    <div class="d-md-none mt-3 mb-3">
+        <select class="form-control" @onchange="OnChangePage">
+            <option value="@AdminPages.Releases">Releases</option>
+        </select>
+    </div>
+    <div class="d-none d-md-block col-12 col-md-4 bg-dark-subtle border-end py-4 @(FormFactor.GetFormFactor() != "Mobile" ? "vh-100" : "")">
+        <h2>Admin</h2>
+        <div class="list-group">
+            <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AdminPages.Releases ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AdminPages.Releases">
+                <h4 class="mt-2">
+                    <i class="fa-duotone fa-rocket me-2"></i> Releases
+                </h4>
+            </a>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-8 mt-2 pt-md-4 px-md-4">
+        @if (CurrentPage == AdminPages.Releases)
+        {
+            <Daisi.Manager.Shared.Pages.Account.ReleaseComponents.AccountReleasesComponent></Daisi.Manager.Shared.Pages.Account.ReleaseComponents.AccountReleasesComponent>
+        }
+    </div>
+</div>
+@code {
+    enum AdminPages
+    {
+        Releases
+    }
+
+    AdminPages CurrentPage { get; set; } = AdminPages.Releases;
+
+    [Inject] public IFormFactor FormFactor { get; set; }
+    [Inject] public AuthService AuthService { get; set; }
+    [Inject] public NavigationManager NavigationManager { get; set; }
+
+    protected async override Task OnInitializedAsync()
+    {
+        var userRole = await AuthService.GetUserRoleAsync();
+        if (userRole is null || userRole < UserRoles.Admin)
+        {
+            NavigationManager.NavigateTo("/account/manage");
+        }
+    }
+
+    void OnChangePage(ChangeEventArgs e)
+    {
+        CurrentPage = e.Value is not null ? Enum.Parse<AdminPages>(e.Value.ToString()) : AdminPages.Releases;
+    }
+}
