@@ -1,0 +1,246 @@
+@using Daisi.Protos.V1
+@using Daisi.SDK.Clients.V1.Orc
+
+<div class="row">
+    <div class="col mt-1 mt-md-0"><h3>Drive</h3></div>
+</div>
+
+<div class="row g-3 mt-1">
+    @* Storage Limits Card *@
+    <div class="col-md-6">
+        <div class="card bg-dark h-100">
+            <div class="card-header">
+                <i class="fa-duotone fa-hard-drive me-2"></i> Storage Limits
+            </div>
+            <div class="card-body">
+                @if (_loading)
+                {
+                    <p>Loading...</p>
+                }
+                else
+                {
+                    <div class="mb-3">
+                        <label class="form-label text-secondary">Storage Usage</label>
+                        <div class="progress" style="height: 24px;">
+                            <div class="progress-bar @GetUsageBarClass()" role="progressbar"
+                                 style="width: @UsagePercent%;" aria-valuenow="@UsagePercent" aria-valuemin="0" aria-valuemax="100">
+                                @UsagePercent.ToString("F1")%
+                            </div>
+                        </div>
+                        <small class="text-secondary">@FormatSize(_usedBytes) / @FormatSize(_maxTotalStorageBytes)</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Max File Size (MB)</label>
+                        <input type="number" class="form-control" @bind="_maxFileSizeMB" min="1" max="10240" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Max Total Storage (GB)</label>
+                        <input type="number" class="form-control" @bind="_maxTotalStorageGB" min="1" max="1000" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Max File Count</label>
+                        <input type="number" class="form-control" @bind="_maxFileCount" min="1" max="100000" />
+                    </div>
+                    <button class="btn btn-success" @onclick="SaveLimits">
+                        <i class="fa-duotone fa-save me-1"></i> Save Limits
+                    </button>
+                    @if (!string.IsNullOrEmpty(_saveMessage))
+                    {
+                        <span class="ms-2 text-success">@_saveMessage</span>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+    @* Erasure Coding Config Card *@
+    <div class="col-md-6">
+        <div class="card bg-dark h-100">
+            <div class="card-header">
+                <i class="fa-duotone fa-shield-halved me-2"></i> Erasure Coding
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Redundancy Tier</label>
+                    <select class="form-select" @bind="_selectedPreset">
+                        <option value="Basic">Basic (3+1) - Tolerates 1 host loss</option>
+                        <option value="Standard">Standard (4+2) - Tolerates 2 host losses</option>
+                        <option value="Premium">Premium (5+2) - Tolerates 2 host losses</option>
+                        <option value="Enterprise">Enterprise (5+3) - Tolerates 3 host losses</option>
+                        <option value="Custom">Custom</option>
+                    </select>
+                </div>
+
+                @if (_selectedPreset == "Custom")
+                {
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Data Shards (N)</label>
+                            <input type="number" class="form-control" @bind="_customDataShards" min="2" max="20" />
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Parity Shards (M)</label>
+                            <input type="number" class="form-control" @bind="_customParityShards" min="1" max="10" />
+                        </div>
+                    </div>
+                }
+
+                <div class="alert alert-info">
+                    <i class="fa-duotone fa-info-circle me-1"></i> @GetPresetInfo()
+                </div>
+
+                <button class="btn btn-success" @onclick="SaveErasureConfig">
+                    <i class="fa-duotone fa-save me-1"></i> Save Configuration
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* File Browser *@
+<div class="row g-3 mt-0">
+    <div class="col-12">
+        <div class="card bg-dark">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fa-duotone fa-folder-open me-2"></i> Account Files</span>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" @bind="_showSystemFiles" />
+                    <label class="form-check-label">Show System Files</label>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (_files.Any())
+                {
+                    <table class="table table-dark table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Size</th>
+                                <th>Status</th>
+                                <th>Shards</th>
+                                <th>Modified</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var file in _files)
+                            {
+                                <tr>
+                                    <td>
+                                        <i class="fa-duotone @GetFileIcon(file.ContentType) me-1"></i>
+                                        @file.Name
+                                        @if (file.IsSystemFile)
+                                        {
+                                            <span class="badge bg-secondary ms-1">System</span>
+                                        }
+                                    </td>
+                                    <td>@FormatSize(file.SizeBytes)</td>
+                                    <td>
+                                        <span class="badge @GetStatusBadge(file.Status)">@file.Status</span>
+                                    </td>
+                                    <td>@file.DataShards+@file.ParityShards</td>
+                                    <td>@file.DateModified.ToString("MMM d, yyyy HH:mm")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <div class="text-secondary text-center py-4">
+                        <i class="fa-duotone fa-folder-open me-2"></i> No files in this account
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    bool _loading = true;
+    long _usedBytes = 0;
+    long _maxTotalStorageBytes = 10L * 1024 * 1024 * 1024;
+    long _maxFileSizeMB = 100;
+    long _maxTotalStorageGB = 10;
+    int _maxFileCount = 10000;
+    string _selectedPreset = "Basic";
+    int _customDataShards = 4;
+    int _customParityShards = 2;
+    bool _showSystemFiles = false;
+    string _saveMessage = "";
+
+    List<FileInfo> _files = [];
+
+    double UsagePercent => _maxTotalStorageBytes > 0 ? (double)_usedBytes / _maxTotalStorageBytes * 100 : 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // In production, loads from DriveClient
+        _loading = false;
+    }
+
+    string GetUsageBarClass() => UsagePercent switch
+    {
+        >= 90 => "bg-danger",
+        >= 75 => "bg-warning",
+        _ => "bg-success"
+    };
+
+    string GetPresetInfo() => _selectedPreset switch
+    {
+        "Basic" => "3 data + 1 parity. Tolerates 1 host loss. 33% storage overhead.",
+        "Standard" => "4 data + 2 parity. Tolerates 2 host losses. 50% storage overhead.",
+        "Premium" => "5 data + 2 parity. Tolerates 2 host losses. 40% storage overhead.",
+        "Enterprise" => "5 data + 3 parity. Tolerates 3 host losses. 60% storage overhead.",
+        "Custom" => $"{_customDataShards}+{_customParityShards}. Tolerates {_customParityShards} host losses.",
+        _ => ""
+    };
+
+    string GetFileIcon(string contentType) => contentType switch
+    {
+        "application/pdf" => "fa-file-pdf",
+        _ when contentType.StartsWith("image/") => "fa-file-image",
+        _ when contentType.StartsWith("text/") => "fa-file-lines",
+        _ => "fa-file"
+    };
+
+    string GetStatusBadge(string status) => status switch
+    {
+        "Active" => "bg-success",
+        "Degraded" => "bg-warning text-dark",
+        "Uploading" or "Processing" => "bg-info",
+        _ => "bg-secondary"
+    };
+
+    void SaveLimits()
+    {
+        _saveMessage = "Limits saved!";
+        StateHasChanged();
+    }
+
+    void SaveErasureConfig()
+    {
+        _saveMessage = "Configuration saved!";
+        StateHasChanged();
+    }
+
+    string FormatSize(long bytes) => bytes switch
+    {
+        < 1024 => $"{bytes} B",
+        < 1024 * 1024 => $"{bytes / 1024.0:F1} KB",
+        < 1024 * 1024 * 1024 => $"{bytes / (1024.0 * 1024):F1} MB",
+        _ => $"{bytes / (1024.0 * 1024 * 1024):F2} GB"
+    };
+
+    class FileInfo
+    {
+        public string Name { get; set; } = "";
+        public long SizeBytes { get; set; }
+        public string ContentType { get; set; } = "";
+        public string Status { get; set; } = "Active";
+        public bool IsSystemFile { get; set; }
+        public int DataShards { get; set; }
+        public int ParityShards { get; set; }
+        public DateTime DateModified { get; set; }
+    }
+}
