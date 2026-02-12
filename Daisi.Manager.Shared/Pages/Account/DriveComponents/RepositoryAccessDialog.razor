@@ -1,0 +1,158 @@
+@using static AccountDriveComponent
+
+<div class="modal d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">
+                    <i class="fa-duotone fa-users me-2"></i> Repository Access - @Repository.Name
+                </h5>
+                <button type="button" class="btn-close btn-close-white" @onclick="OnClose"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <span class="badge @GetRepoTypeBadge(Repository.Type) me-2">@Repository.Type</span>
+                    <small class="text-secondary">@GetAccessDescription()</small>
+                </div>
+
+                @* Current Access List *@
+                <h6 class="mt-3 mb-2">Current Access</h6>
+                @if (Repository.AccessList.Any())
+                {
+                    <table class="table table-dark table-sm">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Type</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var entry in Repository.AccessList)
+                            {
+                                <tr>
+                                    <td>
+                                        <i class="fa-duotone @(entry.IsApp ? "fa-robot" : "fa-user") me-1"></i>
+                                        @entry.UserName
+                                    </td>
+                                    <td>
+                                        <span class="badge @(entry.IsApp ? "bg-warning text-dark" : "bg-info")">
+                                            @(entry.IsApp ? "App" : "User")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (Repository.Type == "Custom")
+                                        {
+                                            <button class="btn btn-outline-danger btn-sm" @onclick="() => RevokeAccess(entry)">
+                                                <i class="fa-duotone fa-user-minus me-1"></i> Revoke
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <div class="text-secondary mb-3">
+                        <i class="fa-duotone fa-info-circle me-1"></i>
+                        @if (Repository.Type == "Account")
+                        {
+                            @:All team members have access to this repository.
+                        }
+                        else if (Repository.Type == "Private")
+                        {
+                            @:Only the owner has access to this repository.
+                        }
+                        else
+                        {
+                            @:No users have been granted explicit access.
+                        }
+                    </div>
+                }
+
+                @* Grant Access Form (Custom repos only) *@
+                @if (Repository.Type == "Custom")
+                {
+                    <hr class="border-secondary" />
+                    <h6 class="mb-2">Grant Access</h6>
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label">User ID</label>
+                            <input type="text" class="form-control" @bind="_newUserId" placeholder="Enter user ID" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">User Name</label>
+                            <input type="text" class="form-control" @bind="_newUserName" placeholder="Enter user name" />
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-check form-switch mt-4">
+                                <input class="form-check-input" type="checkbox" @bind="_newIsApp" />
+                                <label class="form-check-label">App</label>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-success w-100" @onclick="GrantAccess"
+                                    disabled="@(string.IsNullOrWhiteSpace(_newUserId) || string.IsNullOrWhiteSpace(_newUserName))">
+                                <i class="fa-duotone fa-user-plus me-1"></i> Grant
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" @onclick="OnClose">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public RepoInfo Repository { get; set; } = new();
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    string _newUserId = "";
+    string _newUserName = "";
+    bool _newIsApp = false;
+
+    string GetAccessDescription() => Repository.Type switch
+    {
+        "Account" => "All team members have access. Managers and above can manage content.",
+        "Private" => "Only the owner can access files in this repository.",
+        "Custom" => "Access is granted to specific users and apps listed below.",
+        _ => ""
+    };
+
+    string GetRepoTypeBadge(string type) => type switch
+    {
+        "Account" => "bg-primary",
+        "Private" => "bg-info",
+        "Custom" => "bg-success",
+        "Trash" => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    void GrantAccess()
+    {
+        if (string.IsNullOrWhiteSpace(_newUserId) || string.IsNullOrWhiteSpace(_newUserName)) return;
+
+        // In production, calls DriveClient.GrantRepositoryAccessAsync()
+        Repository.AccessList.Add(new AccessEntry
+        {
+            UserId = _newUserId.Trim(),
+            UserName = _newUserName.Trim(),
+            IsApp = _newIsApp
+        });
+
+        _newUserId = "";
+        _newUserName = "";
+        _newIsApp = false;
+    }
+
+    void RevokeAccess(AccessEntry entry)
+    {
+        // In production, calls DriveClient.RevokeRepositoryAccessAsync()
+        Repository.AccessList.Remove(entry);
+    }
+}

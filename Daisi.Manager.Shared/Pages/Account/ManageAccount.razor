@@ -9,6 +9,7 @@
                 <option value="@AccountPages.General">Account Info</option>
                 <option value="@AccountPages.Users">Users</option>
                 <option value="@AccountPages.Apps">Apps</option>
+                <option value="@AccountPages.Drive">Drive</option>
                 <option value="@AccountPages.Hosts">Hosts</option>
                 <option value="@AccountPages.Orcs">Orcs</option>
                 <option value="@AccountPages.Networks">Networks</option>
@@ -44,6 +45,11 @@
                 <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AccountPages.Apps ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AccountPages.Apps">
                     <h4 class="mt-2">
                         <i class="fa-duotone fa-code me-2"></i> Apps
+                    </h4>
+                </a>
+                <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AccountPages.Drive ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AccountPages.Drive">
+                    <h4 class="mt-2">
+                        <i class="fa-duotone fa-hard-drive me-2"></i> Drive
                     </h4>
                 </a>
                 <a href="/hosts" class="list-group-item">
@@ -120,6 +126,10 @@
         {
             <Daisi.Manager.Shared.Pages.Account.SubscriptionsComponents.AccountSubscriptionsComponent></Daisi.Manager.Shared.Pages.Account.SubscriptionsComponents.AccountSubscriptionsComponent>
         }
+        else if (CurrentPage == AccountPages.Drive)
+        {
+            <Daisi.Manager.Shared.Pages.Account.DriveComponents.AccountDriveComponent></Daisi.Manager.Shared.Pages.Account.DriveComponents.AccountDriveComponent>
+        }
         else if (CurrentPage == AccountPages.Credits)
         {
             <Daisi.Manager.Shared.Pages.Account.CreditComponents.AccountCreditsComponent></Daisi.Manager.Shared.Pages.Account.CreditComponents.AccountCreditsComponent>
@@ -133,6 +143,7 @@
         General,
         Users,
         Apps,
+        Drive,
         Hosts,
         Orcs,
         Networks,
