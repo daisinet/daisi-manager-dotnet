@@ -1,4 +1,5 @@
 ﻿@page "/account/manage"
+@page "/account/manage/{Page}"
 @using Daisi.Manager.Shared.Services
 <div class="row align-items-stretch">
     @if (UserRole >= UserRoles.Manager)
@@ -22,71 +23,62 @@
     <div class="d-none d-md-block col-12 col-md-4 bg-dark-subtle border-end py-4 @(FormFactor.GetFormFactor() != "Mobile" ? "vh-100" : "")">
         <h2>Your Account</h2>
         <div class="list-group">
-            <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AccountPages.Profile ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AccountPages.Profile">
+            <a href="/account/manage/profile" class="list-group-item @(CurrentPage == AccountPages.Profile ? "active" : "") cursor-pointer">
                 <h4 class="mt-2">
                     <i class="fa-duotone fa-user me-2"></i> Your Profile
                 </h4>
             </a>
             @if (UserRole >= UserRoles.Manager)
             {
-                <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AccountPages.General ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AccountPages.General">
+                <a href="/account/manage/general" class="list-group-item @(CurrentPage == AccountPages.General ? "active" : "") cursor-pointer">
                     <h4 class="mt-2">
                         <i class="fa-duotone fa-info-circle me-2"></i> Account Info
                     </h4>
                 </a>
                 @if (UserRole >= UserRoles.Owner)
                 {
-                    <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AccountPages.Users ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AccountPages.Users">
+                    <a href="/account/manage/users" class="list-group-item @(CurrentPage == AccountPages.Users ? "active" : "") cursor-pointer">
                         <h4 class="mt-2">
                             <i class="fa-duotone fa-people me-2"></i> Users
                         </h4>
                     </a>
                 }
-                <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AccountPages.Apps ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AccountPages.Apps">
+                <a href="/account/manage/apps" class="list-group-item @(CurrentPage == AccountPages.Apps ? "active" : "") cursor-pointer">
                     <h4 class="mt-2">
                         <i class="fa-duotone fa-code me-2"></i> Apps
                     </h4>
                 </a>
-                <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AccountPages.Drive ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AccountPages.Drive">
+                <a href="/account/manage/drive" class="list-group-item @(CurrentPage == AccountPages.Drive ? "active" : "") cursor-pointer">
                     <h4 class="mt-2">
                         <i class="fa-duotone fa-hard-drive me-2"></i> Drive
                     </h4>
                 </a>
-                <a href="/hosts" class="list-group-item">
+                <a href="/hosts" class="list-group-item cursor-pointer">
                     <h4 class="mt-2">
                         <i class="fa-duotone fa-computer me-2"></i> Hosts
                     </h4>
                 </a>
-                <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AccountPages.Orcs ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AccountPages.Orcs">
+                <a href="/account/manage/orcs" class="list-group-item @(CurrentPage == AccountPages.Orcs ? "active" : "") cursor-pointer">
                     <h4 class="mt-2">
                         <i class="fa-duotone fa-chart-network me-2"></i> Orcs
                     </h4>
                 </a>
-                <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AccountPages.Networks ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AccountPages.Networks">
+                <a href="/account/manage/networks" class="list-group-item @(CurrentPage == AccountPages.Networks ? "active" : "") cursor-pointer">
                     <h4 class="mt-2">
                         <i class="fa-duotone fa-network-wired me-2"></i> Networks
                     </h4>
                 </a>
-                <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AccountPages.Payouts ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AccountPages.Payouts">
-                    <h4 class="mt-2">
-                        <i class="fa-duotone fa-dollar me-2"></i> Payouts
-                    </h4>
-                </a>
-                <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AccountPages.Subscriptions ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AccountPages.Subscriptions">
+                <a href="/account/manage/subscriptions" class="list-group-item @(CurrentPage == AccountPages.Subscriptions ? "active" : "") cursor-pointer">
                     <h4 class="mt-2">
                         <i class="fa-duotone fa-refresh me-2"></i> Subscriptions
                     </h4>
                 </a>
-                <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AccountPages.Credits ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AccountPages.Credits">
+                <a href="/account/manage/credits" class="list-group-item @(CurrentPage == AccountPages.Credits ? "active" : "") cursor-pointer">
                     <h4 class="mt-2">
                         <i class="fa-duotone fa-coins me-2"></i> Credits
                     </h4>
                 </a>
-                <a href="/account/manage/skills" class="list-group-item">
-                    <h4 class="mt-2">
-                        <i class="fa-duotone fa-puzzle-piece me-2"></i> Skills
-                    </h4>
-                </a>
+
             }
 
         </div>
@@ -134,6 +126,8 @@
         {
             <Daisi.Manager.Shared.Pages.Account.CreditComponents.AccountCreditsComponent></Daisi.Manager.Shared.Pages.Account.CreditComponents.AccountCreditsComponent>
         }
+
+
     </div>
 </div>
 @code {
@@ -152,6 +146,8 @@
         Credits
     }
 
+    [Parameter] public string? Page { get; set; }
+
     public UserRoles? UserRole { get; set; }
     AccountPages CurrentPage { get; set; }
 
@@ -164,11 +160,18 @@
         UserRole = await AuthService.GetUserRoleAsync();
     }
 
-    async Task OnChangePage(ChangeEventArgs e)
+    protected override void OnParametersSet()
     {
-        CurrentPage = e.Value is not null ? Enum.Parse<AccountPages>(e.Value.ToString()) : AccountPages.Profile;
-        if (CurrentPage == AccountPages.Hosts)
-            NavigationManager.NavigateTo("/hosts");
+        if (!string.IsNullOrEmpty(Page) && System.Enum.TryParse<AccountPages>(Page, ignoreCase: true, out var parsed))
+            CurrentPage = parsed;
+        else
+            CurrentPage = AccountPages.Profile;
+    }
+
+    void OnChangePage(ChangeEventArgs e)
+    {
+        var page = e.Value is not null ? System.Enum.Parse<AccountPages>(e.Value.ToString()!) : AccountPages.Profile;
+        NavigationManager.NavigateTo($"/account/manage/{page.ToString().ToLower()}");
     }
 
 }

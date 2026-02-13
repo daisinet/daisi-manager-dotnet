@@ -1,7 +1,112 @@
-﻿<h3>Account Payouts</h3>
-<div class="alert alert-danger mt-3">
-    Not quite ready for this yet. Check back soon!
-</div>
-@code {
+@using Daisi.Manager.Shared.Services
 
+<h3>Provider Earnings</h3>
+
+@if (_loading)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (_profile is null)
+{
+    <div class="alert alert-info mt-3">
+        <i class="fa-duotone fa-info-circle me-1"></i> You are not a marketplace provider yet.
+        <a href="/marketplace" class="alert-link">Visit the Marketplace</a> to apply as a provider.
+    </div>
+}
+else
+{
+    <div class="row mt-3">
+        <div class="col-md-4">
+            <div class="card bg-dark-subtle border-secondary text-center p-3">
+                <h6 class="text-muted">Total Earnings</h6>
+                <h3 class="text-success">@_profile.TotalEarnings credits</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-dark-subtle border-secondary text-center p-3">
+                <h6 class="text-muted">Pending Payout</h6>
+                <h3 class="text-warning">@_profile.PendingPayout credits</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-dark-subtle border-secondary text-center p-3">
+                <h6 class="text-muted">Revenue Share</h6>
+                <h3>@_profile.RevenueSharePercent%</h3>
+            </div>
+        </div>
+    </div>
+
+    <h5 class="mt-4">Earning Transactions</h5>
+    @if (_transactions.Count == 0)
+    {
+        <div class="alert alert-info">No earnings yet. Publish items on the marketplace to start earning.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var tx in _transactions)
+                    {
+                        <tr>
+                            <td>@tx.DateCreated.ToDateTime().ToString("MMM d, yyyy HH:mm")</td>
+                            <td>@tx.Description</td>
+                            <td class="text-success">+@tx.Amount credits</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    [Inject] public MarketplaceClientFactory MarketplaceClientFactory { get; set; } = default!;
+    [Inject] public CreditClientFactory CreditClientFactory { get; set; } = default!;
+    [Inject] public AuthService AuthService { get; set; } = default!;
+
+    private ProviderProfileInfo? _profile;
+    private List<CreditTransactionInfo> _transactions = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var accountId = await AuthService.GetAccountIdAsync() ?? string.Empty;
+            if (string.IsNullOrEmpty(accountId)) return;
+
+            var marketplaceClient = MarketplaceClientFactory.Create();
+            var profileResponse = await marketplaceClient.GetProviderProfileAsync(new GetProviderProfileRequest { AccountId = accountId });
+            _profile = profileResponse.Profile;
+
+            if (_profile is not null)
+            {
+                var creditClient = CreditClientFactory.Create();
+                var txResponse = await creditClient.GetCreditTransactionsAsync(new GetCreditTransactionsRequest
+                {
+                    AccountId = accountId,
+                    PageSize = 50,
+                    PageIndex = 0
+                });
+                _transactions = txResponse.Transactions
+                    .Where(t => t.Type == "ProviderEarning")
+                    .ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading payouts: {ex.Message}");
+        }
+        _loading = false;
+    }
 }

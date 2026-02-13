@@ -1,0 +1,101 @@
+@using Daisi.Manager.Shared.Services
+
+<MudDialog>
+    <TitleContent>
+        <div>
+            <i class="fa-duotone fa-chart-network me-2"></i> Orcs serving <strong>@NetworkName</strong>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        @if (_loading)
+        {
+            <p class="text-muted">Loading orcs...</p>
+        }
+        else if (_orcs.Count == 0)
+        {
+            <div class="alert alert-info mb-0">
+                <i class="fa-solid fa-circle-info me-2"></i>
+                No orcs are currently serving this network.
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>Name</th>
+                            <th>Domain</th>
+                            <th class="text-center">Hosts</th>
+                            <th class="text-center">Port</th>
+                            <th>Version</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var orc in _orcs)
+                        {
+                            <tr>
+                                <td>
+                                    @if (orc.Status == OrcStatus.Online)
+                                    {
+                                        <i title="Online" class="fa-duotone fa-dot text-success fa-2x p-0"></i>
+                                    }
+                                    else if (orc.Status == OrcStatus.Offline)
+                                    {
+                                        <i title="Offline" class="fa-duotone fa-dot text-danger fa-2x p-0"></i>
+                                    }
+                                    else
+                                    {
+                                        <i title="@orc.Status" class="fa-duotone fa-dot text-warning fa-2x p-0"></i>
+                                    }
+                                </td>
+                                <td>@orc.Name</td>
+                                <td>@orc.Domain</td>
+                                <td class="text-center">@orc.OpenConnectionCount</td>
+                                <td class="text-center">@orc.Port</td>
+                                <td>@orc.Version</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public string NetworkId { get; set; } = string.Empty;
+    [Parameter] public string NetworkName { get; set; } = string.Empty;
+
+    [Inject] OrcClientFactory OrcClientFactory { get; set; } = default!;
+
+    private bool _loading = true;
+    private List<Orchestrator> _orcs = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var client = OrcClientFactory.Create();
+            var response = await client.GetAsync(new GetOrcsRequest
+            {
+                NetworkId = NetworkId,
+                Paging = new PagingInfo { PageIndex = 0, PageSize = 50 }
+            });
+            _orcs = response.Orcs.ToList();
+        }
+        catch
+        {
+            _orcs = [];
+        }
+        _loading = false;
+    }
+
+    private void Close() => MudDialog.Close();
+}

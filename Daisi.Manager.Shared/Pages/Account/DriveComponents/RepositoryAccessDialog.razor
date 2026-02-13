@@ -1,4 +1,5 @@
-@using static AccountDriveComponent
+@using Daisi.Protos.V1
+@using Daisi.SDK.Clients.V1.Orc
 
 <div class="modal d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
     <div class="modal-dialog modal-lg">
@@ -22,7 +23,7 @@
                     <table class="table table-dark table-sm">
                         <thead>
                             <tr>
-                                <th>User</th>
+                                <th>Name</th>
                                 <th>Type</th>
                                 <th>Actions</th>
                             </tr>
@@ -41,9 +42,9 @@
                                         </span>
                                     </td>
                                     <td>
-                                        @if (Repository.Type == "Custom")
+                                        @if (CanManageAccess)
                                         {
-                                            <button class="btn btn-outline-danger btn-sm" @onclick="() => RevokeAccess(entry)">
+                                            <button class="btn btn-outline-danger btn-sm" @onclick="() => RevokeAccess(entry)" disabled="@_processing">
                                                 <i class="fa-duotone fa-user-minus me-1"></i> Revoke
                                             </button>
                                         }
@@ -57,11 +58,11 @@
                 {
                     <div class="text-secondary mb-3">
                         <i class="fa-duotone fa-info-circle me-1"></i>
-                        @if (Repository.Type == "Account")
+                        @if (Repository.Type == RepositoryType.Account)
                         {
                             @:All team members have access to this repository.
                         }
-                        else if (Repository.Type == "Private")
+                        else if (Repository.Type == RepositoryType.Private)
                         {
                             @:Only the owner has access to this repository.
                         }
@@ -72,33 +73,57 @@
                     </div>
                 }
 
-                @* Grant Access Form (Custom repos only) *@
-                @if (Repository.Type == "Custom")
+                @* Grant Access Form (Custom repos only, Managers/Owners or creator) *@
+                @if (CanManageAccess)
                 {
                     <hr class="border-secondary" />
                     <h6 class="mb-2">Grant Access</h6>
                     <div class="row g-2 align-items-end">
                         <div class="col-md-4">
-                            <label class="form-label">User ID</label>
-                            <input type="text" class="form-control" @bind="_newUserId" placeholder="Enter user ID" />
+                            <label class="form-label">Type</label>
+                            <select class="form-select" @bind="_grantType">
+                                <option value="User">User</option>
+                                <option value="App">App</option>
+                            </select>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">User Name</label>
-                            <input type="text" class="form-control" @bind="_newUserName" placeholder="Enter user name" />
+                        <div class="col-md-5">
+                            <label class="form-label">@(_grantType == "User" ? "Select User" : "Select App")</label>
+                            @if (_grantType == "User")
+                            {
+                                <select class="form-select" @bind="_selectedUserId">
+                                    <option value="">-- Select a user --</option>
+                                    @foreach (var user in AvailableUsers)
+                                    {
+                                        <option value="@user.Id">@user.Name (@user.EmailAddress)</option>
+                                    }
+                                </select>
+                            }
+                            else
+                            {
+                                <select class="form-select" @bind="_selectedAppId">
+                                    <option value="">-- Select an app --</option>
+                                    @foreach (var app in AvailableApps)
+                                    {
+                                        <option value="@app.Id">@app.Name (@app.Type)</option>
+                                    }
+                                </select>
+                            }
                         </div>
-                        <div class="col-md-2">
-                            <div class="form-check form-switch mt-4">
-                                <input class="form-check-input" type="checkbox" @bind="_newIsApp" />
-                                <label class="form-check-label">App</label>
-                            </div>
-                        </div>
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <button class="btn btn-success w-100" @onclick="GrantAccess"
-                                    disabled="@(string.IsNullOrWhiteSpace(_newUserId) || string.IsNullOrWhiteSpace(_newUserName))">
+                                    disabled="@(!CanGrant || _processing)">
                                 <i class="fa-duotone fa-user-plus me-1"></i> Grant
                             </button>
                         </div>
                     </div>
+                    @if (AvailableUsers.Count == 0 && _grantType == "User")
+                    {
+                        <small class="text-secondary mt-2 d-block">All users already have access to this repository.</small>
+                    }
+                    @if (AvailableApps.Count == 0 && _grantType == "App")
+                    {
+                        <small class="text-secondary mt-2 d-block">All apps already have access to this repository.</small>
+                    }
                 }
             </div>
             <div class="modal-footer border-secondary">
@@ -109,50 +134,130 @@
 </div>
 
 @code {
-    [Parameter] public RepoInfo Repository { get; set; } = new();
+    [Parameter] public DriveRepository Repository { get; set; } = new();
+    [Parameter] public List<User> Users { get; set; } = [];
+    [Parameter] public List<Dapp> Apps { get; set; } = [];
+    [Parameter] public UserRoles? CurrentUserRole { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
-    string _newUserId = "";
-    string _newUserName = "";
-    bool _newIsApp = false;
+    [Inject] DriveClientFactory DriveClientFactory { get; set; } = default!;
+    [Inject] IToastService ToastService { get; set; } = default!;
+
+    string _grantType = "User";
+    string _selectedUserId = "";
+    string _selectedAppId = "";
+    bool _processing = false;
+
+    bool CanManageAccess => Repository.Type == RepositoryType.Custom
+        && CurrentUserRole >= UserRoles.Manager;
+
+    bool CanGrant => _grantType == "User"
+        ? !string.IsNullOrEmpty(_selectedUserId)
+        : !string.IsNullOrEmpty(_selectedAppId);
+
+    // Filter out users who already have access
+    List<User> AvailableUsers => Users
+        .Where(u => u.Role >= UserRoles.Manager
+            && !Repository.AccessList.Any(a => a.UserId == u.Id && !a.IsApp))
+        .ToList();
+
+    // Filter out apps who already have access
+    List<Dapp> AvailableApps => Apps
+        .Where(a => !Repository.AccessList.Any(ra => ra.UserId == a.Id && ra.IsApp))
+        .ToList();
 
     string GetAccessDescription() => Repository.Type switch
     {
-        "Account" => "All team members have access. Managers and above can manage content.",
-        "Private" => "Only the owner can access files in this repository.",
-        "Custom" => "Access is granted to specific users and apps listed below.",
+        RepositoryType.Account => "All team members have access. Managers and above can manage content.",
+        RepositoryType.Private => "Only the owner can access files in this repository.",
+        RepositoryType.Custom => "Access is granted to specific users and apps listed below.",
         _ => ""
     };
 
-    string GetRepoTypeBadge(string type) => type switch
+    string GetRepoTypeBadge(RepositoryType type) => type switch
     {
-        "Account" => "bg-primary",
-        "Private" => "bg-info",
-        "Custom" => "bg-success",
-        "Trash" => "bg-danger",
+        RepositoryType.Account => "bg-primary",
+        RepositoryType.Private => "bg-info",
+        RepositoryType.Custom => "bg-success",
+        RepositoryType.Trash => "bg-danger",
         _ => "bg-secondary"
     };
 
-    void GrantAccess()
+    async Task GrantAccess()
     {
-        if (string.IsNullOrWhiteSpace(_newUserId) || string.IsNullOrWhiteSpace(_newUserName)) return;
+        if (!CanGrant) return;
+        _processing = true;
 
-        // In production, calls DriveClient.GrantRepositoryAccessAsync()
-        Repository.AccessList.Add(new AccessEntry
+        try
         {
-            UserId = _newUserId.Trim(),
-            UserName = _newUserName.Trim(),
-            IsApp = _newIsApp
-        });
+            var driveClient = DriveClientFactory.Create();
+            bool isApp = _grantType == "App";
+            string userId, userName;
 
-        _newUserId = "";
-        _newUserName = "";
-        _newIsApp = false;
+            if (isApp)
+            {
+                var app = Apps.FirstOrDefault(a => a.Id == _selectedAppId);
+                if (app is null) return;
+                userId = app.Id;
+                userName = app.Name;
+            }
+            else
+            {
+                var user = Users.FirstOrDefault(u => u.Id == _selectedUserId);
+                if (user is null) return;
+                userId = user.Id;
+                userName = user.Name;
+            }
+
+            var result = await driveClient.GrantRepositoryAccessAsync(Repository.Id, userId, userName, isApp);
+            if (result.Success)
+            {
+                Repository.AccessList.Add(new RepositoryAccess
+                {
+                    UserId = userId,
+                    UserName = userName,
+                    IsApp = isApp
+                });
+                ToastService.ShowSuccess($"Access granted to {userName}.");
+                _selectedUserId = "";
+                _selectedAppId = "";
+            }
+            else
+            {
+                ToastService.ShowError($"Error: {result.Error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error granting access: {ex.Message}");
+        }
+
+        _processing = false;
     }
 
-    void RevokeAccess(AccessEntry entry)
+    async Task RevokeAccess(RepositoryAccess entry)
     {
-        // In production, calls DriveClient.RevokeRepositoryAccessAsync()
-        Repository.AccessList.Remove(entry);
+        _processing = true;
+
+        try
+        {
+            var driveClient = DriveClientFactory.Create();
+            var result = await driveClient.RevokeRepositoryAccessAsync(Repository.Id, entry.UserId);
+            if (result.Success)
+            {
+                Repository.AccessList.Remove(entry);
+                ToastService.ShowSuccess($"Access revoked for {entry.UserName}.");
+            }
+            else
+            {
+                ToastService.ShowError($"Error: {result.Error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error revoking access: {ex.Message}");
+        }
+
+        _processing = false;
     }
 }

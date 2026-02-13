@@ -213,7 +213,20 @@
     }
     async Task OnUpdateOrcs(Network network)
     {
+        var dialogParameters = new DialogParameters<NetworkOrcsDialog>()
+        {
+            { c => c.NetworkId, network.Id },
+            { c => c.NetworkName, network.Name.ToLower() + ".daisinet.com" }
+        };
+        var dialogOptions = new DialogOptions()
+        {
+            BackdropClick = true,
+            CloseButton = true,
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Large
+        };
 
+        await DialogService.ShowAsync<NetworkOrcsDialog>("Network Orcs", dialogParameters, dialogOptions);
     }
     async Task OnUpdateNetwork(Network network)
     {

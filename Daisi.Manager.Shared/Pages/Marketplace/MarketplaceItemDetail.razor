@@ -1,0 +1,289 @@
+@page "/marketplace/item/{Id}"
+@using Daisi.Manager.Shared.Services
+
+<div class="mt-3">
+    @if (_loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (_item is null)
+    {
+        <div class="alert alert-warning">Item not found.</div>
+        <a href="/marketplace" class="btn btn-outline-secondary"><i class="fa-duotone fa-arrow-left me-1"></i> Back to Marketplace</a>
+    }
+    else
+    {
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/marketplace">Marketplace</a></li>
+                <li class="breadcrumb-item active" aria-current="page">@_item.Name</li>
+            </ol>
+        </nav>
+
+        <div class="row">
+            <div class="col-md-8">
+                <div class="d-flex align-items-start mb-4">
+                    @if (!string.IsNullOrEmpty(_item.IconUrl))
+                    {
+                        <img src="@_item.IconUrl" alt="@_item.Name" class="rounded me-3" width="80" height="80" />
+                    }
+                    else
+                    {
+                        <div class="rounded me-3 d-flex align-items-center justify-content-center bg-secondary" style="width:80px;height:80px;">
+                            <i class="@GetTypeIcon(_item.ItemType) fa-2x"></i>
+                        </div>
+                    }
+                    <div>
+                        <h2 class="mb-1">@_item.Name</h2>
+                        <p class="text-muted mb-1">@_item.Author &middot; v@_item.Version</p>
+                        <div class="d-flex flex-wrap gap-1">
+                            <span class="badge @GetTypeBadge(_item.ItemType)">@GetTypeLabel(_item.ItemType)</span>
+                            @foreach (var tag in _item.Tags)
+                            {
+                                <span class="badge bg-secondary">@tag</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <h5>Description</h5>
+                    <div class="card bg-dark-subtle p-3">
+                        @((MarkupString)(_item.Description))
+                    </div>
+                </div>
+
+                @if (_item.Screenshots.Count > 0)
+                {
+                    <div class="mb-4">
+                        <h5>Screenshots</h5>
+                        <div class="d-flex gap-2 overflow-auto">
+                            @foreach (var screenshot in _item.Screenshots)
+                            {
+                                <img src="@screenshot" alt="Screenshot" class="rounded border" style="max-height:200px;" />
+                            }
+                        </div>
+                    </div>
+                }
+
+                @if (_item.ItemType == MarketplaceItemType.Plugin && _item.BundledItemIds.Count > 0)
+                {
+                    <div class="mb-4">
+                        <h5>Included Items</h5>
+                        <p class="text-muted">This plugin includes @_item.BundledItemIds.Count bundled items.</p>
+                    </div>
+                }
+            </div>
+
+            <div class="col-md-4">
+                <div class="card bg-dark-subtle border-secondary">
+                    <div class="card-body">
+                        <div class="text-center mb-3">
+                            <h3 class="@GetPriceColor(_item)">@GetPriceLabel(_item)</h3>
+                        </div>
+
+                        @if (_hasPurchased)
+                        {
+                            <button class="btn btn-success w-100" disabled>
+                                <i class="fa-duotone fa-check me-1"></i> Already Owned
+                            </button>
+                        }
+                        else if (_item.PricingModel == MarketplacePricingModel.MarketplacePricingFree)
+                        {
+                            <button class="btn btn-success w-100" @onclick="PurchaseAsync" disabled="@_purchasing">
+                                @if (_purchasing)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                }
+                                <i class="fa-duotone fa-download me-1"></i> Install Free
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-warning w-100" @onclick="PurchaseAsync" disabled="@_purchasing">
+                                @if (_purchasing)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                }
+                                <i class="fa-duotone fa-cart-shopping me-1"></i> Purchase
+                            </button>
+                        }
+
+                        @if (!string.IsNullOrEmpty(_purchaseError))
+                        {
+                            <div class="alert alert-danger mt-2 mb-0 small">@_purchaseError</div>
+                        }
+
+                        <hr />
+
+                        <div class="small">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Downloads</span>
+                                <span>@_item.DownloadCount</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Purchases</span>
+                                <span>@_item.PurchaseCount</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Published</span>
+                                <span>@_item.CreatedAt.ToDateTime().ToString("MMM d, yyyy")</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Updated</span>
+                                <span>@_item.UpdatedAt.ToDateTime().ToString("MMM d, yyyy")</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @if (_provider is not null)
+                {
+                    <div class="card bg-dark-subtle border-secondary mt-3">
+                        <div class="card-body">
+                            <h6 class="text-muted mb-2">Provider</h6>
+                            <div class="d-flex align-items-center">
+                                @if (!string.IsNullOrEmpty(_provider.AvatarUrl))
+                                {
+                                    <img src="@_provider.AvatarUrl" alt="@_provider.DisplayName" class="rounded-circle me-2" width="32" height="32" />
+                                }
+                                <div>
+                                    <strong>@_provider.DisplayName</strong>
+                                    <br />
+                                    <small class="text-muted">@_provider.ItemCount items published</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+
+    [Inject] public MarketplaceClientFactory MarketplaceClientFactory { get; set; } = default!;
+    [Inject] public AuthService AuthService { get; set; } = default!;
+    [Inject] public IToastService ToastService { get; set; } = default!;
+
+    private MarketplaceItemInfo? _item;
+    private ProviderProfileInfo? _provider;
+    private bool _loading = true;
+    private bool _hasPurchased;
+    private bool _purchasing;
+    private string? _purchaseError;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        try
+        {
+            var client = MarketplaceClientFactory.Create();
+            var response = await client.GetMarketplaceItemAsync(new GetMarketplaceItemRequest { Id = Id });
+            _item = response.Item;
+
+            if (_item is not null)
+            {
+                var accountId = await AuthService.GetAccountIdAsync() ?? string.Empty;
+
+                // Check entitlement
+                var entitlementResponse = await client.CheckEntitlementAsync(new CheckEntitlementRequest
+                {
+                    AccountId = accountId,
+                    MarketplaceItemId = Id
+                });
+                _hasPurchased = entitlementResponse.IsEntitled;
+
+                // Load provider profile
+                var providerResponse = await client.GetProviderProfileAsync(new GetProviderProfileRequest { AccountId = _item.AccountId });
+                _provider = providerResponse.Profile;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading marketplace item: {ex.Message}");
+        }
+        _loading = false;
+    }
+
+    private async Task PurchaseAsync()
+    {
+        _purchasing = true;
+        _purchaseError = null;
+        StateHasChanged();
+
+        try
+        {
+            var accountId = await AuthService.GetAccountIdAsync() ?? string.Empty;
+            var client = MarketplaceClientFactory.Create();
+            var response = await client.PurchaseMarketplaceItemAsync(new PurchaseMarketplaceItemRequest
+            {
+                AccountId = accountId,
+                MarketplaceItemId = Id
+            });
+
+            if (response.Success)
+            {
+                _hasPurchased = true;
+                ToastService.ShowSuccess($"Successfully acquired {_item!.Name}!");
+            }
+            else
+            {
+                _purchaseError = response.Error;
+            }
+        }
+        catch (Exception ex)
+        {
+            _purchaseError = $"Error: {ex.Message}";
+        }
+
+        _purchasing = false;
+    }
+
+    private static string GetTypeIcon(MarketplaceItemType type) => type switch
+    {
+        MarketplaceItemType.Skill => "fa-duotone fa-brain",
+        MarketplaceItemType.BotTool => "fa-duotone fa-robot",
+        MarketplaceItemType.HostTool => "fa-duotone fa-server",
+        MarketplaceItemType.Plugin => "fa-duotone fa-puzzle-piece",
+        _ => "fa-duotone fa-box"
+    };
+
+    private static string GetTypeBadge(MarketplaceItemType type) => type switch
+    {
+        MarketplaceItemType.Skill => "bg-info",
+        MarketplaceItemType.BotTool => "bg-primary",
+        MarketplaceItemType.HostTool => "bg-warning text-dark",
+        MarketplaceItemType.Plugin => "bg-success",
+        _ => "bg-secondary"
+    };
+
+    private static string GetTypeLabel(MarketplaceItemType type) => type switch
+    {
+        MarketplaceItemType.Skill => "Skill",
+        MarketplaceItemType.BotTool => "Bot Tool",
+        MarketplaceItemType.HostTool => "Host Tool",
+        MarketplaceItemType.Plugin => "Plugin",
+        _ => "Unknown"
+    };
+
+    private static string GetPriceColor(MarketplaceItemInfo item) => item.PricingModel switch
+    {
+        MarketplacePricingModel.MarketplacePricingFree => "text-success",
+        _ => "text-warning"
+    };
+
+    private static string GetPriceLabel(MarketplaceItemInfo item) => item.PricingModel switch
+    {
+        MarketplacePricingModel.MarketplacePricingFree => "Free",
+        MarketplacePricingModel.MarketplacePricingOneTime => $"{item.CreditPrice} credits",
+        MarketplacePricingModel.MarketplacePricingSubscription => $"{item.SubscriptionCreditPrice} credits/month",
+        _ => "Free"
+    };
+}
