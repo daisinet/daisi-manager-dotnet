@@ -1,0 +1,281 @@
+@using Daisi.Manager.Shared.Services
+
+<h4><i class="fa-duotone fa-store me-1"></i> Marketplace Review Queue</h4>
+
+<ul class="nav nav-pills mb-3 mt-3">
+    <li class="nav-item">
+        <button class="nav-link @(_reviewTab == ReviewTab.Items ? "active" : "")" @onclick="() => _reviewTab = ReviewTab.Items">
+            Items (@_pendingItems.Count)
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(_reviewTab == ReviewTab.Providers ? "active" : "")" @onclick="() => _reviewTab = ReviewTab.Providers">
+            Providers (@_pendingProviders.Count)
+        </button>
+    </li>
+</ul>
+
+@if (_loading)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (_reviewTab == ReviewTab.Items)
+{
+    @if (_pendingItems.Count == 0)
+    {
+        <div class="alert alert-info">No items pending review.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Author</th>
+                        <th>Account</th>
+                        <th>Pricing</th>
+                        <th>Submitted</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in _pendingItems)
+                    {
+                        <tr>
+                            <td><strong>@item.Name</strong> <small class="text-muted">v@item.Version</small></td>
+                            <td><span class="badge @GetTypeBadge(item.ItemType)">@GetTypeLabel(item.ItemType)</span></td>
+                            <td>@item.Author</td>
+                            <td class="small text-muted">@item.AccountId</td>
+                            <td>@GetPriceLabel(item)</td>
+                            <td>@item.UpdatedAt.ToDateTime().ToString("MMM d, yyyy")</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" @onclick="() => SelectItem(item)">
+                                    <i class="fa-duotone fa-eye"></i> Review
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    @if (_selectedItem is not null)
+    {
+        <div class="card bg-dark-subtle border-warning mt-3">
+            <div class="card-header">
+                <h5>Review: @_selectedItem.Name</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Type:</strong> @GetTypeLabel(_selectedItem.ItemType)</p>
+                        <p><strong>Version:</strong> @_selectedItem.Version</p>
+                        <p><strong>Author:</strong> @_selectedItem.Author</p>
+                        <p><strong>Visibility:</strong> @_selectedItem.Visibility</p>
+                        <p><strong>Pricing:</strong> @GetPriceLabel(_selectedItem)</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Short Description:</strong></p>
+                        <p>@_selectedItem.ShortDescription</p>
+                        <p><strong>Tags:</strong> @string.Join(", ", _selectedItem.Tags)</p>
+                        @if (!string.IsNullOrEmpty(_selectedItem.PackageBlobUrl))
+                        {
+                            <p><strong>Package:</strong> <span class="badge bg-info">Uploaded</span></p>
+                        }
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <strong>Full Description:</strong>
+                    <div class="card bg-dark p-3 mt-1 mb-3">
+                        @((MarkupString)_selectedItem.Description)
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Review Comment</label>
+                    <textarea class="form-control" rows="3" @bind="_reviewComment" placeholder="Optional comment (required for rejection)"></textarea>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-success" @onclick="() => ReviewItemAsync(true)" disabled="@_saving">
+                        <i class="fa-duotone fa-check me-1"></i> Approve
+                    </button>
+                    <button class="btn btn-danger" @onclick="() => ReviewItemAsync(false)" disabled="@_saving">
+                        <i class="fa-duotone fa-xmark me-1"></i> Reject
+                    </button>
+                    <button class="btn btn-outline-secondary" @onclick="() => _selectedItem = null">Cancel</button>
+                </div>
+            </div>
+        </div>
+    }
+}
+else
+{
+    @if (_pendingProviders.Count == 0)
+    {
+        <div class="alert alert-info">No provider profiles pending review.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Display Name</th>
+                        <th>Account</th>
+                        <th>Website</th>
+                        <th>Applied</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var profile in _pendingProviders)
+                    {
+                        <tr>
+                            <td><strong>@profile.DisplayName</strong></td>
+                            <td class="small text-muted">@profile.AccountId</td>
+                            <td><small>@profile.WebsiteUrl</small></td>
+                            <td>@profile.CreatedAt.ToDateTime().ToString("MMM d, yyyy")</td>
+                            <td>
+                                <button class="btn btn-sm btn-success me-1" @onclick="() => ReviewProviderAsync(profile.AccountId, true)" disabled="@_saving">
+                                    <i class="fa-duotone fa-check"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" @onclick="() => ReviewProviderAsync(profile.AccountId, false)" disabled="@_saving">
+                                    <i class="fa-duotone fa-xmark"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    enum ReviewTab { Items, Providers }
+
+    [Inject] public MarketplaceClientFactory MarketplaceClientFactory { get; set; } = default!;
+    [Inject] public AuthService AuthService { get; set; } = default!;
+    [Inject] public IToastService ToastService { get; set; } = default!;
+
+    private ReviewTab _reviewTab = ReviewTab.Items;
+    private List<MarketplaceItemInfo> _pendingItems = [];
+    private List<ProviderProfileInfo> _pendingProviders = [];
+    private MarketplaceItemInfo? _selectedItem;
+    private string _reviewComment = string.Empty;
+    private bool _loading = true;
+    private bool _saving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var client = MarketplaceClientFactory.Create();
+
+            var itemsResponse = await client.GetPendingReviewItemsAsync(new GetPendingReviewItemsRequest());
+            _pendingItems = itemsResponse.Items.ToList();
+
+            var providersResponse = await client.GetPendingProviderProfilesAsync(new GetPendingProviderProfilesRequest());
+            _pendingProviders = providersResponse.Profiles.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading review queue: {ex.Message}");
+        }
+        _loading = false;
+    }
+
+    private void SelectItem(MarketplaceItemInfo item)
+    {
+        _selectedItem = item;
+        _reviewComment = string.Empty;
+    }
+
+    private async Task ReviewItemAsync(bool approved)
+    {
+        if (!approved && string.IsNullOrWhiteSpace(_reviewComment))
+        {
+            ToastService.ShowWarning("Comment is required when rejecting.");
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var reviewerEmail = await AuthService.GetUserNameAsync() ?? "unknown";
+            var client = MarketplaceClientFactory.Create();
+            await client.ReviewMarketplaceItemAsync(new ReviewMarketplaceItemRequest
+            {
+                MarketplaceItemId = _selectedItem!.Id,
+                ReviewerEmail = reviewerEmail,
+                Approved = approved,
+                RejectionReason = _reviewComment
+            });
+
+            _pendingItems.Remove(_selectedItem);
+            _selectedItem = null;
+            ToastService.ShowSuccess(approved ? "Item approved." : "Item rejected.");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+        _saving = false;
+    }
+
+    private async Task ReviewProviderAsync(string accountId, bool approved)
+    {
+        _saving = true;
+        try
+        {
+            var reviewerEmail = await AuthService.GetUserNameAsync() ?? "unknown";
+            var client = MarketplaceClientFactory.Create();
+            await client.ReviewProviderProfileAsync(new ReviewProviderProfileRequest
+            {
+                AccountId = accountId,
+                ReviewerEmail = reviewerEmail,
+                Approved = approved
+            });
+
+            _pendingProviders.RemoveAll(p => p.AccountId == accountId);
+            ToastService.ShowSuccess(approved ? "Provider approved." : "Provider suspended.");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+        _saving = false;
+    }
+
+    private static string GetTypeBadge(MarketplaceItemType type) => type switch
+    {
+        MarketplaceItemType.Skill => "bg-info",
+        MarketplaceItemType.BotTool => "bg-primary",
+        MarketplaceItemType.HostTool => "bg-warning text-dark",
+        MarketplaceItemType.Plugin => "bg-success",
+        _ => "bg-secondary"
+    };
+
+    private static string GetTypeLabel(MarketplaceItemType type) => type switch
+    {
+        MarketplaceItemType.Skill => "Skill",
+        MarketplaceItemType.BotTool => "Bot Tool",
+        MarketplaceItemType.HostTool => "Host Tool",
+        MarketplaceItemType.Plugin => "Plugin",
+        _ => "Unknown"
+    };
+
+    private static string GetPriceLabel(MarketplaceItemInfo item) => item.PricingModel switch
+    {
+        MarketplacePricingModel.MarketplacePricingFree => "Free",
+        MarketplacePricingModel.MarketplacePricingOneTime => $"{item.CreditPrice} credits",
+        MarketplacePricingModel.MarketplacePricingSubscription => $"{item.SubscriptionCreditPrice} cr/mo",
+        _ => "Free"
+    };
+}

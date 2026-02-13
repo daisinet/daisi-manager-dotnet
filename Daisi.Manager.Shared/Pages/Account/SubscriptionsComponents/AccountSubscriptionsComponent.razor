@@ -1,8 +1,90 @@
-﻿<h3>Subscriptions</h3>
-<div class="alert alert-danger mt-3">
-    Not quite ready for this yet. Check back soon!
-</div>
+@using Daisi.Manager.Shared.Services
+
+<h3>Subscriptions</h3>
+
+@if (_loading)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (_subscriptions.Count == 0)
+{
+    <div class="alert alert-info mt-3">
+        <i class="fa-duotone fa-info-circle me-1"></i> You have no active subscriptions.
+        <a href="/marketplace" class="alert-link">Browse the marketplace</a> to find subscription-based items.
+    </div>
+}
+else
+{
+    <div class="table-responsive mt-3">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Cost</th>
+                    <th>Renewal Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var sub in _subscriptions)
+                {
+                    var isExpired = sub.SubscriptionExpiresAt is not null && sub.SubscriptionExpiresAt.ToDateTime() < DateTime.UtcNow;
+                    <tr>
+                        <td>
+                            <a href="/marketplace/item/@sub.MarketplaceItemId">
+                                <strong>@sub.MarketplaceItemName</strong>
+                            </a>
+                        </td>
+                        <td>@sub.CreditsPaid credits/period</td>
+                        <td>
+                            @if (sub.SubscriptionExpiresAt is not null)
+                            {
+                                @sub.SubscriptionExpiresAt.ToDateTime().ToString("MMM d, yyyy")
+                            }
+                        </td>
+                        <td>
+                            @if (sub.IsActive && !isExpired)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">Expired</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
 
 @code {
+    [Inject] public MarketplaceClientFactory MarketplaceClientFactory { get; set; } = default!;
+    [Inject] public AuthService AuthService { get; set; } = default!;
 
+    private List<MarketplacePurchaseInfo> _subscriptions = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var accountId = await AuthService.GetAccountIdAsync() ?? string.Empty;
+            if (string.IsNullOrEmpty(accountId)) return;
+
+            var client = MarketplaceClientFactory.Create();
+            var response = await client.GetMyPurchasesAsync(new GetMyPurchasesRequest { AccountId = accountId });
+            _subscriptions = response.Purchases
+                .Where(p => p.IsSubscription)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading subscriptions: {ex.Message}");
+        }
+        _loading = false;
+    }
 }

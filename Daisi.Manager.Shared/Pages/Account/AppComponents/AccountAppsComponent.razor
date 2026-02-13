@@ -1,4 +1,4 @@
-﻿@using Daisi.Razor.Components.Dialogs
+﻿@using Daisi.SDK.Razor.Components.Dialogs
 <div class="row">
     <div class="col mt-1 mt-md-0"><h3>Apps</h3></div>
     <div class="col-12 col-md-auto">
@@ -63,7 +63,7 @@
                     </div>
                 </div>
             }
-            <Daisi.Razor.Components.Pager.PagingComponent PageIndexChanged=OnPageIndexChanged TotalCount="DappsResponse.TotalCount" Paging="@Paging"></Daisi.Razor.Components.Pager.PagingComponent>
+            <Daisi.SDK.Razor.Components.Pager.PagingComponent PageIndexChanged=OnPageIndexChanged TotalCount="DappsResponse.TotalCount" Paging="@Paging"></Daisi.SDK.Razor.Components.Pager.PagingComponent>
         }
     }
 </div>

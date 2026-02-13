@@ -1,0 +1,98 @@
+@using Daisi.Manager.Shared.Services
+
+<h3><i class="fa-duotone fa-users-gear me-2"></i> Accounts</h3>
+
+<div class="row mt-3">
+    <div class="col">
+        <SearchBox Placeholder="Search accounts by name" OnSearch="OnSearch"></SearchBox>
+    </div>
+</div>
+
+<div class="mt-4">
+    @if (_loading)
+    {
+        <p>Loading accounts...</p>
+    }
+    else if (_response is null || !_response.Accounts.Any())
+    {
+        <div class="alert alert-warning">No accounts found.</div>
+    }
+    else
+    {
+        <table class="table table-dark table-hover">
+            <thead>
+                <tr>
+                    <th>Account Name</th>
+                    <th>Account ID</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var account in _response.Accounts)
+                {
+                    <tr>
+                        <td>@account.Name</td>
+                        <td><code>@account.Id</code></td>
+                        <td>
+                            <a class="btn btn-outline-primary btn-sm" href="/admin/accounts/@account.Id">
+                                <i class="fa-duotone fa-eye me-1"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="3">
+                        <Daisi.SDK.Razor.Components.Pager.PagingComponent PageIndexChanged="OnPageIndexChanged" TotalCount="_response.TotalCount" Paging="_paging"></Daisi.SDK.Razor.Components.Pager.PagingComponent>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    }
+</div>
+
+@code {
+    [Inject] AccountClientFactory AccountClientFactory { get; set; } = default!;
+    [Inject] IToastService ToastService { get; set; } = default!;
+
+    bool _loading = true;
+    PagingInfo _paging = new() { PageSize = 20, PageIndex = 0 };
+    AdminGetAccountsResponse? _response;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAccountsAsync();
+    }
+
+    async Task LoadAccountsAsync()
+    {
+        try
+        {
+            _loading = true;
+            var client = AccountClientFactory.Create();
+            _response = await client.AdminGetAccountsAsync(new AdminGetAccountsRequest { Paging = _paging });
+        }
+        catch (RpcException ex)
+        {
+            ToastService.ShowError($"Failed to load accounts: {ex.Status.Detail}");
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    async Task OnSearch(string value)
+    {
+        _paging.SearchTerm = value;
+        _paging.PageIndex = 0;
+        await LoadAccountsAsync();
+    }
+
+    async Task OnPageIndexChanged(int pageIndex)
+    {
+        _paging.PageIndex = pageIndex;
+        await LoadAccountsAsync();
+    }
+}

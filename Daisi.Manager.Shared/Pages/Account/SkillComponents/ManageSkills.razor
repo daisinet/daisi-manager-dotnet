@@ -52,9 +52,15 @@ else
                             <a href="/account/manage/skills/@skill.Id" class="btn btn-sm btn-outline-primary me-1">Edit</a>
                             @if (skill.Status is "Draft" or "Rejected" && skill.Visibility == "Public")
                             {
-                                <button class="btn btn-sm btn-outline-warning" @onclick="@(() => SubmitForReview(skill))">
+                                <button class="btn btn-sm btn-outline-warning me-1" @onclick="@(() => SubmitForReview(skill))">
                                     Submit for Review
                                 </button>
+                            }
+                            @if (skill.Status == "Approved" && skill.Visibility == "Public")
+                            {
+                                <a href="/marketplace/edit?skillId=@skill.Id&skillName=@Uri.EscapeDataString(skill.Name)" class="btn btn-sm btn-outline-success">
+                                    <i class="fa-duotone fa-store me-1"></i> List on Marketplace
+                                </a>
                             }
                         </td>
                     </tr>

@@ -1,0 +1,642 @@
+@using Daisi.Protos.V1
+@using Daisi.SDK.Clients.V1.Orc
+@using Daisi.Manager.Shared.Services
+
+<div class="row">
+    <div class="col mt-1 mt-md-0"><h3>Drive</h3></div>
+</div>
+
+<div class="row g-3 mt-1">
+    @* Storage Limits Card *@
+    <div class="col-md-6">
+        <div class="card bg-dark h-100">
+            <div class="card-header">
+                <i class="fa-duotone fa-hard-drive me-2"></i> Storage Limits
+            </div>
+            <div class="card-body">
+                @if (_loading)
+                {
+                    <p>Loading...</p>
+                }
+                else
+                {
+                    <div class="mb-3">
+                        <label class="form-label text-secondary">Storage Usage</label>
+                        <div class="progress" style="height: 24px;">
+                            <div class="progress-bar @GetUsageBarClass()" role="progressbar"
+                                 style="width: @UsagePercent%;" aria-valuenow="@UsagePercent" aria-valuemin="0" aria-valuemax="100">
+                                @UsagePercent.ToString("F1")%
+                            </div>
+                        </div>
+                        <small class="text-secondary">@FormatSize(_usedBytes) / @FormatSize(_maxTotalStorageBytes)</small>
+                    </div>
+
+                    <div class="mb-2 d-flex justify-content-between">
+                        <span class="text-secondary">Max File Size</span>
+                        <span class="fw-bold">@FormatSize(_maxFileSizeBytes)</span>
+                    </div>
+                    <div class="mb-2 d-flex justify-content-between">
+                        <span class="text-secondary">Max Total Storage</span>
+                        <span class="fw-bold">@FormatSize(_maxTotalStorageBytes)</span>
+                    </div>
+                    <div class="mb-0 d-flex justify-content-between">
+                        <span class="text-secondary">Max File Count</span>
+                        <span class="fw-bold">@_maxFileCount.ToString("N0")</span>
+                    </div>
+                    <small class="text-secondary d-block mt-3">Storage limits are managed by your account administrator.</small>
+                }
+            </div>
+        </div>
+    </div>
+
+    @* Erasure Coding Config Card *@
+    <div class="col-md-6">
+        <div class="card bg-dark h-100">
+            <div class="card-header">
+                <i class="fa-duotone fa-shield-halved me-2"></i> Erasure Coding
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Redundancy Tier</label>
+                    <select class="form-select" @bind="_selectedPreset">
+                        <option value="Basic">Basic (3+1) - Tolerates 1 host loss</option>
+                        <option value="Standard">Standard (4+2) - Tolerates 2 host losses</option>
+                        <option value="Premium">Premium (5+2) - Tolerates 2 host losses</option>
+                        <option value="Enterprise">Enterprise (5+3) - Tolerates 3 host losses</option>
+                        <option value="Custom">Custom</option>
+                    </select>
+                </div>
+
+                @if (_selectedPreset == "Custom")
+                {
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Data Shards (N)</label>
+                            <input type="number" class="form-control" @bind="_customDataShards" min="2" max="20" />
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Parity Shards (M)</label>
+                            <input type="number" class="form-control" @bind="_customParityShards" min="1" max="10" />
+                        </div>
+                    </div>
+                }
+
+                <div class="alert alert-info">
+                    <i class="fa-duotone fa-info-circle me-1"></i> @GetPresetInfo()
+                </div>
+
+                <button class="btn btn-success" @onclick="SaveErasureConfig">
+                    <i class="fa-duotone fa-save me-1"></i> Save Configuration
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Account Settings Card *@
+<div class="row g-3 mt-0">
+    <div class="col-md-6">
+        <div class="card bg-dark">
+            <div class="card-header">
+                <i class="fa-duotone fa-gear me-2"></i> Account Settings
+            </div>
+            <div class="card-body">
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" @bind="_restrictFolderCreation" />
+                    <label class="form-check-label">Restrict folder creation in Account repo to Managers only</label>
+                </div>
+                <small class="text-secondary d-block mb-3">
+                    When enabled, only users with Manager role or above can create new folders in the Account repository.
+                </small>
+                <button class="btn btn-success" @onclick="SaveAccountSettings">
+                    <i class="fa-duotone fa-save me-1"></i> Save Settings
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @* Trash Card *@
+    <div class="col-md-6">
+        <div class="card bg-dark">
+            <div class="card-header">
+                <i class="fa-duotone fa-trash-can me-2"></i> Trash
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <span class="text-secondary">Trashed Files:</span>
+                        <span class="fw-bold ms-1">@_trashFileCount</span>
+                    </div>
+                    <div>
+                        <span class="text-secondary">Trash Size:</span>
+                        <span class="fw-bold ms-1">@FormatSize(_trashSizeBytes)</span>
+                    </div>
+                </div>
+                <small class="text-secondary d-block mb-3">
+                    Trashed files are permanently deleted after 30 days. Trashed files still count toward storage quota.
+                </small>
+                <button class="btn btn-danger" @onclick="EmptyTrash" disabled="@(_trashFileCount == 0)">
+                    <i class="fa-duotone fa-trash-can me-1"></i> Empty All Trash
+                </button>
+                @if (_showEmptyTrashConfirm)
+                {
+                    <div class="alert alert-danger mt-3">
+                        <strong>Are you sure?</strong> This will permanently delete all @_trashFileCount trashed file(s). This cannot be undone.
+                        <div class="mt-2">
+                            <button class="btn btn-danger btn-sm me-2" @onclick="ConfirmEmptyTrash">
+                                <i class="fa-duotone fa-trash-can me-1"></i> Yes, Empty Trash
+                            </button>
+                            <button class="btn btn-secondary btn-sm" @onclick="() => _showEmptyTrashConfirm = false">Cancel</button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Repositories Table *@
+<div class="row g-3 mt-0">
+    <div class="col-12">
+        <div class="card bg-dark">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fa-duotone fa-folders me-2"></i> Repositories</span>
+            </div>
+            <div class="card-body">
+                @if (_repositories.Any())
+                {
+                    <table class="table table-dark table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Files</th>
+                                <th>Size</th>
+                                <th>Created By</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var repo in _repositories)
+                            {
+                                <tr>
+                                    <td>
+                                        <i class="fa-duotone @GetRepoIcon(repo.Type) me-1"></i>
+                                        @repo.Name
+                                    </td>
+                                    <td><span class="badge @GetRepoTypeBadge(repo.Type)">@repo.Type</span></td>
+                                    <td>@repo.FileCount</td>
+                                    <td>@FormatSize(repo.TotalSizeBytes)</td>
+                                    <td>@repo.CreatedByUserName</td>
+                                    <td>
+                                        @if (repo.Type == RepositoryType.Custom)
+                                        {
+                                            <button class="btn btn-outline-info btn-sm me-1" @onclick="() => ManageAccess(repo)"
+                                                    title="Manage Access">
+                                                <i class="fa-duotone fa-users"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteRepository(repo)"
+                                                    title="Delete Repository">
+                                                <i class="fa-duotone fa-trash"></i>
+                                            </button>
+                                        }
+                                        else if (repo.Type != RepositoryType.Trash)
+                                        {
+                                            <button class="btn btn-outline-info btn-sm" @onclick="() => ManageAccess(repo)"
+                                                    title="View Access">
+                                                <i class="fa-duotone fa-users"></i>
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <div class="text-secondary text-center py-4">
+                        <i class="fa-duotone fa-folders me-2"></i> No repositories found
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@* File Browser *@
+<div class="row g-3 mt-0">
+    <div class="col-12">
+        <div class="card bg-dark">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fa-duotone fa-folder-open me-2"></i> Account Files</span>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" @bind="_showSystemFiles" @bind:after="RefreshFiles" />
+                    <label class="form-check-label">Show System Files</label>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (_files.Any())
+                {
+                    <table class="table table-dark table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Repository</th>
+                                <th>Created By</th>
+                                <th>Size</th>
+                                <th>Status</th>
+                                <th>Shards</th>
+                                <th>Modified</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var file in _files)
+                            {
+                                <tr>
+                                    <td>
+                                        <i class="fa-duotone @GetFileIcon(file.ContentType) me-1"></i>
+                                        @file.Name
+                                        @if (file.IsSystemFile)
+                                        {
+                                            <span class="badge bg-secondary ms-1">System</span>
+                                        }
+                                    </td>
+                                    <td>@GetRepoNameById(file.RepositoryId)</td>
+                                    <td>@file.CreatedByUserName</td>
+                                    <td>@FormatSize(file.SizeBytes)</td>
+                                    <td>
+                                        <span class="badge @GetStatusBadge(file.Status)">@file.Status</span>
+                                    </td>
+                                    <td>
+                                        @if (file.ErasureConfig is not null)
+                                        {
+                                            @($"{file.ErasureConfig.DataShards}+{file.ErasureConfig.ParityShards}")
+                                        }
+                                    </td>
+                                    <td>@file.DateModified.ToDateTime().ToString("MMM d, yyyy HH:mm")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <div class="text-secondary text-center py-4">
+                        <i class="fa-duotone fa-folder-open me-2"></i> No files in this account
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Repository Access Dialog *@
+@if (_showAccessDialog && _selectedRepo != null)
+{
+    <RepositoryAccessDialog
+        Repository="_selectedRepo"
+        Users="_users"
+        Apps="_apps"
+        CurrentUserRole="_currentUserRole"
+        OnClose="OnAccessDialogClose" />
+}
+
+@* Delete Repository Confirmation *@
+@if (_showDeleteRepoConfirm && _repoToDelete != null)
+{
+    <div class="modal d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Delete Repository</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => _showDeleteRepoConfirm = false"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger">
+                        <i class="fa-duotone fa-triangle-exclamation me-1"></i>
+                        <strong>Warning:</strong> All files and folders in "@_repoToDelete.Name" will be moved to Trash.
+                    </div>
+                    <p>Are you sure you want to delete this repository? Files can be restored from Trash within 30 days.</p>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" @onclick="() => _showDeleteRepoConfirm = false">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteRepository">
+                        <i class="fa-duotone fa-trash me-1"></i> Delete Repository
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Inject] DriveClientFactory DriveClientFactory { get; set; } = default!;
+    [Inject] AccountClientFactory AccountClientFactory { get; set; } = default!;
+    [Inject] DappClientFactory DappClientFactory { get; set; } = default!;
+    [Inject] AuthService AuthService { get; set; } = default!;
+    [Inject] IToastService ToastService { get; set; } = default!;
+
+    bool _loading = true;
+    long _usedBytes = 0;
+    long _maxTotalStorageBytes = 0;
+    long _maxFileSizeBytes = 0;
+    int _maxFileCount = 0;
+    string _selectedPreset = "Basic";
+    int _customDataShards = 4;
+    int _customParityShards = 2;
+    bool _showSystemFiles = false;
+    bool _restrictFolderCreation = false;
+    UserRoles? _currentUserRole;
+
+    List<DriveFile> _files = [];
+    List<DriveRepository> _repositories = [];
+    List<User> _users = [];
+    List<Dapp> _apps = [];
+
+    // Trash state
+    int _trashFileCount = 0;
+    long _trashSizeBytes = 0;
+    bool _showEmptyTrashConfirm = false;
+
+    // Access dialog state
+    bool _showAccessDialog = false;
+    DriveRepository? _selectedRepo = null;
+
+    // Delete repo state
+    bool _showDeleteRepoConfirm = false;
+    DriveRepository? _repoToDelete = null;
+
+    double UsagePercent => _maxTotalStorageBytes > 0 ? (double)_usedBytes / _maxTotalStorageBytes * 100 : 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _currentUserRole = await AuthService.GetUserRoleAsync();
+
+            var driveClient = DriveClientFactory.Create();
+
+            // Load storage limits
+            var limits = await driveClient.GetStorageLimitsAsync();
+            _maxFileSizeBytes = limits.MaxFileSizeBytes;
+            _maxTotalStorageBytes = limits.MaxTotalStorageBytes;
+            _usedBytes = limits.UsedStorageBytes;
+            _maxFileCount = limits.MaxFileCount;
+
+            if (limits.DefaultErasureConfig is not null)
+            {
+                _customDataShards = limits.DefaultErasureConfig.DataShards;
+                _customParityShards = limits.DefaultErasureConfig.ParityShards;
+                _selectedPreset = ResolvePreset(_customDataShards, _customParityShards);
+            }
+
+            // Load account drive settings
+            var settings = await driveClient.GetAccountDriveSettingsAsync();
+            _restrictFolderCreation = settings.RestrictFolderCreationToManagers;
+
+            // Load repositories (including trash)
+            var reposResponse = await driveClient.ListRepositoriesAsync(includeTrash: true);
+            _repositories = reposResponse.Repositories.ToList();
+
+            // Calculate trash stats from the trash repo
+            var trashRepo = _repositories.FirstOrDefault(r => r.Type == RepositoryType.Trash);
+            if (trashRepo is not null)
+            {
+                _trashFileCount = trashRepo.FileCount;
+                _trashSizeBytes = trashRepo.TotalSizeBytes;
+            }
+
+            // Load files
+            await RefreshFiles();
+
+            // Load users (Managers+ only) and apps for the access dialog
+            var accountClient = AccountClientFactory.Create();
+            var usersResponse = await accountClient.GetUsersAsync(new GetUsersRequest { Paging = new PagingInfo { PageIndex = 0, PageSize = 100 } });
+            _users = usersResponse.Users.ToList();
+
+            var dappClient = DappClientFactory.Create();
+            var appsResponse = await dappClient.GetAsync(new GetDappRequest { Paging = new PagingInfo { PageIndex = 0, PageSize = 100 } });
+            _apps = appsResponse.Dapps.ToList();
+        }
+        catch (Exception)
+        {
+            // If Drive service is unavailable, show empty state
+        }
+
+        _loading = false;
+    }
+
+    async Task RefreshFiles()
+    {
+        try
+        {
+            var driveClient = DriveClientFactory.Create();
+            var filesResponse = await driveClient.ListFilesAsync(includeSystemFiles: _showSystemFiles);
+            _files = filesResponse.Files.ToList();
+        }
+        catch
+        {
+            _files = [];
+        }
+    }
+
+    string ResolvePreset(int data, int parity) => (data, parity) switch
+    {
+        (3, 1) => "Basic",
+        (4, 2) => "Standard",
+        (5, 2) => "Premium",
+        (5, 3) => "Enterprise",
+        _ => "Custom"
+    };
+
+    string GetRepoNameById(string repoId) =>
+        _repositories.FirstOrDefault(r => r.Id == repoId)?.Name ?? repoId;
+
+    string GetUsageBarClass() => UsagePercent switch
+    {
+        >= 90 => "bg-danger",
+        >= 75 => "bg-warning",
+        _ => "bg-success"
+    };
+
+    string GetPresetInfo() => _selectedPreset switch
+    {
+        "Basic" => "3 data + 1 parity. Tolerates 1 host loss. 33% storage overhead.",
+        "Standard" => "4 data + 2 parity. Tolerates 2 host losses. 50% storage overhead.",
+        "Premium" => "5 data + 2 parity. Tolerates 2 host losses. 40% storage overhead.",
+        "Enterprise" => "5 data + 3 parity. Tolerates 3 host losses. 60% storage overhead.",
+        "Custom" => $"{_customDataShards}+{_customParityShards}. Tolerates {_customParityShards} host losses.",
+        _ => ""
+    };
+
+    string GetRepoIcon(RepositoryType type) => type switch
+    {
+        RepositoryType.Account => "fa-building",
+        RepositoryType.Private => "fa-lock",
+        RepositoryType.Custom => "fa-folder-gear",
+        RepositoryType.Trash => "fa-trash-can",
+        _ => "fa-folder"
+    };
+
+    string GetRepoTypeBadge(RepositoryType type) => type switch
+    {
+        RepositoryType.Account => "bg-primary",
+        RepositoryType.Private => "bg-info",
+        RepositoryType.Custom => "bg-success",
+        RepositoryType.Trash => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    string GetFileIcon(string contentType) => contentType switch
+    {
+        "application/pdf" => "fa-file-pdf",
+        _ when contentType.StartsWith("image/") => "fa-file-image",
+        _ when contentType.StartsWith("text/") => "fa-file-lines",
+        _ => "fa-file"
+    };
+
+    string GetStatusBadge(DriveFileStatus status) => status switch
+    {
+        DriveFileStatus.Active => "bg-success",
+        DriveFileStatus.Degraded => "bg-warning text-dark",
+        DriveFileStatus.Uploading or DriveFileStatus.Processing => "bg-info",
+        DriveFileStatus.Trashed => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    async Task SaveErasureConfig()
+    {
+        try
+        {
+            var driveClient = DriveClientFactory.Create();
+            var accountId = await AuthService.GetAccountIdAsync() ?? "";
+            var limits = await driveClient.GetStorageLimitsAsync();
+            limits.DefaultErasureConfig = new ErasureCodingConfig
+            {
+                DataShards = _selectedPreset switch
+                {
+                    "Basic" => 3,
+                    "Standard" => 4,
+                    "Premium" => 5,
+                    "Enterprise" => 5,
+                    _ => _customDataShards
+                },
+                ParityShards = _selectedPreset switch
+                {
+                    "Basic" => 1,
+                    "Standard" => 2,
+                    "Premium" => 2,
+                    "Enterprise" => 3,
+                    _ => _customParityShards
+                }
+            };
+            await driveClient.SetStorageLimitsAsync(accountId, limits);
+            ToastService.ShowSuccess("Erasure coding configuration saved.");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error saving configuration: {ex.Message}");
+        }
+    }
+
+    async Task SaveAccountSettings()
+    {
+        try
+        {
+            var driveClient = DriveClientFactory.Create();
+            await driveClient.SetAccountDriveSettingsAsync(_restrictFolderCreation);
+            ToastService.ShowSuccess("Account settings saved.");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error saving settings: {ex.Message}");
+        }
+    }
+
+    void ManageAccess(DriveRepository repo)
+    {
+        _selectedRepo = repo;
+        _showAccessDialog = true;
+    }
+
+    async Task OnAccessDialogClose()
+    {
+        _showAccessDialog = false;
+        _selectedRepo = null;
+        // Refresh repos in case access was changed
+        try
+        {
+            var driveClient = DriveClientFactory.Create();
+            var reposResponse = await driveClient.ListRepositoriesAsync(includeTrash: true);
+            _repositories = reposResponse.Repositories.ToList();
+        }
+        catch { }
+    }
+
+    void DeleteRepository(DriveRepository repo)
+    {
+        _repoToDelete = repo;
+        _showDeleteRepoConfirm = true;
+    }
+
+    async Task ConfirmDeleteRepository()
+    {
+        if (_repoToDelete != null)
+        {
+            try
+            {
+                var driveClient = DriveClientFactory.Create();
+                var result = await driveClient.DeleteRepositoryAsync(_repoToDelete.Id);
+                if (result.Success)
+                {
+                    _repositories.Remove(_repoToDelete);
+                    ToastService.ShowSuccess($"Repository \"{_repoToDelete.Name}\" deleted.");
+                }
+                else
+                {
+                    ToastService.ShowError($"Error: {result.Error}");
+                }
+            }
+            catch (Exception ex)
+            {
+                ToastService.ShowError($"Error deleting repository: {ex.Message}");
+            }
+            _repoToDelete = null;
+            _showDeleteRepoConfirm = false;
+        }
+    }
+
+    void EmptyTrash()
+    {
+        _showEmptyTrashConfirm = true;
+    }
+
+    async Task ConfirmEmptyTrash()
+    {
+        try
+        {
+            var driveClient = DriveClientFactory.Create();
+            var result = await driveClient.EmptyTrashAsync();
+            if (result.Success)
+            {
+                _trashFileCount = 0;
+                _trashSizeBytes = 0;
+                ToastService.ShowSuccess($"Trash emptied. {result.DeletedCount} file(s) permanently deleted.");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error emptying trash: {ex.Message}");
+        }
+        _showEmptyTrashConfirm = false;
+    }
+
+    string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+        if (bytes < 1024 * 1024 * 1024) return $"{bytes / (1024.0 * 1024):F1} MB";
+        return $"{bytes / (1024.0 * 1024 * 1024):F2} GB";
+    }
+}

@@ -1,0 +1,190 @@
+@using Daisi.Manager.Shared.Services
+
+<div>
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text"><i class="fa-duotone fa-magnifying-glass"></i></span>
+                <input type="text" class="form-control" placeholder="Search marketplace..."
+                       @bind="_searchQuery" @bind:event="oninput" @onkeyup="OnSearchKeyUp" />
+            </div>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="_selectedType">
+                <option value="">All Types</option>
+                <option value="Skill">Skills</option>
+                <option value="BotTool">Bot Tools</option>
+                <option value="HostTool">Host Tools</option>
+                <option value="Plugin">Plugins</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <button class="btn btn-primary w-100" @onclick="SearchAsync">
+                <i class="fa-duotone fa-search me-1"></i> Search
+            </button>
+        </div>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (_items.Count == 0)
+    {
+        <div class="alert alert-info">
+            <i class="fa-duotone fa-info-circle me-1"></i> No marketplace items found. Check back soon!
+        </div>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            @foreach (var item in _items)
+            {
+                <div class="col">
+                    <div class="card h-100 bg-dark-subtle border-secondary" role="button" @onclick="() => ViewItem(item.Id)">
+                        <div class="card-body">
+                            <div class="d-flex align-items-start mb-2">
+                                @if (!string.IsNullOrEmpty(item.IconUrl))
+                                {
+                                    <img src="@item.IconUrl" alt="@item.Name" class="rounded me-3" width="48" height="48" />
+                                }
+                                else
+                                {
+                                    <div class="rounded me-3 d-flex align-items-center justify-content-center bg-secondary" style="width:48px;height:48px;">
+                                        <i class="@GetTypeIcon(item.ItemType) fa-lg"></i>
+                                    </div>
+                                }
+                                <div>
+                                    <h5 class="card-title mb-0">@item.Name</h5>
+                                    <small class="text-muted">@item.Author &middot; v@item.Version</small>
+                                </div>
+                            </div>
+                            <p class="card-text text-muted small">@item.ShortDescription</p>
+                            <div class="d-flex flex-wrap gap-1 mb-2">
+                                <span class="badge @GetTypeBadge(item.ItemType)">@GetTypeLabel(item.ItemType)</span>
+                                @foreach (var tag in item.Tags.Take(3))
+                                {
+                                    <span class="badge bg-secondary">@tag</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="card-footer d-flex justify-content-between align-items-center">
+                            <span class="fw-bold @GetPriceBadge(item)">@GetPriceLabel(item)</span>
+                            <small class="text-muted">
+                                <i class="fa-solid fa-download me-1"></i>@item.DownloadCount
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Inject] public MarketplaceClientFactory MarketplaceClientFactory { get; set; } = default!;
+    [Inject] public NavigationManager NavigationManager { get; set; } = default!;
+
+    private List<MarketplaceItemInfo> _items = [];
+    private bool _loading = true;
+    private string _searchQuery = string.Empty;
+    private string _selectedType = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await SearchAsync();
+    }
+
+    private async Task SearchAsync()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        try
+        {
+            var client = MarketplaceClientFactory.Create();
+            var request = new BrowseMarketplaceRequest
+            {
+                Search = _searchQuery
+            };
+
+            if (!string.IsNullOrEmpty(_selectedType))
+            {
+                request.FilterByType = true;
+                request.ItemType = _selectedType switch
+                {
+                    "Skill" => MarketplaceItemType.Skill,
+                    "BotTool" => MarketplaceItemType.BotTool,
+                    "HostTool" => MarketplaceItemType.HostTool,
+                    "Plugin" => MarketplaceItemType.Plugin,
+                    _ => MarketplaceItemType.Skill
+                };
+            }
+
+            var response = await client.BrowseMarketplaceAsync(request);
+            _items = response.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error browsing marketplace: {ex.Message}");
+        }
+
+        _loading = false;
+    }
+
+    private async Task OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await SearchAsync();
+    }
+
+    private void ViewItem(string itemId)
+    {
+        NavigationManager.NavigateTo($"/marketplace/item/{itemId}");
+    }
+
+    private static string GetTypeIcon(MarketplaceItemType type) => type switch
+    {
+        MarketplaceItemType.Skill => "fa-duotone fa-brain",
+        MarketplaceItemType.BotTool => "fa-duotone fa-robot",
+        MarketplaceItemType.HostTool => "fa-duotone fa-server",
+        MarketplaceItemType.Plugin => "fa-duotone fa-puzzle-piece",
+        _ => "fa-duotone fa-box"
+    };
+
+    private static string GetTypeBadge(MarketplaceItemType type) => type switch
+    {
+        MarketplaceItemType.Skill => "bg-info",
+        MarketplaceItemType.BotTool => "bg-primary",
+        MarketplaceItemType.HostTool => "bg-warning text-dark",
+        MarketplaceItemType.Plugin => "bg-success",
+        _ => "bg-secondary"
+    };
+
+    private static string GetTypeLabel(MarketplaceItemType type) => type switch
+    {
+        MarketplaceItemType.Skill => "Skill",
+        MarketplaceItemType.BotTool => "Bot Tool",
+        MarketplaceItemType.HostTool => "Host Tool",
+        MarketplaceItemType.Plugin => "Plugin",
+        _ => "Unknown"
+    };
+
+    private static string GetPriceBadge(MarketplaceItemInfo item) => item.PricingModel switch
+    {
+        MarketplacePricingModel.MarketplacePricingFree => "text-success",
+        _ => "text-warning"
+    };
+
+    private static string GetPriceLabel(MarketplaceItemInfo item) => item.PricingModel switch
+    {
+        MarketplacePricingModel.MarketplacePricingFree => "Free",
+        MarketplacePricingModel.MarketplacePricingOneTime => $"{item.CreditPrice} credits",
+        MarketplacePricingModel.MarketplacePricingSubscription => $"{item.SubscriptionCreditPrice} credits/mo",
+        _ => "Free"
+    };
+}

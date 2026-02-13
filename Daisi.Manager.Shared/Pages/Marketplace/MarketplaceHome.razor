@@ -1,0 +1,59 @@
+@page "/marketplace"
+@page "/marketplace/{Tab}"
+@using Daisi.Manager.Shared.Services
+
+<div class="mt-3 pb-5">
+    <h2><i class="fa-duotone fa-store me-2"></i> Marketplace</h2>
+    <p class="text-muted">Browse, purchase, and publish skills, tools, and plugins.</p>
+
+    <ul class="nav nav-tabs mt-3" role="tablist">
+        <li class="nav-item" role="presentation">
+            <a class="nav-link @(CurrentTab == MarketplaceTab.Browse ? "active" : "")" href="/marketplace/browse">
+                <i class="fa-duotone fa-compass me-1"></i> Browse
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link @(CurrentTab == MarketplaceTab.Purchases ? "active" : "")" href="/marketplace/purchases">
+                <i class="fa-duotone fa-bag-shopping me-1"></i> My Purchases
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link @(CurrentTab == MarketplaceTab.Provider ? "active" : "")" href="/marketplace/provider">
+                <i class="fa-duotone fa-store me-1"></i> Provider Dashboard
+            </a>
+        </li>
+    </ul>
+
+    <div class="tab-content mt-3">
+        @switch (CurrentTab)
+        {
+            case MarketplaceTab.Browse:
+                <MarketplaceBrowser />
+                break;
+            case MarketplaceTab.Purchases:
+                <MyPurchases />
+                break;
+            case MarketplaceTab.Provider:
+                <ProviderDashboard />
+                break;
+        }
+    </div>
+</div>
+
+@code {
+    enum MarketplaceTab { Browse, Purchases, Provider }
+
+    [Parameter] public string? Tab { get; set; }
+
+    [Inject] public NavigationManager NavigationManager { get; set; } = default!;
+
+    MarketplaceTab CurrentTab { get; set; } = MarketplaceTab.Browse;
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(Tab) && System.Enum.TryParse<MarketplaceTab>(Tab, ignoreCase: true, out var parsed))
+            CurrentTab = parsed;
+        else
+            CurrentTab = MarketplaceTab.Browse;
+    }
+}

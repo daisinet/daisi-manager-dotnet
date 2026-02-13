@@ -1,0 +1,559 @@
+@page "/admin/accounts/{AccountId}"
+@using Daisi.Manager.Shared.Services
+
+<div class="mb-3">
+    <a href="/admin/accounts" class="text-decoration-none">
+        <i class="fa-duotone fa-arrow-left me-1"></i> Back to Accounts
+    </a>
+</div>
+
+@if (_loading)
+{
+    <p>Loading account...</p>
+}
+else if (_account is null)
+{
+    <div class="alert alert-danger">Account not found.</div>
+}
+else
+{
+    <h3><i class="fa-duotone fa-user-gear me-2"></i> @_account.Account.Name</h3>
+    <p class="text-muted"><code>@_account.Account.Id</code></p>
+
+    <div class="row g-4 mt-2">
+        @* Account Info Card *@
+        <div class="col-12 col-md-6">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-header border-secondary">
+                    <i class="fa-duotone fa-id-card me-2"></i> Account Info
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Account Name</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" @bind="_editName" />
+                            <button class="btn btn-outline-success" @onclick="SaveAccountName" disabled="@_savingName">
+                                <i class="fa-duotone fa-save me-1"></i> Save
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label text-muted">Account ID</label>
+                        <div><code>@_account.Account.Id</code></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Resources Card *@
+        <div class="col-12 col-md-6">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-header border-secondary">
+                    <i class="fa-duotone fa-cubes me-2"></i> Resources
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <a role="button" class="text-decoration-none" @onclick="ShowUsersDialog">
+                                <h2>@_account.UserCount</h2>
+                                <small class="text-muted">Users</small>
+                            </a>
+                        </div>
+                        <div class="col-4">
+                            <a role="button" class="text-decoration-none" @onclick="ShowHostsDialog">
+                                <h2>@_account.HostCount</h2>
+                                <small class="text-muted">Hosts</small>
+                            </a>
+                        </div>
+                        <div class="col-4">
+                            <a role="button" class="text-decoration-none" @onclick="ShowAppsDialog">
+                                <h2>@_account.AppCount</h2>
+                                <small class="text-muted">Apps</small>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Credits Card *@
+        <div class="col-12 col-md-6">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-header border-secondary">
+                    <i class="fa-duotone fa-coins me-2"></i> Credits
+                </div>
+                <div class="card-body">
+                    @if (_account.CreditInfo is not null)
+                    {
+                        <div class="row text-center mb-3">
+                            <div class="col-6">
+                                <h3>@_account.CreditInfo.Balance.ToString("N0")</h3>
+                                <small class="text-muted">Balance</small>
+                            </div>
+                            <div class="col-6">
+                                <h3>@_account.CreditInfo.TotalPurchased.ToString("N0")</h3>
+                                <small class="text-muted">Total Purchased</small>
+                            </div>
+                        </div>
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <h4 class="text-success">@_account.CreditInfo.TotalEarned.ToString("N0")</h4>
+                                <small class="text-muted">Total Earned</small>
+                            </div>
+                            <div class="col-6">
+                                <h4 class="text-danger">@_account.CreditInfo.TotalSpent.ToString("N0")</h4>
+                                <small class="text-muted">Total Spent</small>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No credit account yet.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @* Earn Multipliers Card *@
+        <div class="col-12 col-md-6">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-header border-secondary">
+                    <i class="fa-duotone fa-gauge-high me-2"></i> Earn Multipliers
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Token Earn Multiplier</label>
+                        <input type="number" class="form-control" @bind="_tokenMultiplier" step="0.1" min="0" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Uptime Earn Multiplier</label>
+                        <input type="number" class="form-control" @bind="_uptimeMultiplier" step="0.1" min="0" />
+                    </div>
+                    <button class="btn btn-outline-success" @onclick="SaveMultipliers" disabled="@_savingMultipliers">
+                        <i class="fa-duotone fa-save me-1"></i> Save Multipliers
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        @* Storage Limits Card *@
+        <div class="col-12 col-md-6">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-header border-secondary">
+                    <i class="fa-duotone fa-hard-drive me-2"></i> Storage Limits
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Max File Size (MB)</label>
+                        <input type="number" class="form-control" @bind="_maxFileSizeMB" min="1" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Max Total Storage (GB)</label>
+                        <input type="number" class="form-control" @bind="_maxTotalStorageGB" min="1" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Max File Count</label>
+                        <input type="number" class="form-control" @bind="_maxFileCount" min="1" />
+                    </div>
+                    <button class="btn btn-outline-success" @onclick="SaveStorageLimits" disabled="@_savingStorage">
+                        <i class="fa-duotone fa-save me-1"></i> Save Storage Limits
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        @* Adjust Credits Card *@
+        <div class="col-12 col-md-6">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-header border-secondary">
+                    <i class="fa-duotone fa-scale-balanced me-2"></i> Adjust Credits
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Amount</label>
+                        <input type="number" class="form-control" @bind="_adjustAmount" />
+                        <small class="text-muted">Positive to add, negative to remove.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <input type="text" class="form-control" @bind="_adjustDescription" placeholder="Reason for adjustment" />
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-success" @onclick="() => AdjustCredits(true)" disabled="@_adjustingCredits">
+                            <i class="fa-duotone fa-plus me-1"></i> Add
+                        </button>
+                        <button class="btn btn-danger" @onclick="() => AdjustCredits(false)" disabled="@_adjustingCredits">
+                            <i class="fa-duotone fa-minus me-1"></i> Remove
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Audit Credit Balance Card *@
+        <div class="col-12 col-md-6">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-header border-secondary">
+                    <i class="fa-duotone fa-magnifying-glass-chart me-2"></i> Audit Credit Balance
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">
+                        Recalculates the credit balance from all historical transactions to verify correctness.
+                        If a mismatch is found, the stored balance will be corrected automatically.
+                    </p>
+                    <button class="btn btn-outline-warning" @onclick="RunAudit" disabled="@_auditing">
+                        @if (_auditing)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                        }
+                        <i class="fa-duotone fa-clipboard-check me-1"></i> Run Audit
+                    </button>
+
+                    @if (_auditResult is not null)
+                    {
+                        <div class="mt-3 p-3 border rounded @(_auditResult.BalanceMatches ? "border-success" : "border-warning")">
+                            <h6>
+                                @if (_auditResult.BalanceMatches)
+                                {
+                                    <span class="text-success"><i class="fa-duotone fa-circle-check me-1"></i> Balance Verified</span>
+                                }
+                                else
+                                {
+                                    <span class="text-warning"><i class="fa-duotone fa-triangle-exclamation me-1"></i> Balance Corrected</span>
+                                }
+                            </h6>
+                            <table class="table table-dark table-sm mt-2 mb-0">
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Stored</th>
+                                        <th>Calculated</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Balance</td>
+                                        <td>@_auditResult.StoredBalance.ToString("N0")</td>
+                                        <td>@_auditResult.CalculatedBalance.ToString("N0")</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Total Earned</td>
+                                        <td>@_auditResult.StoredTotalEarned.ToString("N0")</td>
+                                        <td>@_auditResult.CalculatedTotalEarned.ToString("N0")</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Total Spent</td>
+                                        <td>@_auditResult.StoredTotalSpent.ToString("N0")</td>
+                                        <td>@_auditResult.CalculatedTotalSpent.ToString("N0")</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Total Purchased</td>
+                                        <td>@_auditResult.StoredTotalPurchased.ToString("N0")</td>
+                                        <td>@_auditResult.CalculatedTotalPurchased.ToString("N0")</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <small class="text-muted">@_auditResult.TransactionCount transactions analyzed.</small>
+                            @if (_auditResult.HasMessage)
+                            {
+                                <div class="mt-1"><small class="text-warning">@_auditResult.Message</small></div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string AccountId { get; set; } = "";
+
+    [Inject] AccountClientFactory AccountClientFactory { get; set; } = default!;
+    [Inject] CreditClientFactory CreditClientFactory { get; set; } = default!;
+    [Inject] AuthService AuthService { get; set; } = default!;
+    [Inject] NavigationManager NavigationManager { get; set; } = default!;
+    [Inject] IToastService ToastService { get; set; } = default!;
+    [Inject] IDialogService DialogService { get; set; } = default!;
+
+    bool _loading = true;
+    AdminGetAccountResponse? _account;
+
+    // Account name editing
+    string _editName = "";
+    bool _savingName;
+
+    // Multipliers
+    double _tokenMultiplier = 1.0;
+    double _uptimeMultiplier = 1.0;
+    bool _savingMultipliers;
+
+    // Storage limits
+    long _maxFileSizeMB = 100;
+    long _maxTotalStorageGB = 10;
+    int _maxFileCount = 10000;
+    bool _savingStorage;
+
+    // Credit adjustment
+    long _adjustAmount;
+    string _adjustDescription = "";
+    bool _adjustingCredits;
+
+    // Audit
+    bool _auditing;
+    AdminAuditCreditBalanceResponse? _auditResult;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userRole = await AuthService.GetUserRoleAsync();
+        if (userRole is null || userRole < UserRoles.Admin)
+        {
+            NavigationManager.NavigateTo("/account/manage");
+            return;
+        }
+
+        await LoadAccountAsync();
+    }
+
+    async Task LoadAccountAsync()
+    {
+        try
+        {
+            _loading = true;
+            var client = AccountClientFactory.Create();
+            _account = await client.AdminGetAccountAsync(new AdminGetAccountRequest { AccountId = AccountId });
+
+            _editName = _account.Account.Name;
+
+            if (_account.CreditInfo is not null)
+            {
+                _tokenMultiplier = _account.CreditInfo.TokenEarnMultiplier;
+                _uptimeMultiplier = _account.CreditInfo.UptimeEarnMultiplier;
+            }
+
+            // Load storage limits from the account's drive settings if available
+            if (_account.Account.DriveStorageLimits is not null)
+            {
+                _maxFileSizeMB = _account.Account.DriveStorageLimits.MaxFileSizeBytes / (1024 * 1024);
+                _maxTotalStorageGB = _account.Account.DriveStorageLimits.MaxTotalStorageBytes / (1024 * 1024 * 1024);
+                _maxFileCount = _account.Account.DriveStorageLimits.MaxFileCount;
+            }
+        }
+        catch (RpcException ex)
+        {
+            ToastService.ShowError($"Failed to load account: {ex.Status.Detail}");
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    async Task SaveAccountName()
+    {
+        try
+        {
+            _savingName = true;
+            var client = AccountClientFactory.Create();
+            var result = await client.AdminUpdateAccountAsync(new AdminUpdateAccountRequest
+            {
+                AccountId = AccountId,
+                Name = _editName
+            });
+
+            if (result.Success)
+            {
+                ToastService.ShowSuccess("Account name updated.");
+                await LoadAccountAsync();
+            }
+            else
+            {
+                ToastService.ShowError(result.Message ?? "Failed to update account name.");
+            }
+        }
+        catch (RpcException ex)
+        {
+            ToastService.ShowError($"Error: {ex.Status.Detail}");
+        }
+        finally
+        {
+            _savingName = false;
+        }
+    }
+
+    async Task SaveMultipliers()
+    {
+        try
+        {
+            _savingMultipliers = true;
+            var client = CreditClientFactory.Create();
+            await client.SetMultipliersAsync(new SetMultipliersRequest
+            {
+                AccountId = AccountId,
+                TokenEarnMultiplier = _tokenMultiplier,
+                UptimeEarnMultiplier = _uptimeMultiplier
+            });
+
+            ToastService.ShowSuccess("Earn multipliers updated.");
+            await LoadAccountAsync();
+        }
+        catch (RpcException ex)
+        {
+            ToastService.ShowError($"Error: {ex.Status.Detail}");
+        }
+        finally
+        {
+            _savingMultipliers = false;
+        }
+    }
+
+    async Task SaveStorageLimits()
+    {
+        try
+        {
+            _savingStorage = true;
+            var client = AccountClientFactory.Create();
+            var result = await client.AdminSetStorageLimitsAsync(new AdminSetStorageLimitsRequest
+            {
+                AccountId = AccountId,
+                Limits = new StorageLimits
+                {
+                    MaxFileSizeBytes = _maxFileSizeMB * 1024 * 1024,
+                    MaxTotalStorageBytes = _maxTotalStorageGB * 1024 * 1024 * 1024,
+                    MaxFileCount = _maxFileCount
+                }
+            });
+
+            if (result.Success)
+            {
+                ToastService.ShowSuccess("Storage limits updated.");
+                await LoadAccountAsync();
+            }
+            else
+            {
+                ToastService.ShowError(result.Message ?? "Failed to update storage limits.");
+            }
+        }
+        catch (RpcException ex)
+        {
+            ToastService.ShowError($"Error: {ex.Status.Detail}");
+        }
+        finally
+        {
+            _savingStorage = false;
+        }
+    }
+
+    async Task AdjustCredits(bool isAdd)
+    {
+        if (_adjustAmount == 0)
+        {
+            ToastService.ShowWarning("Amount cannot be zero.");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_adjustDescription))
+        {
+            ToastService.ShowWarning("Please provide a description for the adjustment.");
+            return;
+        }
+
+        try
+        {
+            _adjustingCredits = true;
+            var amount = isAdd ? Math.Abs(_adjustAmount) : -Math.Abs(_adjustAmount);
+            var client = CreditClientFactory.Create();
+            await client.AdjustCreditsAsync(new AdjustCreditsRequest
+            {
+                AccountId = AccountId,
+                Amount = amount,
+                Description = _adjustDescription
+            });
+
+            ToastService.ShowSuccess($"Credits adjusted by {amount:N0}.");
+            _adjustAmount = 0;
+            _adjustDescription = "";
+            await LoadAccountAsync();
+        }
+        catch (RpcException ex)
+        {
+            ToastService.ShowError($"Error: {ex.Status.Detail}");
+        }
+        finally
+        {
+            _adjustingCredits = false;
+        }
+    }
+
+    async Task RunAudit()
+    {
+        try
+        {
+            _auditing = true;
+            _auditResult = null;
+            StateHasChanged();
+
+            var client = AccountClientFactory.Create();
+            _auditResult = await client.AdminAuditCreditBalanceAsync(new AdminAuditCreditBalanceRequest
+            {
+                AccountId = AccountId
+            });
+
+            if (_auditResult.BalanceMatches)
+            {
+                ToastService.ShowSuccess("Balance verified - all values match transaction history.");
+            }
+            else
+            {
+                ToastService.ShowWarning("Balance mismatch detected and corrected.");
+                await LoadAccountAsync();
+            }
+        }
+        catch (RpcException ex)
+        {
+            ToastService.ShowError($"Audit failed: {ex.Status.Detail}");
+        }
+        finally
+        {
+            _auditing = false;
+        }
+    }
+
+    static readonly DialogOptions _dialogOptions = new()
+    {
+        CloseButton = true,
+        BackdropClick = true,
+        CloseOnEscapeKey = true,
+        MaxWidth = MaxWidth.Large
+    };
+
+    async Task ShowUsersDialog()
+    {
+        var parameters = new DialogParameters<AdminAccountUsersDialog>
+        {
+            { c => c.AccountId, AccountId },
+            { c => c.AccountName, _account!.Account.Name }
+        };
+        await DialogService.ShowAsync<AdminAccountUsersDialog>("Account Users", parameters, _dialogOptions);
+    }
+
+    async Task ShowHostsDialog()
+    {
+        var parameters = new DialogParameters<AdminAccountHostsDialog>
+        {
+            { c => c.AccountId, AccountId },
+            { c => c.AccountName, _account!.Account.Name }
+        };
+        await DialogService.ShowAsync<AdminAccountHostsDialog>("Account Hosts", parameters, _dialogOptions);
+    }
+
+    async Task ShowAppsDialog()
+    {
+        var parameters = new DialogParameters<AdminAccountAppsDialog>
+        {
+            { c => c.AccountId, AccountId },
+            { c => c.AccountName, _account!.Account.Name }
+        };
+        await DialogService.ShowAsync<AdminAccountAppsDialog>("Account Apps", parameters, _dialogOptions);
+    }
+}

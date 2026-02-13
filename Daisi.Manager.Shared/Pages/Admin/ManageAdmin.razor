@@ -1,17 +1,30 @@
 @page "/admin"
+@page "/admin/{Page}"
 @using Daisi.Manager.Shared.Services
 <div class="row align-items-stretch">
     <div class="d-md-none mt-3 mb-3">
         <select class="form-control" @onchange="OnChangePage">
             <option value="@AdminPages.Releases">Releases</option>
+            <option value="@AdminPages.Accounts">Accounts</option>
+            <option value="@AdminPages.MarketplaceReview">Marketplace Review</option>
         </select>
     </div>
     <div class="d-none d-md-block col-12 col-md-4 bg-dark-subtle border-end py-4 @(FormFactor.GetFormFactor() != "Mobile" ? "vh-100" : "")">
         <h2>Admin</h2>
         <div class="list-group">
-            <a href="#" @onclick:preventDefault class="list-group-item @(CurrentPage == AdminPages.Releases ? "active" : "") cursor-pointer" @onclick="() => CurrentPage = AdminPages.Releases">
+            <a href="/admin/releases" class="list-group-item @(CurrentPage == AdminPages.Releases ? "active" : "") cursor-pointer">
                 <h4 class="mt-2">
                     <i class="fa-duotone fa-rocket me-2"></i> Releases
+                </h4>
+            </a>
+            <a href="/admin/accounts" class="list-group-item @(CurrentPage == AdminPages.Accounts ? "active" : "") cursor-pointer">
+                <h4 class="mt-2">
+                    <i class="fa-duotone fa-users-gear me-2"></i> Accounts
+                </h4>
+            </a>
+            <a href="/admin/marketplacereview" class="list-group-item @(CurrentPage == AdminPages.MarketplaceReview ? "active" : "") cursor-pointer">
+                <h4 class="mt-2">
+                    <i class="fa-duotone fa-store me-2"></i> Marketplace Review
                 </h4>
             </a>
         </div>
@@ -22,13 +35,25 @@
         {
             <Daisi.Manager.Shared.Pages.Account.ReleaseComponents.AccountReleasesComponent></Daisi.Manager.Shared.Pages.Account.ReleaseComponents.AccountReleasesComponent>
         }
+        else if (CurrentPage == AdminPages.Accounts)
+        {
+            <Daisi.Manager.Shared.Pages.Admin.AdminAccountsComponent />
+        }
+        else if (CurrentPage == AdminPages.MarketplaceReview)
+        {
+            <Daisi.Manager.Shared.Pages.Admin.MarketplaceReviewQueue />
+        }
     </div>
 </div>
 @code {
     enum AdminPages
     {
-        Releases
+        Releases,
+        Accounts,
+        MarketplaceReview
     }
+
+    [Parameter] public string? Page { get; set; }
 
     AdminPages CurrentPage { get; set; } = AdminPages.Releases;
 
@@ -45,8 +70,17 @@
         }
     }
 
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(Page) && System.Enum.TryParse<AdminPages>(Page, ignoreCase: true, out var parsed))
+            CurrentPage = parsed;
+        else
+            CurrentPage = AdminPages.Releases;
+    }
+
     void OnChangePage(ChangeEventArgs e)
     {
-        CurrentPage = e.Value is not null ? Enum.Parse<AdminPages>(e.Value.ToString()) : AdminPages.Releases;
+        var page = e.Value is not null ? System.Enum.Parse<AdminPages>(e.Value.ToString()!) : AdminPages.Releases;
+        NavigationManager.NavigateTo($"/admin/{page.ToString().ToLower()}");
     }
 }

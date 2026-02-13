@@ -173,7 +173,56 @@
         </div>
     </div>
 
-    @* Card 4: Tokens Processed Chart *@
+    @* Card 4: Drive Storage *@
+    <div class="row g-3 mt-0">
+        <div class="col-md-6">
+            <div class="card bg-dark h-100">
+                <div class="card-header">
+                    <i class="fa-duotone fa-hard-drive me-2"></i> Drive Storage
+                </div>
+                <div class="card-body">
+                    <table class="table table-dark table-borderless mb-0">
+                        <tbody>
+                            <tr>
+                                <td class="text-secondary" style="width: 180px;"><i class="fa-duotone fa-database me-1"></i> Shard Storage</td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-info" role="progressbar" style="width: 0%;">
+                                            0%
+                                        </div>
+                                    </div>
+                                    <small class="text-secondary">0 B / 10 GB</small>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-secondary"><i class="fa-duotone fa-puzzle-piece me-1"></i> Shards Stored</td>
+                                <td>0</td>
+                            </tr>
+                            <tr>
+                                <td class="text-secondary"><i class="fa-duotone fa-brain me-1"></i> Vector DBs Loaded</td>
+                                <td>0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card bg-dark h-100">
+                <div class="card-header">
+                    <i class="fa-duotone fa-arrows-rotate me-2"></i> P2P Transfer Activity
+                </div>
+                <div class="card-body">
+                    <div class="text-secondary text-center py-3">
+                        <i class="fa-duotone fa-arrows-rotate me-2"></i> No recent P2P transfer activity
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* Card 5: Tokens Processed Chart *@
     <div class="row g-3 mt-0">
         <div class="col-12">
             <div class="card bg-dark">

@@ -1,0 +1,535 @@
+@page "/marketplace/edit"
+@page "/marketplace/edit/{Id}"
+@using Daisi.Manager.Shared.Services
+
+<div class="mt-3">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/marketplace">Marketplace</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@(IsEdit ? "Edit Item" : "New Item")</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>@(IsEdit ? "Edit Marketplace Item" : "Create New Marketplace Item")</h3>
+        <a href="https://daisi.ai/learn/marketplace/submission-requirements" target="_blank" class="btn btn-sm btn-outline-info">
+            <i class="fa-duotone fa-book me-1"></i> Submission Requirements
+        </a>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(_rejectionReason))
+        {
+            <div class="alert alert-danger mt-3">
+                <strong>Rejected:</strong> @_rejectionReason
+            </div>
+        }
+
+        <div class="row mt-3">
+            <div class="col-md-8">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        Item Type *
+                        <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                           title="Skill: A prompt-template behavioral overlay (markdown). Bot Tool: An executable function for bot agents. Host Tool: An executable function for host infrastructure. Plugin: A bundle of skills and tools packaged together."></i>
+                    </label>
+                    <select class="form-select" @bind="_itemType" disabled="@IsEdit">
+                        <option value="Skill">Skill</option>
+                        <option value="BotTool">Bot Tool</option>
+                        <option value="HostTool">Host Tool</option>
+                        <option value="Plugin">Plugin</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        Name *
+                        <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                           title="A unique, descriptive name for your marketplace item. This is what users see when browsing. Keep it concise (3-60 characters)."></i>
+                    </label>
+                    <input type="text" class="form-control" @bind="_name" maxlength="60" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        Short Description *
+                        <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                           title="A brief one-liner shown on marketplace cards. Keep it punchy and descriptive. Max 120 characters."></i>
+                    </label>
+                    <input type="text" class="form-control" maxlength="120" @bind="_shortDescription" />
+                    <small class="text-muted">@(_shortDescription?.Length ?? 0)/120 characters</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        Full Description (Markdown)
+                        <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                           title="A detailed description rendered on the item detail page. Supports full Markdown: headings, lists, code blocks, links, and images. Explain what your item does, how to use it, and any requirements."></i>
+                    </label>
+                    <textarea class="form-control" rows="8" @bind="_description"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        Version
+                        <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                           title="Semantic version number (e.g. 1.0.0, 1.2.3). Increment when publishing updates. Follow semver: major.minor.patch."></i>
+                    </label>
+                    <input type="text" class="form-control" @bind="_version" placeholder="1.0.0" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        Tags
+                        <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                           title="Keywords to help users find your item. Type a tag and press comma or Enter to add it. Max 10 tags."></i>
+                    </label>
+                    <div class="form-control d-flex flex-wrap align-items-center gap-1" style="min-height: 38px; cursor: text;" @onclick="FocusTagInput">
+                        @foreach (var tag in _tags)
+                        {
+                            <span class="badge bg-info text-dark d-inline-flex align-items-center gap-1 py-1 px-2">
+                                @tag
+                                <button type="button" class="btn-close btn-close-sm ms-1" style="font-size: 0.5rem;" @onclick="() => RemoveTag(tag)" @onclick:stopPropagation="true"></button>
+                            </span>
+                        }
+                        @if (_tags.Count < 10)
+                        {
+                            <input type="text" class="border-0 outline-none flex-grow-1" style="min-width: 120px; outline: none; background: transparent;"
+                                   value="@_tagInput"
+                                   @oninput="OnTagInput"
+                                   @onkeydown="OnTagKeyDown" @onkeydown:preventDefault="_preventKeyDown"
+                                   @ref="_tagInputRef"
+                                   placeholder="@(_tags.Count == 0 ? "Type a tag, press comma or Enter" : "")" />
+                        }
+                    </div>
+                    @if (_tags.Count >= 10)
+                    {
+                        <small class="text-warning">Maximum 10 tags reached.</small>
+                    }
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        Icon
+                        <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                           title="For ZIP packages: include an icon.png, icon.jpg, icon.svg, or icon.webp at the root of your ZIP. The system will extract it and host it publicly. Max 2 MB, square recommended (256x256 or 512x512). For linked skills without a ZIP: paste a direct URL to a publicly accessible image."></i>
+                    </label>
+                    @if (_itemType is "BotTool" or "HostTool" or "Plugin")
+                    {
+                        <div class="alert alert-info py-2 mb-1">
+                            <i class="fa-duotone fa-image me-1"></i>
+                            Include an <strong>icon.png</strong> (or .jpg/.svg/.webp) at the root of your ZIP package. The system extracts and hosts it automatically.
+                        </div>
+                    }
+                    else
+                    {
+                        <input type="url" class="form-control" @bind="_iconUrl" placeholder="https://example.com/icon.png" />
+                        <small class="text-muted">Direct URL to a publicly accessible image (PNG, JPG, SVG, or WebP). If uploading a ZIP, include icon.png at the root instead.</small>
+                    }
+                </div>
+
+                @if (_itemType == "Skill")
+                {
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            Linked Skill ID
+                            <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                               title="Optional. If this marketplace skill links to an existing approved skill in the DAISI system, enter its ID here. This allows users to install the skill directly without a ZIP upload."></i>
+                        </label>
+                        <input type="text" class="form-control" @bind="_skillId" placeholder="Link to an existing approved skill" />
+                    </div>
+                }
+
+                @if (_itemType is "BotTool" or "HostTool")
+                {
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            Tool Class Name
+                            <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                               title="The fully qualified .NET class name that implements IDaisiTool (e.g. MyCompany.Tools.WeatherTool). This must match the class in the uploaded DLL."></i>
+                        </label>
+                        <input type="text" class="form-control" @bind="_toolClassName" placeholder="MyNamespace.MyTool" />
+                    </div>
+                }
+
+                @if (_itemType is "BotTool" or "HostTool" or "Plugin")
+                {
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            Package Upload (ZIP)
+                            <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                               title="Upload a ZIP file following the DAISI package format. Must contain a manifest (plugin.md, skill.md, or tool.md) at the root, plus your DLLs and an icon file. Max 100 MB. See the Submission Requirements for full details."></i>
+                        </label>
+                        <InputFile class="form-control" OnChange="OnFileSelected" accept=".zip" />
+                        @if (_selectedFile is not null)
+                        {
+                            <small class="text-muted">Selected: @_selectedFile.Name (@(_selectedFile.Size / 1024) KB)</small>
+                        }
+                        <div class="mt-1">
+                            <a href="https://daisi.ai/learn/marketplace/submission-requirements" target="_blank" class="small text-accent">
+                                <i class="fa-duotone fa-arrow-up-right-from-square me-1"></i> View ZIP structure requirements
+                            </a>
+                        </div>
+                    </div>
+                }
+
+                @if (_itemType == "Skill" && string.IsNullOrEmpty(_skillId))
+                {
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            Skill Package Upload (ZIP)
+                            <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                               title="For standalone skills not linked to an existing skill ID, upload a ZIP with a skill.md at the root and an optional icon file. See the Submission Requirements for the skill.md format."></i>
+                        </label>
+                        <InputFile class="form-control" OnChange="OnFileSelected" accept=".zip" />
+                        @if (_selectedFile is not null)
+                        {
+                            <small class="text-muted">Selected: @_selectedFile.Name (@(_selectedFile.Size / 1024) KB)</small>
+                        }
+                        <div class="mt-1">
+                            <a href="https://daisi.ai/learn/marketplace/submission-requirements" target="_blank" class="small text-accent">
+                                <i class="fa-duotone fa-arrow-up-right-from-square me-1"></i> View ZIP structure requirements
+                            </a>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="col-md-4">
+                <div class="card bg-dark-subtle border-secondary">
+                    <div class="card-body">
+                        <h5>
+                            Pricing
+                            <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                               title="Choose how users pay for your item. Free items get more installs. Paid items earn you credits through revenue sharing."></i>
+                        </h5>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                Pricing Model
+                                <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                                   title="Free: No cost, available to everyone. One-Time Purchase: Users pay once with credits for permanent access. Subscription: Users pay recurring credits at a set interval."></i>
+                            </label>
+                            <select class="form-select" @bind="_pricingModel">
+                                <option value="Free">Free</option>
+                                <option value="OneTimePurchase">One-Time Purchase</option>
+                                <option value="Subscription">Subscription</option>
+                            </select>
+                        </div>
+
+                        @if (_pricingModel == "OneTimePurchase")
+                        {
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    Price (credits)
+                                    <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                                       title="The one-time credit cost to purchase this item. You receive your revenue share percentage of each purchase (default 70%)."></i>
+                                </label>
+                                <input type="number" class="form-control" @bind="_creditPrice" min="1" />
+                            </div>
+                        }
+
+                        @if (_pricingModel == "Subscription")
+                        {
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    Price per period (credits)
+                                    <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                                       title="The recurring credit cost charged each billing period. You receive your revenue share of each renewal."></i>
+                                </label>
+                                <input type="number" class="form-control" @bind="_subscriptionCreditPrice" min="1" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    Period (days)
+                                    <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                                       title="How often the subscription renews (in days). Common values: 30 for monthly, 90 for quarterly, 365 for annual."></i>
+                                </label>
+                                <input type="number" class="form-control" @bind="_subscriptionPeriodDays" min="1" />
+                            </div>
+                        }
+
+                        <hr />
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                Visibility
+                                <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                                   title="Private: Only you can see this item (for drafts and testing). Public: Visible on the marketplace after admin approval. Set to Public and Submit for Review when ready."></i>
+                            </label>
+                            <select class="form-select" @bind="_visibility">
+                                <option value="Private">Private (draft)</option>
+                                <option value="Public">Public (requires approval)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 mt-3">
+                    <button class="btn btn-primary" @onclick="SaveDraftAsync" disabled="@_saving">
+                        @if (_saving) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                        <i class="fa-duotone fa-floppy-disk me-1"></i> Save Draft
+                    </button>
+                    <button class="btn btn-warning" @onclick="SubmitForReviewAsync" disabled="@_saving">
+                        @if (_saving) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                        <i class="fa-duotone fa-paper-plane me-1"></i> Submit for Review
+                    </button>
+                    <a href="/marketplace" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+
+                <div class="card bg-dark-subtle border-info mt-3">
+                    <div class="card-body small">
+                        <h6 class="text-info"><i class="fa-duotone fa-lightbulb me-1"></i> Submission Tips</h6>
+                        <ul class="mb-0 ps-3 opacity-75">
+                            <li>Include an <strong>icon</strong> (icon.png) at the ZIP root</li>
+                            <li>Write a clear short description for the card view</li>
+                            <li>Use Markdown in the full description for formatting</li>
+                            <li>Add relevant tags to improve discoverability</li>
+                            <li>Test thoroughly before submitting for review</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string? Id { get; set; }
+    private bool IsEdit => !string.IsNullOrEmpty(Id);
+
+    [Inject] public MarketplaceClientFactory MarketplaceClientFactory { get; set; } = default!;
+    [Inject] public AuthService AuthService { get; set; } = default!;
+    [Inject] public IToastService ToastService { get; set; } = default!;
+    [Inject] public NavigationManager NavigationManager { get; set; } = default!;
+
+    private bool _loading;
+    private bool _saving;
+    private string _itemType = "Skill";
+    private string _name = string.Empty;
+    private string _shortDescription = string.Empty;
+    private string _description = string.Empty;
+    private string _version = "1.0.0";
+    private List<string> _tags = [];
+    private string _tagInput = string.Empty;
+    private ElementReference _tagInputRef;
+    private string _iconUrl = string.Empty;
+    private string _skillId = string.Empty;
+    private string _toolClassName = string.Empty;
+    private string _pricingModel = "Free";
+    private long _creditPrice;
+    private long _subscriptionCreditPrice;
+    private int _subscriptionPeriodDays = 30;
+    private string _visibility = "Private";
+    private string? _rejectionReason;
+    private IBrowserFile? _selectedFile;
+    private MarketplaceItemInfo? _existingItem;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsEdit)
+        {
+            _loading = true;
+            try
+            {
+                var client = MarketplaceClientFactory.Create();
+                var response = await client.GetMarketplaceItemAsync(new GetMarketplaceItemRequest { Id = Id! });
+                _existingItem = response.Item;
+                if (_existingItem is not null)
+                {
+                    _itemType = GetTypeString(_existingItem.ItemType);
+                    _name = _existingItem.Name;
+                    _shortDescription = _existingItem.ShortDescription;
+                    _description = _existingItem.Description;
+                    _version = _existingItem.Version;
+                    _tags = _existingItem.Tags.ToList();
+                    _iconUrl = _existingItem.IconUrl;
+                    _skillId = _existingItem.SkillId;
+                    _toolClassName = _existingItem.ToolClassName;
+                    _pricingModel = GetPricingString(_existingItem.PricingModel);
+                    _creditPrice = _existingItem.CreditPrice;
+                    _subscriptionCreditPrice = _existingItem.SubscriptionCreditPrice;
+                    _subscriptionPeriodDays = _existingItem.SubscriptionPeriodDays;
+                    _visibility = _existingItem.Visibility;
+                    _rejectionReason = _existingItem.RejectionReason;
+                }
+            }
+            catch (Exception ex)
+            {
+                ToastService.ShowError($"Error loading item: {ex.Message}");
+            }
+            _loading = false;
+        }
+    }
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _selectedFile = e.File;
+    }
+
+    private async Task SaveDraftAsync()
+    {
+        await SaveAsync("Draft");
+    }
+
+    private async Task SubmitForReviewAsync()
+    {
+        await SaveAsync("PendingReview");
+    }
+
+    private async Task SaveAsync(string status)
+    {
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            ToastService.ShowWarning("Name is required.");
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var accountId = await AuthService.GetAccountIdAsync() ?? string.Empty;
+            var client = MarketplaceClientFactory.Create();
+
+            var item = _existingItem ?? new MarketplaceItemInfo();
+            item.AccountId = accountId;
+            item.ProviderId = accountId;
+            item.Name = _name;
+            item.ShortDescription = _shortDescription;
+            item.Description = _description;
+            item.Version = _version;
+            item.IconUrl = _iconUrl;
+            item.ItemType = ParseItemType(_itemType);
+            item.SkillId = _skillId;
+            item.ToolClassName = _toolClassName;
+            item.PricingModel = ParsePricingModel(_pricingModel);
+            item.CreditPrice = _creditPrice;
+            item.SubscriptionCreditPrice = _subscriptionCreditPrice;
+            item.SubscriptionPeriodDays = _subscriptionPeriodDays;
+            item.Visibility = _visibility;
+            item.Status = status;
+
+            CommitTagInput();
+            item.Tags.Clear();
+            foreach (var tag in _tags)
+            {
+                item.Tags.Add(tag);
+            }
+
+            var userName = await AuthService.GetUserNameAsync();
+            item.Author = userName ?? string.Empty;
+
+            if (IsEdit)
+            {
+                await client.UpdateMarketplaceItemAsync(new UpdateMarketplaceItemRequest { Item = item });
+                ToastService.ShowSuccess("Item updated.");
+            }
+            else
+            {
+                var response = await client.CreateMarketplaceItemAsync(new CreateMarketplaceItemRequest { Item = item });
+                ToastService.ShowSuccess("Item created.");
+                NavigationManager.NavigateTo($"/marketplace/edit/{response.Item.Id}");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+        _saving = false;
+    }
+
+    private static MarketplaceItemType ParseItemType(string type) => type switch
+    {
+        "Skill" => MarketplaceItemType.Skill,
+        "BotTool" => MarketplaceItemType.BotTool,
+        "HostTool" => MarketplaceItemType.HostTool,
+        "Plugin" => MarketplaceItemType.Plugin,
+        _ => MarketplaceItemType.Skill
+    };
+
+    private static string GetTypeString(MarketplaceItemType type) => type switch
+    {
+        MarketplaceItemType.Skill => "Skill",
+        MarketplaceItemType.BotTool => "BotTool",
+        MarketplaceItemType.HostTool => "HostTool",
+        MarketplaceItemType.Plugin => "Plugin",
+        _ => "Skill"
+    };
+
+    private static MarketplacePricingModel ParsePricingModel(string model) => model switch
+    {
+        "Free" => MarketplacePricingModel.MarketplacePricingFree,
+        "OneTimePurchase" => MarketplacePricingModel.MarketplacePricingOneTime,
+        "Subscription" => MarketplacePricingModel.MarketplacePricingSubscription,
+        _ => MarketplacePricingModel.MarketplacePricingFree
+    };
+
+    private static string GetPricingString(MarketplacePricingModel model) => model switch
+    {
+        MarketplacePricingModel.MarketplacePricingFree => "Free",
+        MarketplacePricingModel.MarketplacePricingOneTime => "OneTimePurchase",
+        MarketplacePricingModel.MarketplacePricingSubscription => "Subscription",
+        _ => "Free"
+    };
+
+    private bool _preventKeyDown;
+
+    private void OnTagInput(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString() ?? "";
+        if (value.Contains(','))
+        {
+            var parts = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            foreach (var part in parts)
+            {
+                var tag = part.ToLowerInvariant();
+                if (tag.Length > 0 && !_tags.Contains(tag) && _tags.Count < 10)
+                    _tags.Add(tag);
+            }
+            _tagInput = string.Empty;
+        }
+        else
+        {
+            _tagInput = value;
+        }
+    }
+
+    private void OnTagKeyDown(KeyboardEventArgs e)
+    {
+        _preventKeyDown = false;
+        if (e.Key == "Enter")
+        {
+            _preventKeyDown = true;
+            CommitTagInput();
+        }
+        else if (e.Key == "Backspace" && string.IsNullOrEmpty(_tagInput) && _tags.Count > 0)
+        {
+            _tags.RemoveAt(_tags.Count - 1);
+        }
+    }
+
+    private void CommitTagInput()
+    {
+        var tag = _tagInput.Trim().ToLowerInvariant();
+        if (tag.Length > 0 && !_tags.Contains(tag) && _tags.Count < 10)
+            _tags.Add(tag);
+        _tagInput = string.Empty;
+    }
+
+    private void RemoveTag(string tag)
+    {
+        _tags.Remove(tag);
+    }
+
+    private async Task FocusTagInput()
+    {
+        await _tagInputRef.FocusAsync();
+    }
+}
