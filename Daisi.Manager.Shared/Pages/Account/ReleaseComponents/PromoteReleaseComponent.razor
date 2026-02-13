@@ -66,32 +66,38 @@
 
         try
         {
+            // Trigger a full release build for the target group.
+            // This builds Velopack packages with the correct channel and uploads them
+            // to blob storage, then creates the DB release record.
             var client = ReleaseClientFactory.Create();
-            var request = new CreateReleaseRequest
+            var request = new TriggerReleaseRequest
             {
                 ReleaseGroup = targetGroup,
-                Version = SourceRelease.Version,
-                DownloadUrl = SourceRelease.DownloadUrl,
                 Activate = activateImmediately
             };
 
             if (!string.IsNullOrWhiteSpace(SourceRelease.ReleaseNotes))
                 request.ReleaseNotes = SourceRelease.ReleaseNotes;
 
-            if (!string.IsNullOrWhiteSpace(SourceRelease.RequiredOrcVersion))
-                request.RequiredOrcVersion = SourceRelease.RequiredOrcVersion;
+            var response = await client.TriggerReleaseAsync(request);
 
-            var response = await client.CreateAsync(request);
-
-            if (response.Release is null)
+            if (!response.Success)
             {
-                messages.Add("An error occurred while promoting the release.");
+                messages.Add(response.ErrorMessage ?? "Failed to trigger release pipeline.");
                 processing = false;
                 return;
             }
 
+            // Return a placeholder release info so the UI can update
+            var releaseInfo = new HostReleaseInfo
+            {
+                ReleaseGroup = targetGroup,
+                Version = response.Version,
+                IsActive = activateImmediately
+            };
+
             if (MudDialog is not null)
-                MudDialog.Close<HostReleaseInfo>(response.Release);
+                MudDialog.Close<HostReleaseInfo>(releaseInfo);
         }
         catch (Exception ex)
         {
