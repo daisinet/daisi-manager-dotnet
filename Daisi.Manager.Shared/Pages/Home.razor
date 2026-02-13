@@ -1,4 +1,4 @@
-﻿@page "/"
+@page "/"
 @using Daisi.Manager.Shared.Services
 
 @inject IFormFactor FormFactor
@@ -6,47 +6,152 @@
 <PageTitle>DAISI Manager</PageTitle>
 
 <div class="row">
-    <div class="col-12 col-md-8 py-5">
-        <h1><i class="fa-duotone fa-computer"></i> Let's Plan Some DAISI Hosts</h1>
-        <p>It takes very little time to start earning, so let's get started now.</p>
+    <div class="col-12 col-md-8 py-4">
+        @if (_loading)
+        {
+            <p>Loading dashboard...</p>
+        }
+        else
+        {
+            <h2 class="mb-4"><i class="fa-duotone fa-gauge-high me-2"></i> Dashboard</h2>
 
-        <a class="btn btn-primary" href="/hosts/setup">Setup A Host</a>
-        <a class="btn btn-primary" href="/hosts/">Host Management</a>
+            @if (_accountName is not null)
+            {
+                <h5 class="text-muted mb-4">@_accountName</h5>
+            }
 
-        <hr class="my-5" />
+            <div class="row g-3">
+                @* Credit Balance *@
+                <div class="col-6 col-lg-3">
+                    <div class="card bg-dark border-secondary h-100">
+                        <div class="card-body text-center">
+                            <small class="text-muted">Credit Balance</small>
+                            <h3 class="mt-1">@_balance.ToString("N0")</h3>
+                        </div>
+                    </div>
+                </div>
 
-        <h2><i class="fa-duotone fa-comments"></i> Chat For Free</h2>
-        <p>With your own hosts, you always chat for free. It's easy to use and saves tons vs paying the other guys.</p>
+                @* Total Earned *@
+                <div class="col-6 col-lg-3">
+                    <div class="card bg-dark border-secondary h-100">
+                        <div class="card-body text-center">
+                            <small class="text-muted">Total Earned</small>
+                            <h3 class="mt-1 text-success">@_totalEarned.ToString("N0")</h3>
+                        </div>
+                    </div>
+                </div>
 
-        <a class="btn btn-primary" href="/chats">Chat Now</a>
+                @* Total Spent *@
+                <div class="col-6 col-lg-3">
+                    <div class="card bg-dark border-secondary h-100">
+                        <div class="card-body text-center">
+                            <small class="text-muted">Total Spent</small>
+                            <h3 class="mt-1 text-danger">@_totalSpent.ToString("N0")</h3>
+                        </div>
+                    </div>
+                </div>
 
-        <hr class="my-5" />
+                @* Total Purchased *@
+                <div class="col-6 col-lg-3">
+                    <div class="card bg-dark border-secondary h-100">
+                        <div class="card-body text-center">
+                            <small class="text-muted">Total Purchased</small>
+                            <h3 class="mt-1">@_totalPurchased.ToString("N0")</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        <h2><i class="fa-duotone fa-robot"></i> Earn More With Agent Workflows</h2>
-        <div class="alert alert-info">Coming Soon</div>
-        <p>Did you know that you can create your own agents and workflows and sell them to others? It's an agent marketplace where the best prompts win!</p>
+            <div class="row g-3 mt-1">
+                @* Hosts *@
+                <div class="col-6 col-lg-4">
+                    <div class="card bg-dark border-secondary h-100">
+                        <div class="card-body text-center">
+                            <i class="fa-duotone fa-server fa-2x text-muted mb-2"></i>
+                            <div>
+                                <h3 class="d-inline">@_hostsOnline</h3>
+                                <small class="text-muted">/ @_hostsTotal</small>
+                            </div>
+                            <small class="text-muted">Hosts Online</small>
+                        </div>
+                        <div class="card-footer border-secondary text-center">
+                            <a href="/hosts" class="text-decoration-none small">Manage Hosts</a>
+                        </div>
+                    </div>
+                </div>
 
-        <a class="btn btn-primary" href="/agents/create">Create An Agent</a>
-        <a class="btn btn-primary" href="/agents">Search Agents</a>
+                @* Users *@
+                <div class="col-6 col-lg-4">
+                    <div class="card bg-dark border-secondary h-100">
+                        <div class="card-body text-center">
+                            <i class="fa-duotone fa-users fa-2x text-muted mb-2"></i>
+                            <h3>@_userCount</h3>
+                            <small class="text-muted">Users</small>
+                        </div>
+                        <div class="card-footer border-secondary text-center">
+                            <a href="/account/manage/users" class="text-decoration-none small">Manage Users</a>
+                        </div>
+                    </div>
+                </div>
 
-        <hr class="my-5" />
+                @* Apps *@
+                <div class="col-6 col-lg-4">
+                    <div class="card bg-dark border-secondary h-100">
+                        <div class="card-body text-center">
+                            <i class="fa-duotone fa-grid-2 fa-2x text-muted mb-2"></i>
+                            <h3>@_appCount</h3>
+                            <small class="text-muted">Apps</small>
+                        </div>
+                        <div class="card-footer border-secondary text-center">
+                            <a href="/account/manage/apps" class="text-decoration-none small">Manage Apps</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        <h2><i class="fa-duotone fa-diagram-project"></i> Stay Organized With Projects</h2>
-        <div class="alert alert-info">Coming Soon</div>
-        <p>Need a place to keep related chat threads and files? Look no further than a DAISI project. Relate files and keep a collaborative history of your chats within that project.</p>
+            <div class="row g-3 mt-1">
+                @* Multipliers *@
+                <div class="col-12 col-lg-6">
+                    <div class="card bg-dark border-secondary h-100">
+                        <div class="card-header border-secondary">
+                            <i class="fa-duotone fa-gauge-high me-2"></i> Earn Multipliers
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-around text-center">
+                                <div>
+                                    <h3>@_tokenMultiplier.ToString("F1")x</h3>
+                                    <small class="text-muted">Token</small>
+                                </div>
+                                <div>
+                                    <h3>@_uptimeMultiplier.ToString("F1")x</h3>
+                                    <small class="text-muted">Uptime</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-        <a class="btn btn-primary" href="/projects/create">Start A Project</a>
-        <a class="btn btn-primary" href="/projects">View Your Projects</a>
-
-        <hr class="my-5" />
-
-        <h2><i class="fa-duotone fa-files"></i> Secure and Dependable File Storage</h2>
-        <div class="alert alert-info">Coming Soon</div>
-        <p>Your files are always encrypted and split among multiple hosts so that no one host has the whole file until you release it to them. Our algorithm makes sure that you can always access your files, even if numerous hosts go offline.</p>
-
-        <a class="btn btn-primary" href="/docs/files">Learn More</a>
-        <a class="btn btn-primary" href="/files">View Your Files</a>
-
+                @* Quick Actions *@
+                <div class="col-12 col-lg-6">
+                    <div class="card bg-dark border-secondary h-100">
+                        <div class="card-header border-secondary">
+                            <i class="fa-duotone fa-bolt me-2"></i> Quick Actions
+                        </div>
+                        <div class="card-body d-flex flex-column gap-2">
+                            <a class="btn btn-outline-primary" href="/hosts/setup">
+                                <i class="fa-duotone fa-plus me-1"></i> Setup a Host
+                            </a>
+                            <a class="btn btn-outline-primary" href="https://daisi.ai/downloads" target="_blank">
+                                <i class="fa-duotone fa-download me-1"></i> Download Daisi Bot
+                            </a>
+                            <a class="btn btn-outline-primary" href="/account/manage/credits">
+                                <i class="fa-duotone fa-coins me-1"></i> View Credits
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
     </div>
     <div class="col bg-dark-subtle border-start py-4 vh-100">
         <h3 class="py-4">Need Some Help?</h3>
@@ -71,14 +176,97 @@
     </div>
 </div>
 
-
 @code {
-    private string factor => FormFactor.GetFormFactor();
-    private string platform => FormFactor.GetPlatform();
+    bool _loading = true;
+    string? _accountName;
 
-    protected override Task OnParametersSetAsync()
+    long _balance;
+    long _totalEarned;
+    long _totalSpent;
+    long _totalPurchased;
+    double _tokenMultiplier = 1.0;
+    double _uptimeMultiplier = 1.0;
+
+    int _hostsOnline;
+    int _hostsTotal;
+    int _userCount;
+    int _appCount;
+
+    [Inject] AuthService AuthService { get; set; } = default!;
+    [Inject] AccountClientFactory AccountClientFactory { get; set; } = default!;
+    [Inject] CreditClientFactory CreditClientFactory { get; set; } = default!;
+    [Inject] HostClientFactory HostClientFactory { get; set; } = default!;
+    [Inject] DappClientFactory DappClientFactory { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
     {
-        return base.OnParametersSetAsync();
-    }
+        try
+        {
+            var accountId = await AuthService.GetAccountIdAsync() ?? string.Empty;
 
+            var accountClient = AccountClientFactory.Create();
+            var creditClient = CreditClientFactory.Create();
+            var hostClient = HostClientFactory.Create();
+            var dappClient = DappClientFactory.Create();
+
+            // Load account info
+            var accountResponse = await accountClient.GetAsync(new GetAccountRequest());
+            _accountName = accountResponse.Account?.Name;
+
+            // Load credits
+            try
+            {
+                var creditResponse = await creditClient.GetCreditAccountAsync(new GetCreditAccountRequest { AccountId = accountId });
+                if (creditResponse.Account is not null)
+                {
+                    _balance = creditResponse.Account.Balance;
+                    _totalEarned = creditResponse.Account.TotalEarned;
+                    _totalSpent = creditResponse.Account.TotalSpent;
+                    _totalPurchased = creditResponse.Account.TotalPurchased;
+                    _tokenMultiplier = creditResponse.Account.TokenEarnMultiplier;
+                    _uptimeMultiplier = creditResponse.Account.UptimeEarnMultiplier;
+                }
+            }
+            catch { }
+
+            // Load hosts
+            try
+            {
+                var hostsResponse = await hostClient.GetHostsAsync(new GetHostsRequest
+                {
+                    Paging = new PagingInfo { PageSize = 100, PageIndex = 0 }
+                });
+                _hostsTotal = hostsResponse.TotalCount;
+                _hostsOnline = hostsResponse.Hosts.Count(h => h.Status == HostStatus.Online);
+            }
+            catch { }
+
+            // Load users
+            try
+            {
+                var usersResponse = await accountClient.GetUsersAsync(new GetUsersRequest
+                {
+                    Paging = new PagingInfo { PageSize = 1, PageIndex = 0 }
+                });
+                _userCount = usersResponse.TotalCount;
+            }
+            catch { }
+
+            // Load apps
+            try
+            {
+                var appsResponse = await dappClient.GetAsync(new GetDappRequest
+                {
+                    Paging = new PagingInfo { PageSize = 1, PageIndex = 0 }
+                });
+                _appCount = appsResponse.TotalCount;
+            }
+            catch { }
+        }
+        catch { }
+        finally
+        {
+            _loading = false;
+        }
+    }
 }

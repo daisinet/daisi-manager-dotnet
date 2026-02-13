@@ -52,6 +52,19 @@ Manager is the **SSO authority** (single login point) for the entire DAISI syste
 ```
 The `SsoSigningKey` must be the same value in all SSO-participating apps' User Secrets. Generate one with: `python -c "import os,base64; print(base64.b64encode(os.urandom(32)).decode())"`
 
+## Admin Accounts Dashboard
+The Admin section includes a full account management dashboard at **Admin > Accounts**. Admin users can:
+
+- **Browse and search** all accounts with pagination
+- **View account details** including resource counts (users, hosts, apps) and credit info
+- **Edit account name** directly from the detail page
+- **Configure earn multipliers** — adjust token and uptime credit multipliers per account
+- **Set storage limits** — configure max file size, total storage, and file count for Drive
+- **Adjust credits** — manually add or remove credits with a description for the audit trail
+- **Audit credit balance** — recalculate the credit balance from all historical transactions and auto-correct any mismatches
+
+The accounts list is at `/admin/accounts` and each account's detail page is at `/admin/accounts/{id}`.
+
 ## One-Click Release Automation
 The Manager provides a "Start Release" button on the Releases page that triggers the full DAISI release pipeline — SDK publish (if changed), ORC deploy, and Host release — with a single click. The Releases page is accessible from **Account > Releases** for account owners and from **Admin > Releases** for admin users.
 

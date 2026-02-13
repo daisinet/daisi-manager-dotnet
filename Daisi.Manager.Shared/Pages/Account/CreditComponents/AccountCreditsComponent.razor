@@ -54,16 +54,12 @@ else
                     <h5>Multipliers</h5>
                     <div class="mt-2">
                         <label class="fw-bold">Token Earn Multiplier</label>
-                        <input type="number" step="0.1" min="0.1" class="form-control" @bind="TokenEarnMultiplier" disabled="@(!IsAdmin)" />
+                        <div class="form-control-plaintext">@TokenEarnMultiplier.ToString("F1")x</div>
                     </div>
                     <div class="mt-2">
                         <label class="fw-bold">Uptime Earn Multiplier</label>
-                        <input type="number" step="0.1" min="0.1" class="form-control" @bind="UptimeEarnMultiplier" disabled="@(!IsAdmin)" />
+                        <div class="form-control-plaintext">@UptimeEarnMultiplier.ToString("F1")x</div>
                     </div>
-                    @if (IsAdmin)
-                    {
-                        <button class="btn btn-primary mt-3" @onclick="OnSaveMultipliers">Save Multipliers</button>
-                    }
                 </div>
             </div>
         </div>
@@ -71,11 +67,10 @@ else
             <div class="card bg-dark-subtle">
                 <div class="card-body">
                     <h5>Purchase Credits</h5>
-                    <div class="mt-2">
-                        <label class="fw-bold">Amount</label>
-                        <input type="number" min="1" class="form-control" @bind="PurchaseAmount" />
-                    </div>
-                    <button class="btn btn-success mt-3" @onclick="OnPurchase">Purchase</button>
+                    <p class="text-muted mt-2">
+                        You will soon be able to purchase credits, but for now earn them and support the AI Rebellion by
+                        <a href="/hosts/setup">Setting Up a Host</a> on your device.
+                    </p>
                 </div>
             </div>
         </div>
@@ -103,7 +98,7 @@ else
                     @foreach (var tx in Transactions)
                     {
                         <tr>
-                            <td>@tx.DateCreated.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@tx.DateCreated.ToDateTime().ToString("yyyy-MM-dd HH:mm")</td>
                             <td>@tx.Type</td>
                             <td class="@(tx.Amount >= 0 ? "text-success" : "text-danger")">
                                 @(tx.Amount >= 0 ? "+" : "")@tx.Amount.ToString("N0")
@@ -115,6 +110,7 @@ else
                 </tbody>
             </table>
         </div>
+        <Daisi.SDK.Razor.Components.Pager.PagingComponent PageIndexChanged="OnTxPageChanged" TotalCount="_txTotalCount" Paging="_txPaging" />
     }
 }
 
@@ -129,11 +125,16 @@ else
     long TotalPurchased { get; set; }
     double TokenEarnMultiplier { get; set; } = 1.0;
     double UptimeEarnMultiplier { get; set; } = 1.0;
-    long PurchaseAmount { get; set; } = 100;
 
-    List<TransactionDisplay> Transactions { get; set; } = new();
+    List<CreditTransactionInfo> Transactions { get; set; } = new();
+    int _txTotalCount;
+    PagingInfo _txPaging = new() { PageSize = 10, PageIndex = 0 };
 
-    [Inject] public AuthService AuthService { get; set; }
+    [Inject] public AuthService AuthService { get; set; } = default!;
+    [Inject] public CreditClientFactory CreditClientFactory { get; set; } = default!;
+    [Inject] public IToastService ToastService { get; set; } = default!;
+
+    string _accountId = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -141,12 +142,23 @@ else
         {
             var role = await AuthService.GetUserRoleAsync();
             IsAdmin = role >= UserRoles.Admin;
+            _accountId = await AuthService.GetAccountIdAsync() ?? string.Empty;
 
+            var client = CreditClientFactory.Create();
 
-            Balance = 0;
-            TotalEarned = 0;
-            TotalSpent = 0;
-            TotalPurchased = 0;
+            var creditAccountResponse = await client.GetCreditAccountAsync(new GetCreditAccountRequest { AccountId = _accountId });
+            var creditAccount = creditAccountResponse.Account;
+            if (creditAccount is not null)
+            {
+                Balance = creditAccount.Balance;
+                TotalEarned = creditAccount.TotalEarned;
+                TotalSpent = creditAccount.TotalSpent;
+                TotalPurchased = creditAccount.TotalPurchased;
+                TokenEarnMultiplier = creditAccount.TokenEarnMultiplier;
+                UptimeEarnMultiplier = creditAccount.UptimeEarnMultiplier;
+            }
+
+            await LoadTransactionsAsync();
         }
         catch (Exception ex)
         {
@@ -158,22 +170,23 @@ else
         }
     }
 
-    async Task OnSaveMultipliers()
+    async Task LoadTransactionsAsync()
     {
-        // TODO: Call CreditsProto.SetMultipliers once client is available
+        var client = CreditClientFactory.Create();
+        var txResponse = await client.GetCreditTransactionsAsync(new GetCreditTransactionsRequest
+        {
+            AccountId = _accountId,
+            PageSize = _txPaging.PageSize,
+            PageIndex = _txPaging.PageIndex
+        });
+        Transactions = txResponse.Transactions.ToList();
+        _txTotalCount = txResponse.TotalCount;
     }
 
-    async Task OnPurchase()
+    async Task OnTxPageChanged(int pageIndex)
     {
-        // TODO: Call CreditsProto.PurchaseCredits once client is available
+        _txPaging.PageIndex = pageIndex;
+        await LoadTransactionsAsync();
     }
 
-    class TransactionDisplay
-    {
-        public DateTime DateCreated { get; set; }
-        public string Type { get; set; }
-        public long Amount { get; set; }
-        public long Balance { get; set; }
-        public string Description { get; set; }
-    }
 }
