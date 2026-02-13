@@ -32,26 +32,6 @@
                             </NavLink>
                         </li>
                     }
-                    @* <li class="nav-item me-md-3">
-                        <NavLink class="nav-link" href="chats">
-                            <span class="fa-duotone fa-comments" aria-hidden="true"></span> Chats
-                        </NavLink>
-                    </li>
-                   <li class="nav-item me-md-3">
-					<NavLink class="nav-link" href="agents">
-						<span class="fa-duotone fa-robot" aria-hidden="true"></span> Agents
-					</NavLink>
-				</li> 
-                    <li class="nav-item me-md-3">
-                        <NavLink class="nav-link" href="projects">
-                            <span class="fa-duotone fa-diagram-project" aria-hidden="true"></span> Projects
-                        </NavLink>
-                    </li>
-                    <li class="nav-item me-md-3">
-                        <NavLink class="nav-link" href="files">
-                            <span class="fa-duotone fa-files" aria-hidden="true"></span> Files
-                        </NavLink>
-                    </li>*@
 
                 </ul>
                 <div class="d-flex">
@@ -60,15 +40,10 @@
                             <span class="fa-duotone fa-user" aria-hidden="true"></span> @(UserName ?? "ACCOUNT")
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            @* <li><a class="dropdown-item" href="/account/manage">Manage Account</a></li> *@
                             <li><a class="dropdown-item" href="#" @onclick:preventDefault @onclick=@((_) => NavigationManager.NavigateTo("/account/logout", true))>Logout</a></li>
                         </ul>
                     </div>
                 </div>
-                @* <form class="d-flex" role="search">
-                <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" />
-                <button class="btn btn-outline-success" type="submit">Search</button>
-            </form> *@
             </div>
 
         </div>
@@ -150,7 +125,6 @@
         }
         catch (Exception ex)
         {
-            //await auth.LogoutAsync();
             Console.WriteLine($"Error during authentication check: {ex.Message}");
             NavigationManager.NavigateTo("/account/logout", true);
         }
