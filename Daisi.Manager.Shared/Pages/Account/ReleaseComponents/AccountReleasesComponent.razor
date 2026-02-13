@@ -130,11 +130,14 @@ else
         loading = false;
     }
 
+    static string EffectiveGroup(Host h) =>
+        string.IsNullOrEmpty(h.ReleaseGroup) ? "production" : h.ReleaseGroup;
+
     int GetHostCount(HostReleaseInfo release)
     {
         return allHosts.Count(h =>
             h.AppVersion == release.Version &&
-            h.ReleaseGroup == release.ReleaseGroup);
+            EffectiveGroup(h) == release.ReleaseGroup);
     }
 
     async Task OnCreate()
@@ -217,7 +220,7 @@ else
 
     async Task OnViewHosts(HostReleaseInfo release)
     {
-        var hostsInGroup = allHosts.Where(h => h.ReleaseGroup == release.ReleaseGroup).ToList();
+        var hostsInGroup = allHosts.Where(h => EffectiveGroup(h) == release.ReleaseGroup).ToList();
 
         var dparams = new DialogParameters<ViewReleaseHostsComponent>()
         {
