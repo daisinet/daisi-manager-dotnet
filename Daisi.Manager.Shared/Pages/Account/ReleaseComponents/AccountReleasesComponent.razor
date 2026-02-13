@@ -2,7 +2,7 @@
 <div class="row">
     <div class="col"><h3>Releases</h3></div>
     <div class="col-12 col-md-auto d-flex align-items-center gap-2">
-        <select class="form-control" style="max-width:200px;" @bind="selectedGroup">
+        <select class="form-control" style="max-width:200px;" @bind="selectedGroup" @bind:after="OnGroupChanged">
             <option value="">All Groups</option>
             @foreach (var g in releaseGroups)
             {
@@ -33,12 +33,12 @@ else
                     <th>Release Notes</th>
                     <th>Req. Orc Version</th>
                     <th>Date</th>
-                    <th class="text-center"># Hosts</th>
+                    <th class="text-center">Hosts (updated / pending)</th>
                     <th class="text-center"></th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var release in FilteredReleases)
+                @foreach (var release in PagedReleases)
                 {
                     <tr>
                         <td>
@@ -57,9 +57,10 @@ else
                         <td>@(release.RequiredOrcVersion ?? "")</td>
                         <td>@release.DateCreated?.ToDateTime().ToString("yyyy-MM-dd HH:mm")</td>
                         <td class="text-center">
-                            <button class="btn btn-sm btn-outline-info" @onclick="@(() => OnViewHosts(release))">
-                                @GetHostCount(release) hosts
-                            </button>
+                            @{ var (onVersion, notUpdated) = GetHostCounts(release); }
+                            <span class="text-success" title="Hosts on this version">@onVersion</span>
+                            <span class="text-muted">/</span>
+                            <span class="text-warning" title="Hosts not yet updated">@notUpdated</span>
                         </td>
                         <td class="text-end">
                             <button class="btn btn-sm btn-outline-primary me-1" @onclick="@(() => OnPromote(release))">
@@ -77,6 +78,7 @@ else
             </tbody>
         </table>
     </div>
+    <Daisi.SDK.Razor.Components.Pager.PagingComponent PageIndexChanged=OnPageIndexChanged TotalCount="FilteredReleases.Count()" Paging="@paging"></Daisi.SDK.Razor.Components.Pager.PagingComponent>
 }
 
 @code {
@@ -89,6 +91,7 @@ else
     List<Host> allHosts = new();
     bool loading = true;
     string selectedGroup = "";
+    PagingInfo paging = new() { PageIndex = 0, PageSize = 20 };
 
     static readonly string[] releaseGroups = ["beta", "group1", "group2", "production"];
 
@@ -96,6 +99,11 @@ else
         string.IsNullOrEmpty(selectedGroup)
             ? allReleases
             : allReleases.Where(r => r.ReleaseGroup == selectedGroup);
+
+    IEnumerable<HostReleaseInfo> PagedReleases =>
+        FilteredReleases
+            .Skip(paging.PageIndex * paging.PageSize)
+            .Take(paging.PageSize);
 
     protected async override Task OnInitializedAsync()
     {
@@ -133,11 +141,22 @@ else
     static string EffectiveGroup(Host h) =>
         string.IsNullOrEmpty(h.ReleaseGroup) ? "production" : h.ReleaseGroup;
 
-    int GetHostCount(HostReleaseInfo release)
+    (int onVersion, int notUpdated) GetHostCounts(HostReleaseInfo release)
     {
-        return allHosts.Count(h =>
-            h.AppVersion == release.Version &&
-            EffectiveGroup(h) == release.ReleaseGroup);
+        var hostsInGroup = allHosts.Where(h => EffectiveGroup(h) == release.ReleaseGroup);
+        int on = hostsInGroup.Count(h => h.AppVersion == release.Version);
+        int notOn = hostsInGroup.Count(h => h.AppVersion != release.Version);
+        return (on, notOn);
+    }
+
+    void OnPageIndexChanged(int pageIndex)
+    {
+        paging.PageIndex = pageIndex;
+    }
+
+    void OnGroupChanged()
+    {
+        paging.PageIndex = 0;
     }
 
     async Task OnCreate()
@@ -194,8 +213,7 @@ else
     {
         DialogParameters<PromoteReleaseComponent> dparams = new()
         {
-            { c => c.SourceRelease, release },
-            { c => c.AllReleases, allReleases }
+            { c => c.SourceRelease, release }
         };
 
         DialogOptions options = new DialogOptions()
@@ -218,25 +236,4 @@ else
         }
     }
 
-    async Task OnViewHosts(HostReleaseInfo release)
-    {
-        var hostsInGroup = allHosts.Where(h => EffectiveGroup(h) == release.ReleaseGroup).ToList();
-
-        var dparams = new DialogParameters<ViewReleaseHostsComponent>()
-        {
-            { c => c.Release, release },
-            { c => c.HostsInGroup, hostsInGroup }
-        };
-
-        DialogOptions options = new DialogOptions()
-        {
-            CloseButton = true,
-            BackdropClick = true,
-            CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        };
-
-        await DialogService.ShowAsync<ViewReleaseHostsComponent>($"Hosts - {release.Version} ({release.ReleaseGroup})", dparams, options);
-    }
 }
