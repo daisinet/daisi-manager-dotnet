@@ -1,7 +1,7 @@
-﻿@using Daisi.Razor.Components.Dialogs
+﻿@using Daisi.SDK.Razor.Components.Dialogs
 @using System.Text.RegularExpressions
 <div class="px-4 pb-4">
-  <Daisi.Razor.Components.Validation.ValidationAlert Messages=messages></Daisi.Razor.Components.Validation.ValidationAlert>
+  <Daisi.SDK.Razor.Components.Validation.ValidationAlert Messages=messages></Daisi.SDK.Razor.Components.Validation.ValidationAlert>
     <div class="">
         <label class="fw-bold">Name *</label>
         <p>
@@ -34,11 +34,11 @@
         <MudSwitch @bind-Value="Network.IsPublic" Color="Color.Success" UncheckedColor="Color.Error" Label="@(Network.IsPublic ? "Set this up as a Public Network" : "Set this up as a Private Network")"></MudSwitch>
     </div>
     <div class="mt-3">
-        <Daisi.Razor.Components.Buttons.ProcessingButton Processing="processing" class="btn btn-success" OnClick="OnSave">Save</Daisi.Razor.Components.Buttons.ProcessingButton>
+        <Daisi.SDK.Razor.Components.Buttons.ProcessingButton Processing="processing" class="btn btn-success" OnClick="OnSave">Save</Daisi.SDK.Razor.Components.Buttons.ProcessingButton>
 
         @if (!IsNew)
         {
-            <Daisi.Razor.Components.Buttons.ProcessingButton Processing="processing" class="btn btn-danger float-end" OnClick="OnArchive">Archive</Daisi.Razor.Components.Buttons.ProcessingButton>
+            <Daisi.SDK.Razor.Components.Buttons.ProcessingButton Processing="processing" class="btn btn-danger float-end" OnClick="OnArchive">Archive</Daisi.SDK.Razor.Components.Buttons.ProcessingButton>
         }
     </div>
 </div>
