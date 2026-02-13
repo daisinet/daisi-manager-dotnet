@@ -29,7 +29,6 @@
     [Inject] public ReleaseClientFactory ReleaseClientFactory { get; set; }
     [CascadingParameter] public IMudDialogInstance MudDialog { get; set; }
     [Parameter] public HostReleaseInfo SourceRelease { get; set; }
-    [Parameter] public List<HostReleaseInfo> AllReleases { get; set; } = new();
 
     string targetGroup = "";
     bool activateImmediately = true;
@@ -42,13 +41,8 @@
 
     protected override void OnInitialized()
     {
-        var groupsWithSameVersion = AllReleases
-            .Where(r => r.Version == SourceRelease.Version)
-            .Select(r => r.ReleaseGroup)
-            .ToHashSet();
-
         availableGroups = releaseGroups
-            .Where(g => !groupsWithSameVersion.Contains(g))
+            .Where(g => g != SourceRelease.ReleaseGroup)
             .ToList();
     }
 
