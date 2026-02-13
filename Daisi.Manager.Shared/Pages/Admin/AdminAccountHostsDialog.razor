@@ -1,0 +1,102 @@
+@using Daisi.Manager.Shared.Services
+
+<MudDialog>
+    <TitleContent>
+        <div>
+            <i class="fa-duotone fa-server me-2"></i> Hosts for <strong>@AccountName</strong>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        @if (_loading)
+        {
+            <p class="text-muted">Loading hosts...</p>
+        }
+        else if (_hosts.Count == 0)
+        {
+            <div class="alert alert-info mb-0">
+                <i class="fa-solid fa-circle-info me-2"></i>
+                No hosts found for this account.
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>Name</th>
+                            <th>IP Address</th>
+                            <th>OS</th>
+                            <th>Version</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var host in _hosts)
+                        {
+                            <tr>
+                                <td>
+                                    @if (host.Status == HostStatus.Online)
+                                    {
+                                        <i title="Online" class="fa-duotone fa-dot text-success fa-2x p-0"></i>
+                                    }
+                                    else if (host.Status == HostStatus.Offline)
+                                    {
+                                        <i title="Offline" class="fa-duotone fa-dot text-danger fa-2x p-0"></i>
+                                    }
+                                    else
+                                    {
+                                        <i title="@host.Status" class="fa-duotone fa-dot text-warning fa-2x p-0"></i>
+                                    }
+                                </td>
+                                <td>@host.Name</td>
+                                <td><code>@host.IpAddress</code></td>
+                                <td>@host.OperatingSystem @host.OperatingSystemVersion</td>
+                                <td>@host.AppVersion</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <small class="text-muted mt-2 d-block">Showing @_hosts.Count of @_totalCount hosts</small>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public string AccountId { get; set; } = string.Empty;
+    [Parameter] public string AccountName { get; set; } = string.Empty;
+
+    [Inject] AccountClientFactory AccountClientFactory { get; set; } = default!;
+
+    private bool _loading = true;
+    private List<Host> _hosts = [];
+    private int _totalCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var client = AccountClientFactory.Create();
+            var response = await client.AdminGetAccountHostsAsync(new AdminGetAccountHostsRequest
+            {
+                AccountId = AccountId,
+                Paging = new PagingInfo { PageIndex = 0, PageSize = 50 }
+            });
+            _hosts = response.Hosts.ToList();
+            _totalCount = response.TotalCount;
+        }
+        catch
+        {
+            _hosts = [];
+        }
+        _loading = false;
+    }
+
+    private void Close() => MudDialog.Close();
+}

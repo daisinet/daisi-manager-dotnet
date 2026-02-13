@@ -1,0 +1,89 @@
+@using Daisi.Manager.Shared.Services
+
+<MudDialog>
+    <TitleContent>
+        <div>
+            <i class="fa-duotone fa-grid-2 me-2"></i> Apps for <strong>@AccountName</strong>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        @if (_loading)
+        {
+            <p class="text-muted">Loading apps...</p>
+        }
+        else if (_apps.Count == 0)
+        {
+            <div class="alert alert-info mb-0">
+                <i class="fa-solid fa-circle-info me-2"></i>
+                No apps found for this account.
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>ID</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var app in _apps)
+                        {
+                            <tr>
+                                <td>@app.Name</td>
+                                <td>
+                                    <span class="badge @(app.Type == DappTypes.DappTool ? "bg-info text-dark" : "bg-primary")">
+                                        @(app.Type == DappTypes.DappTool ? "Tool" : "Consumer")
+                                    </span>
+                                </td>
+                                <td><code>@app.Id</code></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <small class="text-muted mt-2 d-block">Showing @_apps.Count of @_totalCount apps</small>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public string AccountId { get; set; } = string.Empty;
+    [Parameter] public string AccountName { get; set; } = string.Empty;
+
+    [Inject] AccountClientFactory AccountClientFactory { get; set; } = default!;
+
+    private bool _loading = true;
+    private List<Dapp> _apps = [];
+    private int _totalCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var client = AccountClientFactory.Create();
+            var response = await client.AdminGetAccountAppsAsync(new AdminGetAccountAppsRequest
+            {
+                AccountId = AccountId,
+                Paging = new PagingInfo { PageIndex = 0, PageSize = 50 }
+            });
+            _apps = response.Apps.ToList();
+            _totalCount = response.TotalCount;
+        }
+        catch
+        {
+            _apps = [];
+        }
+        _loading = false;
+    }
+
+    private void Close() => MudDialog.Close();
+}
