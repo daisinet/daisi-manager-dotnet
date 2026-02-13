@@ -45,7 +45,7 @@ The Manager deploys automatically on push to `main`, or manually via workflow di
 ## Step 3: Verify the Release Button
 
 1. Navigate to the Manager web app
-2. Go to **Account > Releases**
+2. Go to **Account > Releases** (or **Admin > Releases** for admin users)
 3. Click **Start Release**
 4. You should see a dialog with:
    - **Release Group** dropdown (beta, group1, group2, production)
@@ -102,3 +102,25 @@ After this initial manual deployment, all future releases are one-click from the
 
 **Dialog still shows old "Create" UI**
 - The Manager hasn't been redeployed. Push to `main` or run the deploy workflow manually.
+
+---
+
+## How It Works End-to-End
+
+A complete step-by-step overview of the one-click release pipeline:
+
+1. **User navigates** to **Account > Releases** (or **Admin > Releases**)
+2. **Clicks "Start Release"** — selects a release group, enters notes, chooses whether to activate immediately
+3. **Manager calls ORC** — the `TriggerRelease` gRPC endpoint receives the group, notes, and activation flag
+4. **ORC generates timestamp version** (`YYYY.MM.DD.HHMM`) and dispatches `orchestrate-release.yml` via the GitHub API
+5. **Orchestrate workflow** runs in sequence:
+   - Checks if SDK source has changed since the last tag — publishes a new SDK version if needed
+   - Deploys the ORC with the latest code
+   - Dispatches `release-host.yml` with `timestamp_version`, `release_group`, `activate`, and `release_notes`
+6. **Host release workflow** builds and packages:
+   - Builds cross-platform (`win-x64`, `linux-x64`, `osx-x64`) via matrix strategy
+   - Auto-increments the Velopack semver by parsing existing `releases.{channel}.json` from blob storage
+   - Packages each platform with `vpk pack` using the channel (release group name)
+   - Uploads Velopack packages to `releases/velopack/{channel}/{rid}/` in Azure Blob Storage
+   - Writes a CosmosDB release record with both the timestamp version and semver
+7. **Hosts self-update** — on the next heartbeat, hosts in that release group detect the newer version. The ORC sends an `UpdateRequiredRequest` with the Velopack channel name, and the host's `VelopackUpdateService` downloads and applies the update
