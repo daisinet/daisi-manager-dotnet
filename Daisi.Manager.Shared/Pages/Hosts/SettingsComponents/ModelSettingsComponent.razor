@@ -6,7 +6,7 @@
 	</div>
 	<div class="mt-3">
 		<label class="fw-bold">GPU/CPU Runtimes</label>
-		<select class="form-control" value="@(((int)Settings.Model.LLama.Runtime).ToString())">
+		<select class="form-control" value="@(((int)Settings.Model.Backend.Runtime).ToString())">
 			<option value="0">Auto-Detect</option>
 			<option value="1">CUDA</option>
 			<option value="2">Vulkan</option>
@@ -18,27 +18,27 @@
 	<div class="mt-3">
 		<label class="fw-bold">Skip Runtime Check</label>
 		<p>Determines whether the host will try to check that the runtime selected is correct. Usually, you want to allow the check to occur to avoid runtime issues.</p>
-		<MudSwitch @bind-Value="Settings.Model.LLama.SkipCheck" Color="Color.Success" UncheckedColor="Color.Secondary" Label="@(Settings.Model.LLama.SkipCheck ? "Skips the runtime check" : "Performs the runtime check (default)")"></MudSwitch>
+		<MudSwitch @bind-Value="Settings.Model.Backend.SkipCheck" Color="Color.Success" UncheckedColor="Color.Secondary" Label="@(Settings.Model.Backend.SkipCheck ? "Skips the runtime check" : "Performs the runtime check (default)")"></MudSwitch>
 	</div>
 	<div class="mt-3">
 		<label class="fw-bold">Logging</label>
 		<p>When using the console application, the system can show verbose logs from the LLM engine.</p>
-		<MudSwitch @bind-Value="Settings.Model.LLama.ShowLogs" Color="Color.Success" UncheckedColor="Color.Secondary" Label="@(Settings.Model.LLama.ShowLogs ? "Logs are shown" : "Logs are limited")"></MudSwitch>
+		<MudSwitch @bind-Value="Settings.Model.Backend.ShowLogs" Color="Color.Success" UncheckedColor="Color.Secondary" Label="@(Settings.Model.Backend.ShowLogs ? "Logs are shown" : "Logs are limited")"></MudSwitch>
 	</div>
 	<div class="mt-3">
-		<label class="fw-bold">Context Size <code>@Settings.Model.LLama.ContextSize</code></label>
+		<label class="fw-bold">Context Size <code>@Settings.Model.Backend.ContextSize</code></label>
 		<p>Sets the context size for the LLM engine. The default value is <code>1024</code>.</p>
-		<MudSlider T="uint" Min="256" Max="10240" Step="1" @bind-Value="Settings.Model.LLama.ContextSize"></MudSlider>
+		<MudSlider T="uint" Min="256" Max="10240" Step="1" @bind-Value="Settings.Model.Backend.ContextSize"></MudSlider>
 	</div>
 	<div class="mt-3">
-		<label class="fw-bold">GPU Layer Count <code>@Settings.Model.LLama.GpuLayerCount</code></label>
+		<label class="fw-bold">GPU Layer Count <code>@Settings.Model.Backend.GpuLayerCount</code></label>
         <p>This sets the number of layers (or processors) that the GPC can use. The default is <code>-1</code>, which will use all available.</p>
-		<MudSlider T="int" Min="-1" Max="100" Step="1" @bind-Value="Settings.Model.LLama.GpuLayerCount"></MudSlider>
+		<MudSlider T="int" Min="-1" Max="100" Step="1" @bind-Value="Settings.Model.Backend.GpuLayerCount"></MudSlider>
 	</div>
 	<div class="mt-3">
-		<label class="fw-bold">Batch Size <code>@Settings.Model.LLama.BatchSize</code></label>
+		<label class="fw-bold">Batch Size <code>@Settings.Model.Backend.BatchSize</code></label>
 		<p>This sets the size for each batch that is processed by the Host. The default value is <code>128</code>.</p>
-		<MudSlider T="uint" Min="64" Max="512" Step="1" @bind-Value="Settings.Model.LLama.BatchSize"></MudSlider>
+		<MudSlider T="uint" Min="64" Max="512" Step="1" @bind-Value="Settings.Model.Backend.BatchSize"></MudSlider>
 	</div>
 	<div class="mt-5">
 		<table class="table">
