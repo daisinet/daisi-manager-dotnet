@@ -1,4 +1,5 @@
 @using Daisi.Manager.Shared.Services
+@using Markdig
 
 <div>
     @if (_loading)
@@ -48,29 +49,34 @@
     {
         <div class="row mt-3">
             <div class="col-md-4">
+                <!-- Logo card -->
                 <div class="card bg-dark-subtle border-secondary">
-                    <div class="card-body">
-                        <h5>Provider Profile</h5>
-                        <span class="badge @GetStatusBadge(_profile.Status) mb-2">@_profile.Status</span>
-
-                        <div class="mb-2">
-                            <label class="form-label small text-muted mb-0">Display Name</label>
-                            <input type="text" class="form-control form-control-sm" @bind="_profile.DisplayName" />
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label small text-muted mb-0">Bio</label>
-                            <textarea class="form-control form-control-sm" rows="2" @bind="_profile.Bio"></textarea>
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label small text-muted mb-0">Website</label>
-                            <input type="url" class="form-control form-control-sm" @bind="_profile.WebsiteUrl" />
-                        </div>
-                        <button class="btn btn-sm btn-primary mt-2" @onclick="UpdateProfileAsync" disabled="@_saving">
-                            Save Profile
-                        </button>
+                    <div class="card-body text-center">
+                        @if (!string.IsNullOrEmpty(_profile.LogoSvg))
+                        {
+                            <div style="width:80px;height:80px;margin:0 auto;">
+                                @((MarkupString)_profile.LogoSvg)
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="rounded d-flex align-items-center justify-content-center bg-secondary mx-auto" style="width:80px;height:80px;">
+                                <i class="fa-duotone fa-store fa-2x"></i>
+                            </div>
+                        }
+                        <h5 class="mt-2 mb-0">@_profile.DisplayName</h5>
+                        <span class="badge @GetStatusBadge(_profile.Status) mt-1">@_profile.Status</span>
+                        @if (_profile.Status == "Approved")
+                        {
+                            <div class="mt-2">
+                                <InputFile class="form-control form-control-sm" OnChange="OnLogoSelected" accept=".svg" />
+                                <small class="text-muted">Upload SVG logo (max 100KB)</small>
+                            </div>
+                        }
                     </div>
                 </div>
 
+                <!-- Revenue card -->
                 <div class="card bg-dark-subtle border-secondary mt-3">
                     <div class="card-body">
                         <h6 class="text-muted mb-3">Revenue</h6>
@@ -88,55 +94,222 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="col-md-8">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5>Your Items (@_items.Count)</h5>
-                    <a href="/marketplace/edit" class="btn btn-sm btn-warning">
-                        <i class="fa-duotone fa-plus me-1"></i> New Item
-                    </a>
-                </div>
-
-                @if (_items.Count == 0)
+                <!-- Premium card -->
+                @if (_profile.Status == "Approved")
                 {
-                    <div class="alert alert-info">
-                        You haven't published any items yet. Click "New Item" to get started.
+                    <div class="card bg-dark-subtle border-secondary mt-3">
+                        <div class="card-body">
+                            <h6 class="text-muted mb-3"><i class="fa-duotone fa-crown me-1 text-warning"></i> Premium Provider</h6>
+                            @if (_profile.IsPremium)
+                            {
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Status</span>
+                                    <span class="badge bg-success">Active</span>
+                                </div>
+                                @if (_profile.PremiumExpiresAt is not null)
+                                {
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Expires</span>
+                                        <strong>@_profile.PremiumExpiresAt.ToDateTime().ToString("MMM d, yyyy")</strong>
+                                    </div>
+                                }
+                                <button class="btn btn-sm btn-outline-danger mt-2" @onclick="CancelPremiumAsync" disabled="@_saving">
+                                    Cancel Premium
+                                </button>
+                            }
+                            else
+                            {
+                                <p class="small text-muted">Upgrade to Premium to sell items for credits, mark items as Featured, and appear on the Providers tab.</p>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Monthly Cost</span>
+                                    <strong>@_premiumCost credits/month</strong>
+                                </div>
+                                <button class="btn btn-warning mt-2" @onclick="UpgradeToPremiumAsync" disabled="@_saving">
+                                    @if (_saving) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                    <i class="fa-duotone fa-crown me-1"></i> Upgrade to Premium
+                                </button>
+                            }
+                        </div>
                     </div>
                 }
-                else
+            </div>
+
+            <!-- Right panel with tabs -->
+            <div class="col-md-8">
+                <ul class="nav nav-tabs mb-3">
+                    <li class="nav-item">
+                        <button class="nav-link @(_activeTab == DashboardTab.Items ? "active" : "")"
+                                @onclick='() => _activeTab = DashboardTab.Items'>
+                            <i class="fa-duotone fa-box me-1"></i> Your Items (@_items.Count)
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link @(_activeTab == DashboardTab.Profile ? "active" : "")"
+                                @onclick='() => _activeTab = DashboardTab.Profile'>
+                            <i class="fa-duotone fa-user me-1"></i> Profile
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link @(_activeTab == DashboardTab.Details ? "active" : "")"
+                                @onclick='() => _activeTab = DashboardTab.Details'>
+                            <i class="fa-duotone fa-file-lines me-1"></i> Details
+                        </button>
+                    </li>
+                </ul>
+
+                @switch (_activeTab)
                 {
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Type</th>
-                                    <th>Status</th>
-                                    <th>Price</th>
-                                    <th>Purchases</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var item in _items)
+                    case DashboardTab.Items:
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0">Your Items</h5>
+                            <a href="/marketplace/edit" class="btn btn-sm btn-warning">
+                                <i class="fa-duotone fa-plus me-1"></i> New Item
+                            </a>
+                        </div>
+
+                        @if (_items.Count == 0)
+                        {
+                            <div class="alert alert-info">
+                                You haven't published any items yet. Click "New Item" to get started.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Type</th>
+                                            <th>Status</th>
+                                            <th>Featured</th>
+                                            <th>Price</th>
+                                            <th>Purchases</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in _items)
+                                        {
+                                            <tr>
+                                                <td><strong>@item.Name</strong> <small class="text-muted">v@item.Version</small></td>
+                                                <td><span class="badge @GetTypeBadge(item.ItemType)">@GetTypeLabel(item.ItemType)</span></td>
+                                                <td><span class="badge @GetItemStatusBadge(item.Status)">@item.Status</span></td>
+                                                <td>
+                                                    @if (_profile!.IsPremium && item.Status == "Approved")
+                                                    {
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox" checked="@item.IsFeatured"
+                                                                   @onchange="e => ToggleFeaturedAsync(item, (bool)(e.Value ?? false))" />
+                                                        </div>
+                                                    }
+                                                    else if (item.IsFeatured)
+                                                    {
+                                                        <i class="fa-duotone fa-star text-warning"></i>
+                                                    }
+                                                </td>
+                                                <td>@GetPriceLabel(item)</td>
+                                                <td>@item.PurchaseCount</td>
+                                                <td>
+                                                    <a href="/marketplace/edit/@item.Id" class="btn btn-sm btn-outline-secondary">
+                                                        <i class="fa-duotone fa-pen"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        break;
+
+                    case DashboardTab.Profile:
+                        <div class="card bg-dark-subtle border-secondary">
+                            <div class="card-body">
+                                <h5 class="mb-3">Edit Profile</h5>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Display Name</label>
+                                    <input type="text" class="form-control" @bind="_profile.DisplayName" />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Bio</label>
+                                    <textarea class="form-control" rows="3" @bind="_profile.Bio"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Website URL</label>
+                                    <input type="url" class="form-control" @bind="_profile.WebsiteUrl" />
+                                </div>
+                                <button class="btn btn-primary" @onclick="UpdateProfileAsync" disabled="@_saving">
+                                    @if (_saving) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                    Save Profile
+                                </button>
+                            </div>
+                        </div>
+                        break;
+
+                    case DashboardTab.Details:
+                        <div class="card bg-dark-subtle border-secondary">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="mb-0">Provider Details</h5>
+                                    <button class="btn btn-primary btn-sm" @onclick="SaveMarkdownAsync" disabled="@_saving">
+                                        @if (_saving) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                        <i class="fa-duotone fa-floppy-disk me-1"></i> Save
+                                    </button>
+                                </div>
+                                <p class="text-muted small mb-3">Write about your goals, business, and what you offer. Supports Markdown formatting. This will be displayed on your public provider page.</p>
+
+                                <!-- Editor / Preview toggle -->
+                                <ul class="nav nav-pills nav-fill mb-3">
+                                    <li class="nav-item">
+                                        <button class="nav-link @(_mdMode == MdMode.Edit ? "active" : "")"
+                                                @onclick='() => _mdMode = MdMode.Edit'>
+                                            <i class="fa-duotone fa-pen-to-square me-1"></i> Edit
+                                        </button>
+                                    </li>
+                                    <li class="nav-item">
+                                        <button class="nav-link @(_mdMode == MdMode.Preview ? "active" : "")"
+                                                @onclick='() => _mdMode = MdMode.Preview'>
+                                            <i class="fa-duotone fa-eye me-1"></i> Preview
+                                        </button>
+                                    </li>
+                                    <li class="nav-item">
+                                        <button class="nav-link @(_mdMode == MdMode.Split ? "active" : "")"
+                                                @onclick='() => _mdMode = MdMode.Split'>
+                                            <i class="fa-duotone fa-columns me-1"></i> Split
+                                        </button>
+                                    </li>
+                                </ul>
+
+                                @if (_mdMode == MdMode.Edit)
                                 {
-                                    <tr>
-                                        <td><strong>@item.Name</strong> <small class="text-muted">v@item.Version</small></td>
-                                        <td><span class="badge @GetTypeBadge(item.ItemType)">@GetTypeLabel(item.ItemType)</span></td>
-                                        <td><span class="badge @GetItemStatusBadge(item.Status)">@item.Status</span></td>
-                                        <td>@GetPriceLabel(item)</td>
-                                        <td>@item.PurchaseCount</td>
-                                        <td>
-                                            <a href="/marketplace/edit/@item.Id" class="btn btn-sm btn-outline-secondary">
-                                                <i class="fa-duotone fa-pen"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
+                                    <textarea class="form-control font-monospace" rows="18" @bind="_markdownContent" @bind:event="oninput"
+                                              placeholder="# About Us - Tell visitors about your organization..."></textarea>
                                 }
-                            </tbody>
-                        </table>
-                    </div>
+                                else if (_mdMode == MdMode.Preview)
+                                {
+                                    <div class="border rounded p-3 markdown-body" style="min-height:300px;">
+                                        @((MarkupString)RenderMarkdown(_markdownContent))
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <textarea class="form-control font-monospace" rows="18" @bind="_markdownContent" @bind:event="oninput"
+                                                      placeholder="# About Us - Tell visitors about your organization..."></textarea>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="border rounded p-3 markdown-body" style="min-height:300px;max-height:460px;overflow-y:auto;">
+                                                @((MarkupString)RenderMarkdown(_markdownContent))
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        break;
                 }
             </div>
         </div>
@@ -147,6 +320,7 @@
     [Inject] public MarketplaceClientFactory MarketplaceClientFactory { get; set; } = default!;
     [Inject] public AuthService AuthService { get; set; } = default!;
     [Inject] public IToastService ToastService { get; set; } = default!;
+    [Inject] public IDialogService DialogService { get; set; } = default!;
 
     private ProviderProfileInfo? _profile;
     private List<MarketplaceItemInfo> _items = [];
@@ -156,6 +330,18 @@
     private string _newDisplayName = string.Empty;
     private string _newBio = string.Empty;
     private string _newWebsiteUrl = string.Empty;
+    private long _premiumCost;
+
+    private DashboardTab _activeTab = DashboardTab.Items;
+    private MdMode _mdMode = MdMode.Split;
+    private string _markdownContent = string.Empty;
+
+    private static readonly MarkdownPipeline _mdPipeline = new MarkdownPipelineBuilder()
+        .UseAdvancedExtensions()
+        .Build();
+
+    private enum DashboardTab { Items, Profile, Details }
+    private enum MdMode { Edit, Preview, Split }
 
     protected override async Task OnInitializedAsync()
     {
@@ -171,11 +357,13 @@
 
             if (_profile is not null)
             {
-                var browseResponse = await client.BrowseMarketplaceAsync(new BrowseMarketplaceRequest());
-                // Filter to this provider's items — the browse returns all public items,
-                // but for provider dashboard we need the provider's own items
-                // TODO: Add a GetMarketplaceItemsByAccount RPC for provider dashboard
-                _items = browseResponse.Items.Where(i => i.AccountId == accountId).ToList();
+                _markdownContent = _profile.ProfileMarkdown ?? string.Empty;
+
+                var itemsResponse = await client.GetProviderItemsAsync(new GetProviderItemsRequest { AccountId = accountId });
+                _items = itemsResponse.Items.ToList();
+
+                var settingsResponse = await client.GetMarketplaceSettingsAsync(new GetMarketplaceSettingsRequest());
+                _premiumCost = settingsResponse.PremiumMonthlyCreditCost;
             }
         }
         catch (Exception ex)
@@ -183,6 +371,13 @@
             Console.WriteLine($"Error loading provider dashboard: {ex.Message}");
         }
         _loading = false;
+    }
+
+    private static string RenderMarkdown(string? markdown)
+    {
+        if (string.IsNullOrWhiteSpace(markdown))
+            return "<p class='text-muted'>Nothing to preview yet.</p>";
+        return Markdown.ToHtml(markdown, _mdPipeline);
     }
 
     private static bool ContainsReservedName(string name) =>
@@ -256,6 +451,24 @@
         _saving = false;
     }
 
+    private async Task SaveMarkdownAsync()
+    {
+        _saving = true;
+        try
+        {
+            _profile!.ProfileMarkdown = _markdownContent;
+            var client = MarketplaceClientFactory.Create();
+            var response = await client.UpdateProviderProfileAsync(new UpdateProviderProfileRequest { Profile = _profile });
+            _profile = response.Profile;
+            ToastService.ShowSuccess("Details saved.");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+        _saving = false;
+    }
+
     private static string GetStatusBadge(string status) => status switch
     {
         "Pending" => "bg-warning text-dark",
@@ -300,4 +513,125 @@
         MarketplacePricingModel.MarketplacePricingSubscription => $"{item.SubscriptionCreditPrice} cr/mo",
         _ => "Free"
     };
+
+    private async Task UpgradeToPremiumAsync()
+    {
+        _saving = true;
+        try
+        {
+            var client = MarketplaceClientFactory.Create();
+            var response = await client.UpgradeToPremiumAsync(new UpgradeToPremiumRequest { AccountId = _profile!.AccountId });
+            if (response.Success)
+            {
+                _profile = response.Profile;
+                ToastService.ShowSuccess("You are now a Premium Provider!");
+            }
+            else
+            {
+                ToastService.ShowError(response.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+        _saving = false;
+    }
+
+    private async Task CancelPremiumAsync()
+    {
+        var confirmed = await DialogService.ConfirmAsync(
+            "Cancel Premium",
+            "Are you sure you want to cancel your Premium subscription? You will receive a 50% prorated refund of your remaining credits. Your featured items will be unfeatured and paid items will no longer be purchasable.",
+            Color.Warning);
+
+        if (!confirmed) return;
+
+        _saving = true;
+        try
+        {
+            var client = MarketplaceClientFactory.Create();
+            var response = await client.CancelPremiumAsync(new CancelPremiumRequest { AccountId = _profile!.AccountId });
+            if (response.Success)
+            {
+                _profile = response.Profile;
+                foreach (var item in _items)
+                    item.IsFeatured = false;
+
+                var msg = response.CreditsRefunded > 0
+                    ? $"Premium cancelled. {response.CreditsRefunded} credits refunded."
+                    : "Premium cancelled.";
+                ToastService.ShowSuccess(msg);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+        _saving = false;
+    }
+
+    private async Task ToggleFeaturedAsync(MarketplaceItemInfo item, bool isFeatured)
+    {
+        try
+        {
+            var client = MarketplaceClientFactory.Create();
+            var response = await client.SetItemFeaturedAsync(new SetItemFeaturedRequest
+            {
+                MarketplaceItemId = item.Id,
+                IsFeatured = isFeatured
+            });
+            if (response.Success)
+            {
+                item.IsFeatured = isFeatured;
+            }
+            else
+            {
+                ToastService.ShowError(response.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task OnLogoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file.Size > 102400)
+        {
+            ToastService.ShowWarning("SVG file must be under 100KB.");
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            using var reader = new System.IO.StreamReader(file.OpenReadStream(maxAllowedSize: 102400));
+            var svgContent = await reader.ReadToEndAsync();
+
+            var client = MarketplaceClientFactory.Create();
+            var response = await client.UploadProviderLogoAsync(new UploadProviderLogoRequest
+            {
+                AccountId = _profile!.AccountId,
+                SvgContent = svgContent
+            });
+
+            if (response.Success)
+            {
+                _profile = response.Profile;
+                ToastService.ShowSuccess("Logo uploaded.");
+            }
+            else
+            {
+                ToastService.ShowError(response.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+        _saving = false;
+    }
 }

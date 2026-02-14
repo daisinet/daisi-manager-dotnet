@@ -217,11 +217,21 @@
                                 <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
                                    title="Free: No cost, available to everyone. One-Time Purchase: Users pay once with credits for permanent access. Subscription: Users pay recurring credits at a set interval."></i>
                             </label>
-                            <select class="form-select" @bind="_pricingModel">
-                                <option value="Free">Free</option>
-                                <option value="OneTimePurchase">One-Time Purchase</option>
-                                <option value="Subscription">Subscription</option>
-                            </select>
+                            @if (_isPremiumProvider)
+                            {
+                                <select class="form-select" @bind="_pricingModel">
+                                    <option value="Free">Free</option>
+                                    <option value="OneTimePurchase">One-Time Purchase</option>
+                                    <option value="Subscription">Subscription</option>
+                                </select>
+                            }
+                            else
+                            {
+                                <select class="form-select" @bind="_pricingModel" disabled>
+                                    <option value="Free">Free</option>
+                                </select>
+                                <small class="text-warning"><i class="fa-duotone fa-crown me-1"></i>Upgrade to Premium to sell items for credits</small>
+                            }
                         </div>
 
                         @if (_pricingModel == "OneTimePurchase")
@@ -331,9 +341,20 @@
     private string? _rejectionReason;
     private IBrowserFile? _selectedFile;
     private MarketplaceItemInfo? _existingItem;
+    private bool _isPremiumProvider;
 
     protected override async Task OnParametersSetAsync()
     {
+        // Load provider profile to check Premium status
+        try
+        {
+            var accountId = await AuthService.GetAccountIdAsync() ?? string.Empty;
+            var client = MarketplaceClientFactory.Create();
+            var profileResponse = await client.GetProviderProfileAsync(new GetProviderProfileRequest { AccountId = accountId });
+            _isPremiumProvider = profileResponse.Profile?.IsPremium ?? false;
+        }
+        catch { }
+
         if (IsEdit)
         {
             _loading = true;

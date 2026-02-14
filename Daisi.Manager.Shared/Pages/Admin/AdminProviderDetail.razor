@@ -1,0 +1,463 @@
+@page "/admin/providers/{AccountId}"
+@using Daisi.Manager.Shared.Services
+
+<div class="mb-3">
+    <a href="/admin/providers" class="text-decoration-none">
+        <i class="fa-duotone fa-arrow-left me-1"></i> Back to Providers
+    </a>
+</div>
+
+@if (_loading)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (_profile is null)
+{
+    <div class="alert alert-danger">Provider not found.</div>
+}
+else
+{
+    <div class="d-flex align-items-center mb-3">
+        @if (!string.IsNullOrEmpty(_profile.LogoSvg))
+        {
+            <div class="me-3" style="width:64px;height:64px;">
+                @((MarkupString)_profile.LogoSvg)
+            </div>
+        }
+        else
+        {
+            <div class="rounded me-3 d-flex align-items-center justify-content-center bg-secondary" style="width:64px;height:64px;">
+                <i class="fa-duotone fa-store fa-2x"></i>
+            </div>
+        }
+        <div>
+            <h3 class="mb-0">
+                @_profile.DisplayName
+                @if (_profile.IsPremium)
+                {
+                    <span class="badge bg-warning text-dark ms-2 fs-6"><i class="fa-duotone fa-crown me-1"></i>Premium</span>
+                }
+            </h3>
+            <p class="text-muted mb-0"><code>@_profile.AccountId</code></p>
+        </div>
+    </div>
+
+    <div class="row g-4 mt-1">
+        @* Profile Info Card *@
+        <div class="col-12 col-md-6">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-header border-secondary">
+                    <i class="fa-duotone fa-id-card me-2"></i> Profile Info
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <label class="form-label text-muted small mb-0">Display Name</label>
+                        <div>@_profile.DisplayName</div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label text-muted small mb-0">Bio</label>
+                        <div>@(string.IsNullOrEmpty(_profile.Bio) ? "—" : _profile.Bio)</div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label text-muted small mb-0">Website</label>
+                        <div>
+                            @if (!string.IsNullOrEmpty(_profile.WebsiteUrl))
+                            {
+                                <a href="@_profile.WebsiteUrl" target="_blank">@_profile.WebsiteUrl</a>
+                            }
+                            else
+                            {
+                                <span>—</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label text-muted small mb-0">Joined</label>
+                        <div>@_profile.CreatedAt.ToDateTime().ToString("MMMM d, yyyy")</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Status & Premium Card *@
+        <div class="col-12 col-md-6">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-header border-secondary">
+                    <i class="fa-duotone fa-shield-check me-2"></i> Status & Premium
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small mb-1">Provider Status</label>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge @GetStatusBadge(_profile.Status) fs-6">@_profile.Status</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            @if (_profile.Status != "Approved")
+                            {
+                                <button class="btn btn-sm btn-success" @onclick='() => SetStatusAsync("Approved")' disabled="@_saving">
+                                    <i class="fa-duotone fa-check me-1"></i> Approve
+                                </button>
+                            }
+                            @if (_profile.Status != "Suspended")
+                            {
+                                <button class="btn btn-sm btn-danger" @onclick='() => SetStatusAsync("Suspended")' disabled="@_saving">
+                                    <i class="fa-duotone fa-ban me-1"></i> Suspend
+                                </button>
+                            }
+                            @if (_profile.Status != "Pending")
+                            {
+                                <button class="btn btn-sm btn-outline-warning" @onclick='() => SetStatusAsync("Pending")' disabled="@_saving">
+                                    <i class="fa-duotone fa-clock me-1"></i> Set Pending
+                                </button>
+                            }
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <div class="mb-2">
+                        <label class="form-label text-muted small mb-1">Premium Status</label>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            @if (_profile.IsPremium)
+                            {
+                                <span class="badge bg-warning text-dark"><i class="fa-duotone fa-crown me-1"></i>Active</span>
+                                @if (_profile.PremiumExpiresAt is not null)
+                                {
+                                    <small class="text-muted">Expires @_profile.PremiumExpiresAt.ToDateTime().ToString("MMM d, yyyy")</small>
+                                }
+                            }
+                            else
+                            {
+                                <span class="text-muted">Not Premium</span>
+                            }
+                        </div>
+                        <div class="d-flex gap-2">
+                            @if (!_profile.IsPremium && _profile.Status == "Approved")
+                            {
+                                <button class="btn btn-sm btn-warning" @onclick="() => SetPremiumAsync(true)" disabled="@_saving">
+                                    <i class="fa-duotone fa-crown me-1"></i> Grant Premium
+                                </button>
+                            }
+                            @if (_profile.IsPremium)
+                            {
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => SetPremiumAsync(false)" disabled="@_saving">
+                                    <i class="fa-duotone fa-crown me-1"></i> Revoke Premium
+                                </button>
+                            }
+                        </div>
+                        @if (_profile.Status != "Approved" && !_profile.IsPremium)
+                        {
+                            <small class="text-muted mt-1 d-block">Provider must be Approved before granting Premium.</small>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Revenue Card *@
+        <div class="col-12 col-md-6">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-header border-secondary">
+                    <i class="fa-duotone fa-coins me-2"></i> Revenue
+                </div>
+                <div class="card-body">
+                    <div class="row text-center mb-3">
+                        <div class="col-6">
+                            <h3 class="text-success">@_profile.TotalEarnings.ToString("N0")</h3>
+                            <small class="text-muted">Total Earnings</small>
+                        </div>
+                        <div class="col-6">
+                            <h3 class="text-warning">@_profile.PendingPayout.ToString("N0")</h3>
+                            <small class="text-muted">Pending Payout</small>
+                        </div>
+                    </div>
+
+                    @if (_profile.PendingPayout > 0)
+                    {
+                        <button class="btn btn-sm btn-outline-success mb-3" @onclick="ResetPayoutAsync" disabled="@_saving">
+                            <i class="fa-duotone fa-check me-1"></i> Mark Payout Complete
+                        </button>
+                    }
+
+                    <hr />
+
+                    <div class="mb-2">
+                        <label class="form-label">Revenue Share %</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" @bind="_editRevenueShare" min="0" max="100" step="5" />
+                            <span class="input-group-text">%</span>
+                            <button class="btn btn-outline-success" @onclick="SaveRevenueShareAsync" disabled="@_saving">
+                                <i class="fa-duotone fa-save"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">Current: @_profile.RevenueSharePercent% — Default: 70%</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Items Card *@
+        <div class="col-12 col-md-6">
+            <div class="card bg-dark border-secondary h-100">
+                <div class="card-header border-secondary">
+                    <i class="fa-duotone fa-box me-2"></i> Marketplace Items (@_items.Count)
+                </div>
+                <div class="card-body">
+                    @if (_items.Count == 0)
+                    {
+                        <p class="text-muted">No items published.</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>Status</th>
+                                        <th>Price</th>
+                                        <th>Featured</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in _items)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <strong>@item.Name</strong>
+                                                <small class="text-muted ms-1">v@item.Version</small>
+                                            </td>
+                                            <td><span class="badge @GetTypeBadge(item.ItemType)">@GetTypeLabel(item.ItemType)</span></td>
+                                            <td><span class="badge @GetItemStatusBadge(item.Status)">@item.Status</span></td>
+                                            <td>@GetPriceLabel(item)</td>
+                                            <td>
+                                                @if (item.IsFeatured)
+                                                {
+                                                    <i class="fa-duotone fa-star text-warning"></i>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string AccountId { get; set; } = "";
+
+    [Inject] public MarketplaceClientFactory MarketplaceClientFactory { get; set; } = default!;
+    [Inject] public AuthService AuthService { get; set; } = default!;
+    [Inject] public NavigationManager NavigationManager { get; set; } = default!;
+    [Inject] public IToastService ToastService { get; set; } = default!;
+
+    private ProviderProfileInfo? _profile;
+    private List<MarketplaceItemInfo> _items = [];
+    private bool _loading = true;
+    private bool _saving;
+    private double _editRevenueShare;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userRole = await AuthService.GetUserRoleAsync();
+        if (userRole is null || userRole < UserRoles.Admin)
+        {
+            NavigationManager.NavigateTo("/account/manage");
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var client = MarketplaceClientFactory.Create();
+
+            var profileResponse = await client.GetProviderProfileAsync(new GetProviderProfileRequest { AccountId = AccountId });
+            _profile = profileResponse.Profile;
+
+            if (_profile is not null)
+            {
+                _editRevenueShare = _profile.RevenueSharePercent;
+
+                var itemsResponse = await client.GetProviderItemsAsync(new GetProviderItemsRequest { AccountId = AccountId });
+                _items = itemsResponse.Items.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error loading provider: {ex.Message}");
+        }
+        _loading = false;
+    }
+
+    private async Task SetStatusAsync(string status)
+    {
+        _saving = true;
+        try
+        {
+            var client = MarketplaceClientFactory.Create();
+            var response = await client.AdminSetProviderStatusAsync(new AdminSetProviderStatusRequest
+            {
+                AccountId = AccountId,
+                Status = status
+            });
+
+            if (response.Success)
+            {
+                _profile = response.Profile;
+                _editRevenueShare = _profile.RevenueSharePercent;
+                ToastService.ShowSuccess($"Provider status set to {status}.");
+            }
+            else
+            {
+                ToastService.ShowError(response.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+        _saving = false;
+    }
+
+    private async Task SetPremiumAsync(bool isPremium)
+    {
+        _saving = true;
+        try
+        {
+            var client = MarketplaceClientFactory.Create();
+            var response = await client.AdminSetProviderPremiumAsync(new AdminSetProviderPremiumRequest
+            {
+                AccountId = AccountId,
+                IsPremium = isPremium
+            });
+
+            if (response.Success)
+            {
+                _profile = response.Profile;
+                if (!isPremium)
+                {
+                    // Refresh items to reflect cleared featured flags
+                    var itemsResponse = await client.GetProviderItemsAsync(new GetProviderItemsRequest { AccountId = AccountId });
+                    _items = itemsResponse.Items.ToList();
+                }
+                ToastService.ShowSuccess(isPremium ? "Premium granted." : "Premium revoked.");
+            }
+            else
+            {
+                ToastService.ShowError(response.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+        _saving = false;
+    }
+
+    private async Task SaveRevenueShareAsync()
+    {
+        _saving = true;
+        try
+        {
+            var client = MarketplaceClientFactory.Create();
+            var response = await client.AdminSetRevenueShareAsync(new AdminSetRevenueShareRequest
+            {
+                AccountId = AccountId,
+                RevenueSharePercent = _editRevenueShare
+            });
+
+            if (response.Success)
+            {
+                _profile = response.Profile;
+                ToastService.ShowSuccess($"Revenue share set to {_profile.RevenueSharePercent}%.");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+        _saving = false;
+    }
+
+    private async Task ResetPayoutAsync()
+    {
+        _saving = true;
+        try
+        {
+            var client = MarketplaceClientFactory.Create();
+            var response = await client.AdminResetProviderPayoutAsync(new AdminResetProviderPayoutRequest
+            {
+                AccountId = AccountId
+            });
+
+            if (response.Success)
+            {
+                _profile = response.Profile;
+                ToastService.ShowSuccess("Pending payout reset to 0.");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+        _saving = false;
+    }
+
+    private static string GetStatusBadge(string status) => status switch
+    {
+        "Pending" => "bg-warning text-dark",
+        "Approved" => "bg-success",
+        "Suspended" => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    private static string GetTypeBadge(MarketplaceItemType type) => type switch
+    {
+        MarketplaceItemType.Skill => "bg-info",
+        MarketplaceItemType.BotTool => "bg-primary",
+        MarketplaceItemType.HostTool => "bg-warning text-dark",
+        MarketplaceItemType.Plugin => "bg-success",
+        _ => "bg-secondary"
+    };
+
+    private static string GetTypeLabel(MarketplaceItemType type) => type switch
+    {
+        MarketplaceItemType.Skill => "Skill",
+        MarketplaceItemType.BotTool => "Bot Tool",
+        MarketplaceItemType.HostTool => "Host Tool",
+        MarketplaceItemType.Plugin => "Plugin",
+        _ => "Unknown"
+    };
+
+    private static string GetItemStatusBadge(string status) => status switch
+    {
+        "Draft" => "bg-secondary",
+        "PendingReview" => "bg-warning text-dark",
+        "AutoTested" => "bg-info",
+        "Approved" => "bg-success",
+        "Rejected" => "bg-danger",
+        "Suspended" => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    private static string GetPriceLabel(MarketplaceItemInfo item) => item.PricingModel switch
+    {
+        MarketplacePricingModel.MarketplacePricingFree => "Free",
+        MarketplacePricingModel.MarketplacePricingOneTime => $"{item.CreditPrice} credits",
+        MarketplacePricingModel.MarketplacePricingSubscription => $"{item.SubscriptionCreditPrice} cr/mo",
+        _ => "Free"
+    };
+}

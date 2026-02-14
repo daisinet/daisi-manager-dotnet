@@ -1,0 +1,273 @@
+@page "/marketplace/provider/{AccountId}"
+@using Daisi.Manager.Shared.Services
+@using Markdig
+
+<div class="mt-3 pb-5">
+    @if (_loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (_profile is null)
+    {
+        <div class="alert alert-warning">Provider not found.</div>
+        <a href="/marketplace" class="btn btn-outline-secondary"><i class="fa-duotone fa-arrow-left me-1"></i> Back to Marketplace</a>
+    }
+    else
+    {
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/marketplace">Marketplace</a></li>
+                <li class="breadcrumb-item"><a href="/marketplace?tab=providers">Providers</a></li>
+                <li class="breadcrumb-item active" aria-current="page">@_profile.DisplayName</li>
+            </ol>
+        </nav>
+
+        <!-- Provider header -->
+        <div class="card bg-dark-subtle border-secondary mb-4">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    @if (!string.IsNullOrEmpty(_profile.LogoSvg))
+                    {
+                        <div class="me-3" style="width:64px;height:64px;">
+                            @((MarkupString)_profile.LogoSvg)
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="rounded me-3 d-flex align-items-center justify-content-center bg-secondary" style="width:64px;height:64px;">
+                            <i class="fa-duotone fa-store fa-2x"></i>
+                        </div>
+                    }
+                    <div>
+                        <h3 class="mb-1">
+                            @_profile.DisplayName
+                            @if (_profile.IsPremium)
+                            {
+                                <span class="badge bg-warning text-dark ms-2"><i class="fa-duotone fa-crown me-1"></i>Premium</span>
+                            }
+                        </h3>
+                        @if (!string.IsNullOrEmpty(_profile.Bio))
+                        {
+                            <p class="text-muted mb-1">@_profile.Bio</p>
+                        }
+                        @if (!string.IsNullOrEmpty(_profile.WebsiteUrl))
+                        {
+                            <a href="@_profile.WebsiteUrl" target="_blank" rel="noopener" class="text-info small">
+                                <i class="fa-duotone fa-globe me-1"></i>@_profile.WebsiteUrl
+                            </a>
+                        }
+                    </div>
+                    <div class="ms-auto text-end">
+                        <div class="text-muted small">
+                            <i class="fa-duotone fa-box me-1"></i>@_allItems.Count items
+                        </div>
+                        <div class="text-muted small">
+                            Member since @_profile.CreatedAt.ToDateTime().ToString("MMM yyyy")
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Items section -->
+        <div class="card bg-dark-subtle border-secondary mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0"><i class="fa-duotone fa-box me-1"></i> Items</h5>
+                    <div style="max-width:300px;">
+                        <input type="text" class="form-control form-control-sm" placeholder="Search items..."
+                               @bind="_searchQuery" @bind:event="oninput" />
+                    </div>
+                </div>
+
+                @{
+                    var filtered = GetFilteredItems();
+                    var paged = filtered.Skip((_currentPage - 1) * _pageSize).Take(_pageSize).ToList();
+                    var totalPages = (int)Math.Ceiling((double)filtered.Count / _pageSize);
+                }
+
+                @if (paged.Count == 0)
+                {
+                    <div class="text-center text-muted py-4">
+                        @if (!string.IsNullOrEmpty(_searchQuery))
+                        {
+                            <p>No items matching "@_searchQuery".</p>
+                        }
+                        else
+                        {
+                            <p>This provider hasn't published any items yet.</p>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+                        @foreach (var item in paged)
+                        {
+                            <div class="col">
+                                <a href="/marketplace/item/@item.Id" class="text-decoration-none">
+                                    <div class="card h-100 bg-dark border-secondary card-hover">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-start mb-2">
+                                                @if (!string.IsNullOrEmpty(item.IconUrl))
+                                                {
+                                                    <img src="@item.IconUrl" alt="@item.Name" class="rounded me-2" width="32" height="32" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="rounded me-2 d-flex align-items-center justify-content-center bg-secondary" style="width:32px;height:32px;">
+                                                        <i class="fa-duotone fa-cube"></i>
+                                                    </div>
+                                                }
+                                                <div>
+                                                    <strong>@item.Name</strong>
+                                                    @if (item.IsFeatured)
+                                                    {
+                                                        <span class="badge bg-warning text-dark ms-1"><i class="fa-duotone fa-star"></i></span>
+                                                    }
+                                                    <br />
+                                                    <small class="text-muted">@GetTypeLabel(item.ItemType) &middot; v@item.Version</small>
+                                                </div>
+                                            </div>
+                                            <p class="card-text text-muted small mb-2">@TruncateText(item.ShortDescription, 100)</p>
+                                        </div>
+                                        <div class="card-footer d-flex justify-content-between align-items-center">
+                                            <span class="badge @GetPriceBadge(item)">@GetPriceLabel(item)</span>
+                                            <small class="text-muted">@item.PurchaseCount purchases</small>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                        }
+                    </div>
+
+                    @if (totalPages > 1)
+                    {
+                        <nav class="mt-3">
+                            <ul class="pagination pagination-sm justify-content-center">
+                                <li class="page-item @(_currentPage <= 1 ? "disabled" : "")">
+                                    <button class="page-link" @onclick="() => _currentPage--">&laquo;</button>
+                                </li>
+                                @for (int i = 1; i <= totalPages; i++)
+                                {
+                                    var pageNum = i;
+                                    <li class="page-item @(pageNum == _currentPage ? "active" : "")">
+                                        <button class="page-link" @onclick="() => _currentPage = pageNum">@pageNum</button>
+                                    </li>
+                                }
+                                <li class="page-item @(_currentPage >= totalPages ? "disabled" : "")">
+                                    <button class="page-link" @onclick="() => _currentPage++">&raquo;</button>
+                                </li>
+                            </ul>
+                        </nav>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Markdown details section -->
+        @if (!string.IsNullOrWhiteSpace(_profile.ProfileMarkdown))
+        {
+            <div class="card bg-dark-subtle border-secondary">
+                <div class="card-body">
+                    <h5 class="mb-3"><i class="fa-duotone fa-file-lines me-1"></i> About @_profile.DisplayName</h5>
+                    <div class="markdown-body">
+                        @((MarkupString)RenderMarkdown(_profile.ProfileMarkdown))
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public string AccountId { get; set; } = string.Empty;
+    [Inject] public MarketplaceClientFactory MarketplaceClientFactory { get; set; } = default!;
+
+    private ProviderProfileInfo? _profile;
+    private List<MarketplaceItemInfo> _allItems = [];
+    private bool _loading = true;
+    private string _searchQuery = string.Empty;
+    private int _currentPage = 1;
+    private const int _pageSize = 9;
+
+    private static readonly MarkdownPipeline _mdPipeline = new MarkdownPipelineBuilder()
+        .UseAdvancedExtensions()
+        .Build();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var client = MarketplaceClientFactory.Create();
+
+            var profileResponse = await client.GetProviderProfileAsync(new GetProviderProfileRequest { AccountId = AccountId });
+            _profile = profileResponse.Profile;
+
+            if (_profile is not null)
+            {
+                var itemsResponse = await client.GetProviderItemsAsync(new GetProviderItemsRequest { AccountId = AccountId });
+                // Only show approved items on the public page
+                _allItems = itemsResponse.Items.Where(i => i.Status == "Approved").ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading provider detail: {ex.Message}");
+        }
+        _loading = false;
+    }
+
+    private List<MarketplaceItemInfo> GetFilteredItems()
+    {
+        if (string.IsNullOrWhiteSpace(_searchQuery))
+            return _allItems;
+
+        var q = _searchQuery.Trim().ToLowerInvariant();
+        return _allItems.Where(i =>
+            (i.Name?.ToLowerInvariant().Contains(q) ?? false) ||
+            (i.ShortDescription?.ToLowerInvariant().Contains(q) ?? false) ||
+            i.Tags.Any(t => t.ToLowerInvariant().Contains(q))
+        ).ToList();
+    }
+
+    private static string RenderMarkdown(string? markdown)
+    {
+        if (string.IsNullOrWhiteSpace(markdown))
+            return string.Empty;
+        return Markdown.ToHtml(markdown, _mdPipeline);
+    }
+
+    private static string TruncateText(string? text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text)) return string.Empty;
+        return text.Length > maxLength ? text[..maxLength] + "..." : text;
+    }
+
+    private static string GetTypeLabel(MarketplaceItemType type) => type switch
+    {
+        MarketplaceItemType.Skill => "Skill",
+        MarketplaceItemType.BotTool => "Bot Tool",
+        MarketplaceItemType.HostTool => "Host Tool",
+        MarketplaceItemType.Plugin => "Plugin",
+        _ => "Unknown"
+    };
+
+    private static string GetPriceLabel(MarketplaceItemInfo item) => item.PricingModel switch
+    {
+        MarketplacePricingModel.MarketplacePricingFree => "Free",
+        MarketplacePricingModel.MarketplacePricingOneTime => $"{item.CreditPrice} credits",
+        MarketplacePricingModel.MarketplacePricingSubscription => $"{item.SubscriptionCreditPrice} cr/mo",
+        _ => "Free"
+    };
+
+    private static string GetPriceBadge(MarketplaceItemInfo item) => item.PricingModel switch
+    {
+        MarketplacePricingModel.MarketplacePricingFree => "bg-success",
+        _ => "bg-info"
+    };
+}
