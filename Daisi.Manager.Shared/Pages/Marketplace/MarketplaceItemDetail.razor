@@ -38,7 +38,13 @@
                         </div>
                     }
                     <div>
-                        <h2 class="mb-1">@_item.Name</h2>
+                        <h2 class="mb-1">
+                            @_item.Name
+                            @if (_item.IsFeatured)
+                            {
+                                <span class="badge bg-warning text-dark ms-2 fs-6"><i class="fa-duotone fa-star me-1"></i>Featured</span>
+                            }
+                        </h2>
                         <p class="text-muted mb-1">@_item.Author &middot; v@_item.Version</p>
                         <div class="d-flex flex-wrap gap-1">
                             <span class="badge @GetTypeBadge(_item.ItemType)">@GetTypeLabel(_item.ItemType)</span>
@@ -152,7 +158,13 @@
                                     <img src="@_provider.AvatarUrl" alt="@_provider.DisplayName" class="rounded-circle me-2" width="32" height="32" />
                                 }
                                 <div>
-                                    <strong>@_provider.DisplayName</strong>
+                                    <strong>
+                                        @_provider.DisplayName
+                                        @if (_provider.IsPremium)
+                                        {
+                                            <span class="badge bg-warning text-dark ms-1"><i class="fa-duotone fa-crown"></i></span>
+                                        }
+                                    </strong>
                                     <br />
                                     <small class="text-muted">@_provider.ItemCount items published</small>
                                 </div>

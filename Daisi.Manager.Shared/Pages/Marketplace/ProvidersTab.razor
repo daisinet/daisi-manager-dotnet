@@ -1,0 +1,100 @@
+@using Daisi.Manager.Shared.Services
+
+<div>
+    @if (_loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (_providers.Count == 0)
+    {
+        <div class="alert alert-info">
+            <i class="fa-duotone fa-info-circle me-1"></i> No providers yet. Become a provider to appear here!
+        </div>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            @foreach (var provider in _providers)
+            {
+                <div class="col">
+                    <div class="card h-100 bg-dark-subtle @(provider.IsPremium ? "border-warning" : "border-secondary")">
+                        @if (provider.IsPremium)
+                        {
+                            <div class="card-header bg-warning bg-opacity-10 border-warning py-1 text-center">
+                                <small class="text-warning fw-bold"><i class="fa-duotone fa-crown me-1"></i>Premium Provider</small>
+                            </div>
+                        }
+                        <div class="card-body">
+                            <div class="d-flex align-items-start mb-2">
+                                @if (!string.IsNullOrEmpty(provider.LogoSvg))
+                                {
+                                    <div class="me-3" style="width:48px;height:48px;">
+                                        @((MarkupString)provider.LogoSvg)
+                                    </div>
+                                }
+                                else if (!string.IsNullOrEmpty(provider.AvatarUrl))
+                                {
+                                    <img src="@provider.AvatarUrl" alt="@provider.DisplayName" class="rounded me-3" width="48" height="48" />
+                                }
+                                else
+                                {
+                                    <div class="rounded me-3 d-flex align-items-center justify-content-center bg-secondary" style="width:48px;height:48px;">
+                                        <i class="fa-duotone fa-store fa-lg"></i>
+                                    </div>
+                                }
+                                <div>
+                                    <h5 class="card-title mb-0">@provider.DisplayName</h5>
+                                </div>
+                            </div>
+                            <p class="card-text text-muted small">@TruncateBio(provider.Bio)</p>
+                        </div>
+                        <div class="card-footer d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fa-duotone fa-box me-1"></i>@provider.ItemCount items
+                            </small>
+                            <a href="/marketplace/provider/@provider.AccountId" class="btn btn-sm btn-outline-primary">
+                                <i class="fa-duotone fa-arrow-right me-1"></i> View Profile
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Inject] public MarketplaceClientFactory MarketplaceClientFactory { get; set; } = default!;
+
+    private List<ProviderProfileInfo> _providers = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var client = MarketplaceClientFactory.Create();
+            var response = await client.GetAllProvidersAsync(new GetAllProvidersRequest());
+            _providers = response.Providers
+                .Where(p => p.Status == "Approved")
+                .OrderByDescending(p => p.IsPremium)
+                .ThenByDescending(p => p.ItemCount)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading providers: {ex.Message}");
+        }
+        _loading = false;
+    }
+
+    private static string TruncateBio(string bio)
+    {
+        if (string.IsNullOrEmpty(bio)) return "No bio provided.";
+        return bio.Length > 120 ? bio[..120] + "..." : bio;
+    }
+}

@@ -1,0 +1,227 @@
+@using Daisi.Manager.Shared.Services
+
+<h4><i class="fa-duotone fa-crown me-1"></i> Provider Management</h4>
+
+<div class="row mt-3 mb-3">
+    <div class="col-md-4">
+        <div class="input-group">
+            <span class="input-group-text"><i class="fa-duotone fa-magnifying-glass"></i></span>
+            <input type="text" class="form-control" placeholder="Search providers..." @bind="_search" @bind:event="oninput" />
+        </div>
+    </div>
+    <div class="col-md-3">
+        <select class="form-select" @bind="_statusFilter">
+            <option value="">All Statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="Approved">Approved</option>
+            <option value="Suspended">Suspended</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select class="form-select" @bind="_premiumFilter">
+            <option value="">All Tiers</option>
+            <option value="Premium">Premium Only</option>
+            <option value="Standard">Standard Only</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button class="btn btn-outline-secondary w-100" @onclick="LoadSettingsDialog">
+            <i class="fa-duotone fa-gear me-1"></i> Settings
+        </button>
+    </div>
+</div>
+
+@if (_showSettings)
+{
+    <div class="card bg-dark border-warning mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="fa-duotone fa-gear me-1"></i> Marketplace Settings</span>
+            <button class="btn btn-sm btn-outline-secondary" @onclick="() => _showSettings = false"><i class="fa-duotone fa-xmark"></i></button>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Premium Monthly Credit Cost</label>
+                    <input type="number" class="form-control" @bind="_settingsPremiumCost" min="0" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Max Featured Items Per Provider</label>
+                    <input type="number" class="form-control" @bind="_settingsMaxFeatured" min="1" />
+                </div>
+            </div>
+            <button class="btn btn-success mt-3" @onclick="SaveSettingsAsync" disabled="@_savingSettings">
+                <i class="fa-duotone fa-save me-1"></i> Save Settings
+            </button>
+        </div>
+    </div>
+}
+
+@if (_loading)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else
+{
+    <div class="row text-center mb-3">
+        <div class="col-3">
+            <h3>@_allProviders.Count</h3>
+            <small class="text-muted">Total</small>
+        </div>
+        <div class="col-3">
+            <h3 class="text-warning">@_allProviders.Count(p => p.Status == "Pending")</h3>
+            <small class="text-muted">Pending</small>
+        </div>
+        <div class="col-3">
+            <h3 class="text-success">@_allProviders.Count(p => p.Status == "Approved")</h3>
+            <small class="text-muted">Approved</small>
+        </div>
+        <div class="col-3">
+            <h3 class="text-info">@_allProviders.Count(p => p.IsPremium)</h3>
+            <small class="text-muted">Premium</small>
+        </div>
+    </div>
+
+    @if (FilteredProviders.Count == 0)
+    {
+        <div class="alert alert-info">No providers match the current filters.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Provider</th>
+                        <th>Status</th>
+                        <th>Tier</th>
+                        <th>Revenue Share</th>
+                        <th>Earnings</th>
+                        <th>Items</th>
+                        <th>Joined</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var provider in FilteredProviders)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@provider.DisplayName</strong>
+                                <br /><small class="text-muted">@provider.AccountId</small>
+                            </td>
+                            <td><span class="badge @GetStatusBadge(provider.Status)">@provider.Status</span></td>
+                            <td>
+                                @if (provider.IsPremium)
+                                {
+                                    <span class="badge bg-warning text-dark"><i class="fa-duotone fa-crown me-1"></i>Premium</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Standard</span>
+                                }
+                            </td>
+                            <td>@provider.RevenueSharePercent%</td>
+                            <td>@provider.TotalEarnings.ToString("N0")</td>
+                            <td>@provider.ItemCount</td>
+                            <td><small>@provider.CreatedAt.ToDateTime().ToString("MMM d, yyyy")</small></td>
+                            <td>
+                                <a href="/admin/providers/@provider.AccountId" class="btn btn-sm btn-outline-primary">
+                                    <i class="fa-duotone fa-eye me-1"></i> Manage
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    [Inject] public MarketplaceClientFactory MarketplaceClientFactory { get; set; } = default!;
+    [Inject] public IToastService ToastService { get; set; } = default!;
+
+    private List<ProviderProfileInfo> _allProviders = [];
+    private bool _loading = true;
+    private string _search = string.Empty;
+    private string _statusFilter = string.Empty;
+    private string _premiumFilter = string.Empty;
+
+    // Settings
+    private bool _showSettings;
+    private bool _savingSettings;
+    private long _settingsPremiumCost;
+    private int _settingsMaxFeatured;
+
+    private List<ProviderProfileInfo> FilteredProviders => _allProviders
+        .Where(p => string.IsNullOrEmpty(_search)
+            || p.DisplayName.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || p.AccountId.Contains(_search, StringComparison.OrdinalIgnoreCase))
+        .Where(p => string.IsNullOrEmpty(_statusFilter) || p.Status == _statusFilter)
+        .Where(p => string.IsNullOrEmpty(_premiumFilter)
+            || (_premiumFilter == "Premium" && p.IsPremium)
+            || (_premiumFilter == "Standard" && !p.IsPremium))
+        .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var client = MarketplaceClientFactory.Create();
+            var response = await client.GetAllProvidersAsync(new GetAllProvidersRequest());
+            _allProviders = response.Providers.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading providers: {ex.Message}");
+        }
+        _loading = false;
+    }
+
+    private async Task LoadSettingsDialog()
+    {
+        try
+        {
+            var client = MarketplaceClientFactory.Create();
+            var response = await client.GetMarketplaceSettingsAsync(new GetMarketplaceSettingsRequest());
+            _settingsPremiumCost = response.PremiumMonthlyCreditCost;
+            _settingsMaxFeatured = response.MaxFeaturedItemsPerProvider;
+            _showSettings = true;
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error loading settings: {ex.Message}");
+        }
+    }
+
+    private async Task SaveSettingsAsync()
+    {
+        _savingSettings = true;
+        try
+        {
+            var client = MarketplaceClientFactory.Create();
+            await client.AdminUpdateMarketplaceSettingsAsync(new AdminUpdateMarketplaceSettingsRequest
+            {
+                PremiumMonthlyCreditCost = _settingsPremiumCost,
+                MaxFeaturedItemsPerProvider = _settingsMaxFeatured
+            });
+            ToastService.ShowSuccess("Marketplace settings updated.");
+            _showSettings = false;
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+        _savingSettings = false;
+    }
+
+    private static string GetStatusBadge(string status) => status switch
+    {
+        "Pending" => "bg-warning text-dark",
+        "Approved" => "bg-success",
+        "Suspended" => "bg-danger",
+        _ => "bg-secondary"
+    };
+}

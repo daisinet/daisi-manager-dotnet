@@ -7,6 +7,7 @@
             <option value="@AdminPages.Releases">Releases</option>
             <option value="@AdminPages.Accounts">Accounts</option>
             <option value="@AdminPages.MarketplaceReview">Marketplace Review</option>
+            <option value="@AdminPages.Providers">Providers</option>
         </select>
     </div>
     <div class="d-none d-md-block col-12 col-md-4 bg-dark-subtle border-end py-4 @(FormFactor.GetFormFactor() != "Mobile" ? "vh-100" : "")">
@@ -27,6 +28,11 @@
                     <i class="fa-duotone fa-store me-2"></i> Marketplace Review
                 </h4>
             </a>
+            <a href="/admin/providers" class="list-group-item @(CurrentPage == AdminPages.Providers ? "active" : "") cursor-pointer">
+                <h4 class="mt-2">
+                    <i class="fa-duotone fa-crown me-2"></i> Providers
+                </h4>
+            </a>
         </div>
     </div>
 
@@ -43,6 +49,10 @@
         {
             <Daisi.Manager.Shared.Pages.Admin.MarketplaceReviewQueue />
         }
+        else if (CurrentPage == AdminPages.Providers)
+        {
+            <Daisi.Manager.Shared.Pages.Admin.AdminProvidersComponent />
+        }
     </div>
 </div>
 @code {
@@ -50,7 +60,8 @@
     {
         Releases,
         Accounts,
-        MarketplaceReview
+        MarketplaceReview,
+        Providers
     }
 
     [Parameter] public string? Page { get; set; }
