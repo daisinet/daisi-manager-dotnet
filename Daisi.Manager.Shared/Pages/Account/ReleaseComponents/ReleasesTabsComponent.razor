@@ -1,0 +1,54 @@
+
+<div class="row">
+    <div class="col"><h3>Releases</h3></div>
+    <div class="col-12 col-md-auto d-flex align-items-center gap-2">
+        <button class="btn btn-outline-success" @onclick="OnCreate"><i class="fa-duotone fa-rocket"></i> Start Release</button>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mt-3">
+    <li class="nav-item">
+        <a class="nav-link @(activeTab == "hosts" ? "active" : "") cursor-pointer" @onclick='() => activeTab = "hosts"'>Hosts</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(activeTab == "bot" ? "active" : "") cursor-pointer" @onclick='() => activeTab = "bot"'>DaisiBot</a>
+    </li>
+</ul>
+
+<div class="mt-3">
+    @if (activeTab == "hosts")
+    {
+        <AccountReleasesComponent HideHeader="true" />
+    }
+    else
+    {
+        <BotReleasesComponent />
+    }
+</div>
+
+@code {
+    [Inject] IDialogService DialogService { get; set; }
+    [Inject] IToastService ToastService { get; set; }
+
+    string activeTab = "hosts";
+
+    async Task OnCreate()
+    {
+        DialogOptions options = new DialogOptions()
+        {
+            CloseButton = true,
+            BackdropClick = true,
+            CloseOnEscapeKey = true
+        };
+
+        var result = await DialogService.ShowAsync<CreateReleaseComponent>("Start Release", options);
+        if (result?.Result is not null)
+        {
+            var res = await result.Result;
+            if (res?.Data is string version)
+            {
+                ToastService.ShowSuccess($"Release {version} pipeline started. Build and deploy in progress.");
+            }
+        }
+    }
+}
