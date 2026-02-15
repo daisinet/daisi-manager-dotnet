@@ -1,0 +1,306 @@
+@using Daisi.Manager.Shared.Services
+
+<h4><i class="fa-duotone fa-shield-exclamation me-1"></i> Credit Anomalies</h4>
+
+<div class="row mb-3 mt-3">
+    <div class="col-md-3">
+        <label class="form-label fw-bold">Type</label>
+        <select class="form-control" @onchange="OnTypeChanged">
+            <option value="">All Types</option>
+            <option value="0">Receipt Replay</option>
+            <option value="1">Inflated Tokens</option>
+            <option value="2">Receipt Volume Spike</option>
+            <option value="3">Zero Work Uptime</option>
+            <option value="4">Circular Credit Flow</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label fw-bold">Status</label>
+        <select class="form-control" @onchange="OnStatusChanged">
+            <option value="">All Statuses</option>
+            <option value="0" selected>Open</option>
+            <option value="1">Reviewed</option>
+            <option value="2">Dismissed</option>
+            <option value="3">Action Taken</option>
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label fw-bold">Account ID</label>
+        <input type="text" class="form-control" placeholder="Filter by account..."
+               @bind="_accountFilter" @bind:event="oninput" @onkeyup="OnAccountFilterKeyUp" />
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+        <button class="btn btn-primary w-100" @onclick="LoadAnomaliesAsync">
+            <i class="fa-duotone fa-search me-1"></i> Search
+        </button>
+    </div>
+</div>
+
+@if (_loading)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (_anomalies.Count == 0)
+{
+    <div class="alert alert-info">No anomalies found matching the current filters.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Severity</th>
+                    <th>Account</th>
+                    <th>Host</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var anomaly in _anomalies)
+                {
+                    <tr class="@GetRowClass(anomaly)">
+                        <td class="small">@anomaly.DateCreated.ToDateTime().ToString("MMM d, HH:mm")</td>
+                        <td><span class="badge @GetTypeBadge(anomaly.Type)">@GetTypeLabel(anomaly.Type)</span></td>
+                        <td><span class="badge @GetSeverityBadge(anomaly.Severity)">@anomaly.Severity</span></td>
+                        <td class="small text-muted">@anomaly.AccountId</td>
+                        <td class="small text-muted">@(string.IsNullOrEmpty(anomaly.HostId) ? "—" : anomaly.HostId)</td>
+                        <td class="small">@anomaly.Description</td>
+                        <td><span class="badge @GetStatusBadge(anomaly.Status)">@GetStatusLabel(anomaly.Status)</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="() => SelectAnomaly(anomaly)">
+                                <i class="fa-duotone fa-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <Daisi.SDK.Razor.Components.Pager.PagingComponent PageIndexChanged="OnPageChanged" TotalCount="_totalCount" Paging="_paging" />
+}
+
+@if (_selectedAnomaly is not null)
+{
+    <div class="card bg-dark-subtle border-warning mt-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Anomaly Details</h5>
+            <button class="btn btn-sm btn-outline-secondary" @onclick="() => _selectedAnomaly = null">
+                <i class="fa-duotone fa-xmark"></i>
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>ID:</strong> <code>@_selectedAnomaly.Id</code></p>
+                    <p><strong>Account:</strong> <code>@_selectedAnomaly.AccountId</code></p>
+                    <p><strong>Host:</strong> <code>@(string.IsNullOrEmpty(_selectedAnomaly.HostId) ? "N/A" : _selectedAnomaly.HostId)</code></p>
+                    <p><strong>Type:</strong> @GetTypeLabel(_selectedAnomaly.Type)</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Severity:</strong> <span class="badge @GetSeverityBadge(_selectedAnomaly.Severity)">@_selectedAnomaly.Severity</span></p>
+                    <p><strong>Status:</strong> <span class="badge @GetStatusBadge(_selectedAnomaly.Status)">@GetStatusLabel(_selectedAnomaly.Status)</span></p>
+                    <p><strong>Created:</strong> @_selectedAnomaly.DateCreated.ToDateTime().ToString("yyyy-MM-dd HH:mm:ss")</p>
+                    @if (_selectedAnomaly.DateReviewed is not null)
+                    {
+                        <p><strong>Reviewed:</strong> @_selectedAnomaly.DateReviewed.ToDateTime().ToString("yyyy-MM-dd HH:mm:ss") by @_selectedAnomaly.ReviewedBy</p>
+                    }
+                </div>
+            </div>
+            <div class="mt-2">
+                <strong>Description:</strong>
+                <p>@_selectedAnomaly.Description</p>
+            </div>
+            @if (!string.IsNullOrEmpty(_selectedAnomaly.Details))
+            {
+                <div class="mt-2">
+                    <strong>Details:</strong>
+                    <pre class="bg-dark p-3 mt-1 rounded small">@_selectedAnomaly.Details</pre>
+                </div>
+            }
+
+            @if (_selectedAnomaly.Status == AnomalyStatus.Open)
+            {
+                <div class="d-flex gap-2 mt-3">
+                    <button class="btn btn-warning" @onclick="() => ReviewAsync(AnomalyStatus.Dismissed)" disabled="@_saving">
+                        <i class="fa-duotone fa-ban me-1"></i> Dismiss
+                    </button>
+                    <button class="btn btn-danger" @onclick="() => ReviewAsync(AnomalyStatus.ActionTaken)" disabled="@_saving">
+                        <i class="fa-duotone fa-gavel me-1"></i> Action Taken
+                    </button>
+                    <a href="/admin/accounts" class="btn btn-outline-info">
+                        <i class="fa-duotone fa-coins me-1"></i> Adjust Credits
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Inject] public CreditClientFactory CreditClientFactory { get; set; } = default!;
+    [Inject] public AuthService AuthService { get; set; } = default!;
+    [Inject] public IToastService ToastService { get; set; } = default!;
+
+    private List<CreditAnomalyInfo> _anomalies = [];
+    private CreditAnomalyInfo? _selectedAnomaly;
+    private bool _loading = true;
+    private bool _saving;
+    private int _totalCount;
+    private PagingInfo _paging = new() { PageSize = 20, PageIndex = 0 };
+
+    private string _accountFilter = string.Empty;
+    private AnomalyType? _typeFilter;
+    private AnomalyStatus? _statusFilter = AnomalyStatus.Open;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAnomaliesAsync();
+    }
+
+    private async Task LoadAnomaliesAsync()
+    {
+        _loading = true;
+        _selectedAnomaly = null;
+
+        try
+        {
+            var client = CreditClientFactory.Create();
+            var request = new GetCreditAnomaliesRequest
+            {
+                PageSize = _paging.PageSize,
+                PageIndex = _paging.PageIndex
+            };
+
+            if (!string.IsNullOrWhiteSpace(_accountFilter))
+                request.AccountId = _accountFilter.Trim();
+            if (_typeFilter.HasValue)
+                request.Type = _typeFilter.Value;
+            if (_statusFilter.HasValue)
+                request.Status = _statusFilter.Value;
+
+            var response = await client.GetCreditAnomaliesAsync(request);
+            _anomalies = response.Anomalies.ToList();
+            _totalCount = response.TotalCount;
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error loading anomalies: {ex.Message}");
+        }
+
+        _loading = false;
+    }
+
+    private void SelectAnomaly(CreditAnomalyInfo anomaly)
+    {
+        _selectedAnomaly = anomaly;
+    }
+
+    private async Task ReviewAsync(AnomalyStatus newStatus)
+    {
+        if (_selectedAnomaly is null) return;
+
+        _saving = true;
+        try
+        {
+            var client = CreditClientFactory.Create();
+            await client.ReviewCreditAnomalyAsync(new ReviewCreditAnomalyRequest
+            {
+                AnomalyId = _selectedAnomaly.Id,
+                AccountId = _selectedAnomaly.AccountId,
+                NewStatus = newStatus
+            });
+
+            ToastService.ShowSuccess($"Anomaly marked as {GetStatusLabel(newStatus)}.");
+            _selectedAnomaly = null;
+            await LoadAnomaliesAsync();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+        _saving = false;
+    }
+
+    private void OnTypeChanged(ChangeEventArgs e)
+    {
+        _typeFilter = string.IsNullOrEmpty(e.Value?.ToString())
+            ? null
+            : (AnomalyType)int.Parse(e.Value.ToString()!);
+    }
+
+    private void OnStatusChanged(ChangeEventArgs e)
+    {
+        _statusFilter = string.IsNullOrEmpty(e.Value?.ToString())
+            ? null
+            : (AnomalyStatus)int.Parse(e.Value.ToString()!);
+    }
+
+    private async Task OnAccountFilterKeyUp(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await LoadAnomaliesAsync();
+    }
+
+    private async Task OnPageChanged(int pageIndex)
+    {
+        _paging.PageIndex = pageIndex;
+        await LoadAnomaliesAsync();
+    }
+
+    private static string GetTypeBadge(AnomalyType type) => type switch
+    {
+        AnomalyType.ReceiptReplay => "bg-danger",
+        AnomalyType.InflatedTokens => "bg-warning text-dark",
+        AnomalyType.ReceiptVolumeSpike => "bg-warning text-dark",
+        AnomalyType.ZeroWorkUptime => "bg-info",
+        AnomalyType.CircularCreditFlow => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    private static string GetTypeLabel(AnomalyType type) => type switch
+    {
+        AnomalyType.ReceiptReplay => "Receipt Replay",
+        AnomalyType.InflatedTokens => "Inflated Tokens",
+        AnomalyType.ReceiptVolumeSpike => "Volume Spike",
+        AnomalyType.ZeroWorkUptime => "Zero Work",
+        AnomalyType.CircularCreditFlow => "Circular Flow",
+        _ => "Unknown"
+    };
+
+    private static string GetSeverityBadge(AnomalySeverity severity) => severity switch
+    {
+        AnomalySeverity.Low => "bg-secondary",
+        AnomalySeverity.Medium => "bg-warning text-dark",
+        AnomalySeverity.High => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    private static string GetStatusBadge(AnomalyStatus status) => status switch
+    {
+        AnomalyStatus.Open => "bg-danger",
+        AnomalyStatus.Reviewed => "bg-info",
+        AnomalyStatus.Dismissed => "bg-secondary",
+        AnomalyStatus.ActionTaken => "bg-success",
+        _ => "bg-secondary"
+    };
+
+    private static string GetStatusLabel(AnomalyStatus status) => status switch
+    {
+        AnomalyStatus.Open => "Open",
+        AnomalyStatus.Reviewed => "Reviewed",
+        AnomalyStatus.Dismissed => "Dismissed",
+        AnomalyStatus.ActionTaken => "Action Taken",
+        _ => "Unknown"
+    };
+
+    private static string GetRowClass(CreditAnomalyInfo anomaly) =>
+        anomaly.Severity == AnomalySeverity.High ? "table-danger" :
+        anomaly.Severity == AnomalySeverity.Medium ? "table-warning" : "";
+}
