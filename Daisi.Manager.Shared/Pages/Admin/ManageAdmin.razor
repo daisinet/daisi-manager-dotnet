@@ -9,6 +9,7 @@
             <option value="@AdminPages.MarketplaceReview">Marketplace Review</option>
             <option value="@AdminPages.Providers">Providers</option>
             <option value="@AdminPages.CreditAnomalies">Credit Anomalies</option>
+            <option value="@AdminPages.Models">Models</option>
         </select>
     </div>
     <div class="d-none d-md-block col-12 col-md-4 bg-dark-subtle border-end py-4 @(FormFactor.GetFormFactor() != "Mobile" ? "vh-100" : "")">
@@ -39,6 +40,11 @@
                     <i class="fa-duotone fa-shield-exclamation me-2"></i> Credit Anomalies
                 </h4>
             </a>
+            <a href="/admin/models" class="list-group-item @(CurrentPage == AdminPages.Models ? "active" : "") cursor-pointer">
+                <h4 class="mt-2">
+                    <i class="fa-duotone fa-microchip-ai me-2"></i> Models
+                </h4>
+            </a>
         </div>
     </div>
 
@@ -63,6 +69,10 @@
         {
             <Daisi.Manager.Shared.Pages.Admin.CreditAnomalies />
         }
+        else if (CurrentPage == AdminPages.Models)
+        {
+            <Daisi.Manager.Shared.Pages.Admin.AdminModelsComponent />
+        }
     </div>
 </div>
 @code {
@@ -72,7 +82,8 @@
         Accounts,
         MarketplaceReview,
         Providers,
-        CreditAnomalies
+        CreditAnomalies,
+        Models
     }
 
     [Parameter] public string? Page { get; set; }
