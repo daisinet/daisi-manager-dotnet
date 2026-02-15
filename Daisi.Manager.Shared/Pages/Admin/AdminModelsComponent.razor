@@ -1,0 +1,321 @@
+<div class="row">
+    <div class="col">
+        <h3 class="mt-2 mt-md-0">Models</h3>
+    </div>
+    <div class="col-12 col-md-auto">
+        <div class="input-group">
+            <input class="form-control" placeholder="Search Models" @bind=searchText @onkeyup=OnSearchTextKeyUp />
+            <button class="btn btn-outline-success me-1" @onclick=@(async (_) => await RefreshModels())><i class="fa-duotone fa-search"></i></button>
+            <button class="btn btn-outline-success" @onclick=OnCreateModel><i class="fa-duotone fa-plus"></i> <span>Add Model</span></button>
+        </div>
+    </div>
+</div>
+
+@if (allModels is null)
+{
+    <p>Loading Models...</p>
+}
+else
+{
+    <div class="row mt-3 mb-3">
+        <div class="col-6 col-md-3">
+            <div class="card bg-dark-subtle text-center p-2">
+                <div class="fw-bold fs-4">@allModels.Count</div>
+                <small>Total</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card bg-dark-subtle text-center p-2">
+                <div class="fw-bold fs-4 text-success">@allModels.Count(m => m.Enabled)</div>
+                <small>Enabled</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card bg-dark-subtle text-center p-2">
+                <div class="fw-bold fs-4 text-warning">@allModels.Count(m => !m.Enabled)</div>
+                <small>Disabled</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card bg-dark-subtle text-center p-2">
+                <div class="fw-bold fs-4 text-info">@allModels.Count(m => m.IsDefault)</div>
+                <small>Default</small>
+            </div>
+        </div>
+    </div>
+
+    @if (usageStats is not null && usageStats.Any())
+    {
+        <div class="card bg-dark-subtle mb-3">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h5 class="mb-0">Usage Stats</h5>
+                    <select class="form-select form-select-sm w-auto" @bind=selectedTimeframe @bind:after=LoadUsageStats>
+                        <option value="day">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                        <option value="year">This Year</option>
+                        <option value="all">All Time</option>
+                    </select>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Model</th>
+                                <th class="text-end">Inferences</th>
+                                <th class="text-end">Total Tokens</th>
+                                <th class="text-end">Avg Tokens</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var stat in usageStats.OrderByDescending(s => s.TotalTokens))
+                            {
+                                <tr>
+                                    <td>@stat.ModelName</td>
+                                    <td class="text-end">@stat.InferenceCount.ToString("N0")</td>
+                                    <td class="text-end">@stat.TotalTokens.ToString("N0")</td>
+                                    <td class="text-end">@(stat.InferenceCount > 0 ? (stat.TotalTokens / stat.InferenceCount).ToString("N0") : "—")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="table-responsive">
+        <table class="table table-hover mt-1">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th class="text-center">Enabled</th>
+                    <th class="text-center">Default</th>
+                    <th class="text-center">Startup</th>
+                    <th class="text-center">Hosts</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var model in FilteredModels)
+                {
+                    <tr>
+                        <td><a class="text-white" href="#" @onclick:preventDefault @onclick=@(async (_) => await OnEditModel(model))>@model.Name</a></td>
+                        <td>@model.Type.ToString()</td>
+                        <td class="text-center">
+                            @if (model.Enabled)
+                            {
+                                <i class="fa-duotone fa-check text-success"></i>
+                            }
+                            else
+                            {
+                                <i class="fa-duotone fa-close text-danger"></i>
+                            }
+                        </td>
+                        <td class="text-center">
+                            @if (model.IsDefault)
+                            {
+                                <i class="fa-duotone fa-star text-warning"></i>
+                            }
+                        </td>
+                        <td class="text-center">
+                            @if (model.LoadAtStartup)
+                            {
+                                <i class="fa-duotone fa-check text-success"></i>
+                            }
+                        </td>
+                        <td class="text-center">
+                            @{
+                                var hostCount = GetHostCountForModel(model.Name);
+                            }
+                            @if (hostCount > 0)
+                            {
+                                <MudTooltip Text="@GetHostNamesForModel(model.Name)">
+                                    <span class="badge bg-success">@hostCount online</span>
+                                </MudTooltip>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">0</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary me-1" @onclick=@(async (_) => await OnEditModel(model))>
+                                <i class="fa-duotone fa-pen-to-square"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" @onclick=@(async (_) => await OnDeleteModel(model))>
+                                <i class="fa-duotone fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    [Inject] public ModelClientFactory ModelClientFactory { get; set; }
+    [Inject] public IToastService ToastService { get; set; }
+    [Inject] public IDialogService DialogService { get; set; }
+
+    List<AIModel>? allModels;
+    List<ModelUsageStatProto>? usageStats;
+    List<ModelHostInfo>? hostAvailability;
+    string? searchText;
+    string selectedTimeframe = "month";
+
+    IEnumerable<AIModel> FilteredModels =>
+        string.IsNullOrWhiteSpace(searchText)
+            ? allModels ?? Enumerable.Empty<AIModel>()
+            : (allModels ?? Enumerable.Empty<AIModel>()).Where(m =>
+                m.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                m.FileName.Contains(searchText, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshModels();
+    }
+
+    async Task OnSearchTextKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            StateHasChanged();
+    }
+
+    async Task RefreshModels()
+    {
+        allModels = null;
+        try
+        {
+            var client = ModelClientFactory.Create();
+            var response = await client.GetAllModelsAsync(new GetAllModelsRequest());
+            allModels = response.Models.ToList();
+
+            await LoadUsageStats();
+            await LoadHostAvailability();
+        }
+        catch (Exception ex)
+        {
+            allModels = new();
+            ToastService.ShowError($"Error loading models: {ex.Message}");
+        }
+    }
+
+    async Task LoadUsageStats()
+    {
+        try
+        {
+            var client = ModelClientFactory.Create();
+            var response = await client.GetModelUsageStatsAsync(new GetModelUsageStatsRequest { Timeframe = selectedTimeframe });
+            usageStats = response.Stats.ToList();
+        }
+        catch
+        {
+            usageStats = new();
+        }
+    }
+
+    async Task LoadHostAvailability()
+    {
+        try
+        {
+            var client = ModelClientFactory.Create();
+            var response = await client.GetModelHostAvailabilityAsync(new GetModelHostAvailabilityRequest());
+            hostAvailability = response.Models.ToList();
+        }
+        catch
+        {
+            hostAvailability = new();
+        }
+    }
+
+    int GetHostCountForModel(string modelName)
+    {
+        return hostAvailability?.FirstOrDefault(h =>
+            h.ModelName.Equals(modelName, StringComparison.OrdinalIgnoreCase))?.HostCount ?? 0;
+    }
+
+    string GetHostNamesForModel(string modelName)
+    {
+        var info = hostAvailability?.FirstOrDefault(h =>
+            h.ModelName.Equals(modelName, StringComparison.OrdinalIgnoreCase));
+        return info is not null ? string.Join(", ", info.HostNames) : "";
+    }
+
+    async Task OnCreateModel()
+    {
+        var model = new AIModel
+        {
+            Enabled = true,
+            Backend = new BackendSettings
+            {
+                Runtime = BackendRuntimes.Auto,
+                ContextSize = 8192,
+                GpuLayerCount = -1,
+                BatchSize = 128,
+                AutoFallback = true
+            }
+        };
+
+        var dialogReference = await DialogService.ShowAsync<ModelEditDialog>("Add Model",
+            new DialogParameters()
+            {
+                { nameof(ModelEditDialog.Model), model },
+                { nameof(ModelEditDialog.Class), "px-4 pb-4" }
+            },
+            new DialogOptions() { CloseOnEscapeKey = true, CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true });
+
+        if (!(await dialogReference.Result).Canceled)
+        {
+            await RefreshModels();
+        }
+    }
+
+    async Task OnEditModel(AIModel model)
+    {
+        var cloned = model.Clone();
+
+        var dialogReference = await DialogService.ShowAsync<ModelEditDialog>("Edit Model",
+            new DialogParameters()
+            {
+                { nameof(ModelEditDialog.Model), cloned },
+                { nameof(ModelEditDialog.Class), "px-4 pb-4" }
+            },
+            new DialogOptions() { CloseOnEscapeKey = true, CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true });
+
+        if (!(await dialogReference.Result).Canceled)
+        {
+            model.MergeFrom(cloned);
+            await RefreshModels();
+        }
+    }
+
+    async Task OnDeleteModel(AIModel model)
+    {
+        var confirmed = await DialogService.ConfirmAsync("Delete Model", $"Are you sure you want to delete \"{model.Name}\"? This is permanent.", Color.Error);
+        if (confirmed)
+        {
+            try
+            {
+                var client = ModelClientFactory.Create();
+                var response = await client.DeleteModelAsync(new DeleteModelRequest { Id = model.Id });
+                if (response.Success)
+                {
+                    ToastService.ShowSuccess($"Model \"{model.Name}\" deleted.");
+                    await RefreshModels();
+                }
+                else
+                {
+                    ToastService.ShowError("Failed to delete model.");
+                }
+            }
+            catch (Exception ex)
+            {
+                ToastService.ShowError($"Error deleting model: {ex.Message}");
+            }
+        }
+    }
+}
