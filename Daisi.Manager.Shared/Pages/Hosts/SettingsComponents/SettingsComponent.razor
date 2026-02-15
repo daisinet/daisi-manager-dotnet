@@ -61,6 +61,14 @@
             </div>
         </div>
     }
+    <div class="mt-3">
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" checked="@SelectedHost.ToolsOnly" @onchange="OnToolsOnlyChanged">
+            <label class="form-check-label">
+                <InfoLink Contents="Tools-only hosts run tools for other hosts without running AI models. Enable for devices without GPU capability." Text="Tools Only"></InfoLink>
+            </label>
+        </div>
+    </div>
 
     @if (SelectedHost.DateStarted == null)
     {
@@ -169,6 +177,11 @@ else if (Settings is not null)
         SelectedHost.PeerConnect = e.Value?.ToString()?.ToLower() == "true";
         await SaveSelectedHostToDb();
 
+    }
+    async Task OnToolsOnlyChanged(ChangeEventArgs e)
+    {
+        SelectedHost.ToolsOnly = e.Value?.ToString()?.ToLower() == "true";
+        await SaveSelectedHostToDb();
     }
 
     string GetStatusClass(Host host)
