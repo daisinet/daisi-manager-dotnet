@@ -103,7 +103,7 @@ else
                 {
                     <tr>
                         <td><a class="text-white" href="#" @onclick:preventDefault @onclick=@(async (_) => await OnEditModel(model))>@model.Name</a></td>
-                        <td>@model.Type.ToString()</td>
+                        <td>@(model.Types_.Count > 0 ? string.Join(", ", model.Types_.Select(t => t.ToString())) : model.Type.ToString())</td>
                         <td class="text-center">
                             @if (model.Enabled)
                             {

@@ -1,7 +1,7 @@
 <div class="@Class">
     <div class="card bg-dark-subtle mb-3 p-3">
         <label class="fw-bold mb-1">HuggingFace Lookup</label>
-        <p class="small mb-2">Paste a HuggingFace model URL to auto-fill metadata and pick a GGUF file.</p>
+        <p class="small mb-2">Paste a HuggingFace model URL to auto-fill metadata and pick a GGUF or ONNX file.</p>
         <div class="input-group">
             <input class="form-control" placeholder="https://huggingface.co/owner/repo" @bind=huggingFaceUrl />
             <button class="btn btn-outline-info" disabled="@lookingUp" @onclick=OnLookup>
@@ -66,6 +66,34 @@
                     </table>
                 </div>
             }
+
+            @if (hfModel.ONNXFiles.Any())
+            {
+                <label class="fw-bold mt-2 mb-1">Select ONNX File</label>
+                <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>File</th>
+                                <th class="text-end">Size</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var file in hfModel.ONNXFiles.OrderBy(f => f.SizeBytes))
+                            {
+                                <tr class="cursor-pointer @(selectedONNX == file ? "table-active" : "")" @onclick=@(() => OnSelectONNX(file))>
+                                    <td>
+                                        <input type="radio" checked="@(selectedONNX == file)" />
+                                    </td>
+                                    <td class="small">@file.FileName</td>
+                                    <td class="text-end small">@FormatSize(file.SizeBytes)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
         }
     </div>
 
@@ -75,15 +103,14 @@
         <input class="form-control" @bind=Model.Name placeholder="(required)" />
     </div>
     <div class="mb-2">
-        <label class="fw-bold">Type</label>
-        <select class="form-control" @bind=modelType>
-            <option value="@AIModelTypes.TextGeneration">Text Generation</option>
-            <option value="@AIModelTypes.ImageGeneration">Image Generation</option>
-            <option value="@AIModelTypes.AudioGeneration">Audio Generation</option>
-            <option value="@AIModelTypes.VideoGeneration">Video Generation</option>
-            <option value="@AIModelTypes.SpeechToText">Speech to Text</option>
-            <option value="@AIModelTypes.TextToSpeech">Text to Speech</option>
-        </select>
+        <label class="fw-bold">Types</label>
+        <div class="d-flex gap-3 flex-wrap">
+            @foreach (AIModelTypes type in System.Enum.GetValues<AIModelTypes>())
+            {
+                var isChecked = modelTypes.Contains(type);
+                <MudCheckBox Value="@isChecked" ValueChanged="@((bool val) => OnModelTypeToggle(type, val))" Label="@type.ToString()" Color="Color.Info"></MudCheckBox>
+            }
+        </div>
     </div>
     <div class="mb-2">
         <label class="fw-bold">File Name *</label>
@@ -126,6 +153,14 @@
     <MudExpansionPanels Class="mt-3">
         <MudExpansionPanel Text="Backend Settings">
             <div class="mb-2">
+                <label class="fw-bold">Backend Engine</label>
+                <select class="form-control" @bind=backendEngine>
+                    <option value="">Auto</option>
+                    <option value="LlamaSharp">LlamaSharp</option>
+                    <option value="OnnxRuntimeGenAI">OnnxRuntimeGenAI</option>
+                </select>
+            </div>
+            <div class="mb-2">
                 <label class="fw-bold">Runtime</label>
                 <select class="form-control" @bind=backendRuntime>
                     <option value="@BackendRuntimes.Auto">Auto</option>
@@ -158,6 +193,29 @@
                 <MudSwitch @bind-Value="@backendSkipCheck" Label="Skip Check" Color="Color.Warning" UncheckedColor="Color.Default"></MudSwitch>
             </div>
         </MudExpansionPanel>
+        <MudExpansionPanel Text="Inference Defaults">
+            <p class="small text-muted mb-2">Per-model defaults. Leave blank to use host defaults. Per-request values override these.</p>
+            <div class="mb-2">
+                <label class="fw-bold">Temperature</label>
+                <input type="number" step="0.05" class="form-control" @bind=inferenceTemperature placeholder="0.8" />
+            </div>
+            <div class="mb-2">
+                <label class="fw-bold">Top P</label>
+                <input type="number" step="0.05" class="form-control" @bind=inferenceTopP placeholder="0.95" />
+            </div>
+            <div class="mb-2">
+                <label class="fw-bold">Top K</label>
+                <input type="number" class="form-control" @bind=inferenceTopK placeholder="40" />
+            </div>
+            <div class="mb-2">
+                <label class="fw-bold">Repeat Penalty</label>
+                <input type="number" step="0.05" class="form-control" @bind=inferenceRepeatPenalty placeholder="1.1" />
+            </div>
+            <div class="mb-2">
+                <label class="fw-bold">Presence Penalty</label>
+                <input type="number" step="0.05" class="form-control" @bind=inferencePresencePenalty placeholder="0" />
+            </div>
+        </MudExpansionPanel>
     </MudExpansionPanels>
 
     <div class="mt-4">
@@ -184,6 +242,7 @@
     string? lookupError;
     HuggingFaceModelInfo? hfModel;
     HuggingFaceGGUFFile? selectedGGUF;
+    HuggingFaceONNXFile? selectedONNX;
 
     // Backend settings local state
     BackendRuntimes backendRuntime;
@@ -193,12 +252,30 @@
     bool backendAutoFallback;
     bool backendShowLogs;
     bool backendSkipCheck;
+    string backendEngine = "";
 
-    AIModelTypes modelType;
+    // Inference defaults local state (nullable so blank = use host default)
+    float? inferenceTemperature;
+    float? inferenceTopP;
+    int? inferenceTopK;
+    float? inferenceRepeatPenalty;
+    float? inferencePresencePenalty;
+
+    // Multi-type support
+    HashSet<AIModelTypes> modelTypes = new();
 
     protected override void OnInitialized()
     {
-        modelType = Model.Type;
+        // Initialize multi-type from Types list, falling back to single Type
+        if (Model.Types_.Count > 0)
+        {
+            foreach (var t in Model.Types_)
+                modelTypes.Add(t);
+        }
+        else
+        {
+            modelTypes.Add(Model.Type);
+        }
 
         if (Model.Backend is not null)
         {
@@ -209,6 +286,13 @@
             backendAutoFallback = Model.Backend.AutoFallback;
             backendShowLogs = Model.Backend.ShowLogs;
             backendSkipCheck = Model.Backend.SkipCheck;
+            backendEngine = Model.Backend.BackendEngine ?? "";
+
+            inferenceTemperature = Model.Backend.HasTemperature ? Model.Backend.Temperature : null;
+            inferenceTopP = Model.Backend.HasTopP ? Model.Backend.TopP : null;
+            inferenceTopK = Model.Backend.HasTopK ? Model.Backend.TopK : null;
+            inferenceRepeatPenalty = Model.Backend.HasRepeatPenalty ? Model.Backend.RepeatPenalty : null;
+            inferencePresencePenalty = Model.Backend.HasPresencePenalty ? Model.Backend.PresencePenalty : null;
         }
         else
         {
@@ -218,6 +302,14 @@
             backendBatchSize = 128;
             backendAutoFallback = true;
         }
+    }
+
+    void OnModelTypeToggle(AIModelTypes type, bool isChecked)
+    {
+        if (isChecked)
+            modelTypes.Add(type);
+        else
+            modelTypes.Remove(type);
     }
 
     void OnThinkLevelToggle(ThinkLevels level, bool isChecked)
@@ -237,6 +329,7 @@
         lookupError = null;
         hfModel = null;
         selectedGGUF = null;
+        selectedONNX = null;
 
         try
         {
@@ -263,6 +356,7 @@
     void OnSelectGGUF(HuggingFaceGGUFFile file)
     {
         selectedGGUF = file;
+        selectedONNX = null;
 
         if (hfModel is not null)
         {
@@ -273,8 +367,15 @@
             Model.Url = file.DownloadUrl;
 
             // Map pipeline tag to model type
-            modelType = MapPipelineTag(hfModel.PipelineTag);
-            Model.Type = modelType;
+            var mappedType = MapPipelineTag(hfModel.PipelineTag);
+            if (!modelTypes.Contains(mappedType))
+            {
+                modelTypes.Clear();
+                modelTypes.Add(mappedType);
+            }
+
+            // Auto-set backend engine to LlamaSharp for GGUF files
+            backendEngine = "LlamaSharp";
 
             // Set context size from HF metadata
             if (hfModel.ContextLength > 0)
@@ -284,6 +385,40 @@
             if (hfModel.Tags.Any(t => t.Contains("vision", StringComparison.OrdinalIgnoreCase) ||
                                       t.Contains("multimodal", StringComparison.OrdinalIgnoreCase)))
                 Model.IsMultiModal = true;
+        }
+    }
+
+    void OnSelectONNX(HuggingFaceONNXFile file)
+    {
+        selectedONNX = file;
+        selectedGGUF = null;
+
+        if (hfModel is not null)
+        {
+            if (string.IsNullOrWhiteSpace(Model.Name))
+                Model.Name = hfModel.ModelName;
+
+            // For ONNX, set FileName to the directory containing the model
+            var dirPath = file.FileName.Contains('/')
+                ? file.FileName[..file.FileName.LastIndexOf('/')]
+                : file.FileName;
+            Model.FileName = dirPath;
+            Model.Url = file.DownloadUrl;
+
+            // Auto-set backend engine to OnnxRuntimeGenAI
+            backendEngine = "OnnxRuntimeGenAI";
+
+            // Map pipeline tag to model type
+            var mappedType = MapPipelineTag(hfModel.PipelineTag);
+            if (!modelTypes.Contains(mappedType))
+            {
+                modelTypes.Clear();
+                modelTypes.Add(mappedType);
+            }
+
+            // Set context size from HF metadata
+            if (hfModel.ContextLength > 0)
+                backendContextSize = hfModel.ContextLength;
         }
     }
 
@@ -326,7 +461,13 @@
 
         processing = true;
 
-        Model.Type = modelType;
+        // Set Types from checkboxes; set Type to primary (first) for backward compat
+        Model.Types_.Clear();
+        foreach (var t in modelTypes)
+            Model.Types_.Add(t);
+
+        Model.Type = modelTypes.Count > 0 ? modelTypes.First() : AIModelTypes.TextGeneration;
+
         Model.Backend = new BackendSettings
         {
             Runtime = backendRuntime,
@@ -335,8 +476,20 @@
             BatchSize = backendBatchSize,
             AutoFallback = backendAutoFallback,
             ShowLogs = backendShowLogs,
-            SkipCheck = backendSkipCheck
+            SkipCheck = backendSkipCheck,
+            BackendEngine = backendEngine ?? ""
         };
+
+        if (inferenceTemperature.HasValue)
+            Model.Backend.Temperature = inferenceTemperature.Value;
+        if (inferenceTopP.HasValue)
+            Model.Backend.TopP = inferenceTopP.Value;
+        if (inferenceTopK.HasValue)
+            Model.Backend.TopK = inferenceTopK.Value;
+        if (inferenceRepeatPenalty.HasValue)
+            Model.Backend.RepeatPenalty = inferenceRepeatPenalty.Value;
+        if (inferencePresencePenalty.HasValue)
+            Model.Backend.PresencePenalty = inferencePresencePenalty.Value;
 
         try
         {
