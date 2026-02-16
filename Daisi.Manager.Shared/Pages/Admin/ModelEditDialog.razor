@@ -1,0 +1,366 @@
+<div class="@Class">
+    <div class="card bg-dark-subtle mb-3 p-3">
+        <label class="fw-bold mb-1">HuggingFace Lookup</label>
+        <p class="small mb-2">Paste a HuggingFace model URL to auto-fill metadata and pick a GGUF file.</p>
+        <div class="input-group">
+            <input class="form-control" placeholder="https://huggingface.co/owner/repo" @bind=huggingFaceUrl />
+            <button class="btn btn-outline-info" disabled="@lookingUp" @onclick=OnLookup>
+                @if (lookingUp)
+                {
+                    <i class="fa-duotone fa-refresh fa-spin"></i>
+                }
+                else
+                {
+                    <i class="fa-duotone fa-search"></i>
+                }
+                Lookup
+            </button>
+        </div>
+
+        @if (!string.IsNullOrEmpty(lookupError))
+        {
+            <div class="alert alert-danger mt-2 mb-0 py-1 px-2 small">@lookupError</div>
+        }
+
+        @if (hfModel is not null)
+        {
+            <div class="mt-2 small text-muted">
+                <span class="me-3"><i class="fa-duotone fa-download me-1"></i>@hfModel.Downloads.ToString("N0")</span>
+                <span class="me-3"><i class="fa-duotone fa-heart me-1"></i>@hfModel.Likes.ToString("N0")</span>
+                @if (!string.IsNullOrEmpty(hfModel.Architecture))
+                {
+                    <span class="me-3"><i class="fa-duotone fa-microchip me-1"></i>@hfModel.Architecture</span>
+                }
+                @if (hfModel.ContextLength > 0)
+                {
+                    <span><i class="fa-duotone fa-ruler me-1"></i>@hfModel.ContextLength.ToString("N0") ctx</span>
+                }
+            </div>
+
+            @if (hfModel.GGUFFiles.Any())
+            {
+                <label class="fw-bold mt-2 mb-1">Select GGUF File</label>
+                <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>Quantization</th>
+                                <th>File</th>
+                                <th class="text-end">Size</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var file in hfModel.GGUFFiles.OrderBy(f => f.SizeBytes))
+                            {
+                                <tr class="cursor-pointer @(selectedGGUF == file ? "table-active" : "")" @onclick=@(() => OnSelectGGUF(file))>
+                                    <td>
+                                        <input type="radio" checked="@(selectedGGUF == file)" />
+                                    </td>
+                                    <td><code>@file.QuantType</code></td>
+                                    <td class="small">@file.FileName</td>
+                                    <td class="text-end small">@FormatSize(file.SizeBytes)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        }
+    </div>
+
+    <h6 class="fw-bold mt-3">Basic Info</h6>
+    <div class="mb-2">
+        <label class="fw-bold">Name *</label>
+        <input class="form-control" @bind=Model.Name placeholder="(required)" />
+    </div>
+    <div class="mb-2">
+        <label class="fw-bold">Type</label>
+        <select class="form-control" @bind=modelType>
+            <option value="@AIModelTypes.TextGeneration">Text Generation</option>
+            <option value="@AIModelTypes.ImageGeneration">Image Generation</option>
+            <option value="@AIModelTypes.AudioGeneration">Audio Generation</option>
+            <option value="@AIModelTypes.VideoGeneration">Video Generation</option>
+            <option value="@AIModelTypes.SpeechToText">Speech to Text</option>
+            <option value="@AIModelTypes.TextToSpeech">Text to Speech</option>
+        </select>
+    </div>
+    <div class="mb-2">
+        <label class="fw-bold">File Name *</label>
+        <input class="form-control" @bind=Model.FileName placeholder="model.gguf (required)" />
+    </div>
+    <div class="mb-2">
+        <label class="fw-bold">Download URL</label>
+        <input class="form-control" @bind=Model.Url placeholder="https://..." />
+    </div>
+
+    <h6 class="fw-bold mt-3">Capabilities</h6>
+    <div class="mb-1">
+        <MudSwitch @bind-Value="@Model.IsMultiModal" Label="Multi-Modal" Color="Color.Success" UncheckedColor="Color.Default"></MudSwitch>
+    </div>
+    <div class="mb-1">
+        <MudSwitch @bind-Value="@Model.HasReasoning" Label="Has Reasoning" Color="Color.Success" UncheckedColor="Color.Default"></MudSwitch>
+    </div>
+    <div class="mb-2">
+        <label class="fw-bold">Think Levels</label>
+        <div class="d-flex gap-3">
+            @foreach (ThinkLevels level in System.Enum.GetValues<ThinkLevels>())
+            {
+                var isChecked = Model.ThinkLevels.Contains(level);
+                <MudCheckBox Value="@isChecked" ValueChanged="@((bool val) => OnThinkLevelToggle(level, val))" Label="@level.ToString()" Color="Color.Info"></MudCheckBox>
+            }
+        </div>
+    </div>
+
+    <h6 class="fw-bold mt-3">Runtime</h6>
+    <div class="mb-1">
+        <MudSwitch @bind-Value="@Model.Enabled" Label="Enabled" Color="Color.Success" UncheckedColor="Color.Error"></MudSwitch>
+    </div>
+    <div class="mb-1">
+        <MudSwitch @bind-Value="@Model.IsDefault" Label="Default Model" Color="Color.Warning" UncheckedColor="Color.Default"></MudSwitch>
+    </div>
+    <div class="mb-1">
+        <MudSwitch @bind-Value="@Model.LoadAtStartup" Label="Load at Startup" Color="Color.Success" UncheckedColor="Color.Default"></MudSwitch>
+    </div>
+
+    <MudExpansionPanels Class="mt-3">
+        <MudExpansionPanel Text="Backend Settings">
+            <div class="mb-2">
+                <label class="fw-bold">Runtime</label>
+                <select class="form-control" @bind=backendRuntime>
+                    <option value="@BackendRuntimes.Auto">Auto</option>
+                    <option value="@BackendRuntimes.Cuda">CUDA</option>
+                    <option value="@BackendRuntimes.Vulkan">Vulkan</option>
+                    <option value="@BackendRuntimes.Avx">AVX</option>
+                    <option value="@BackendRuntimes.Avx2">AVX2</option>
+                    <option value="@BackendRuntimes.Avx512">AVX512</option>
+                </select>
+            </div>
+            <div class="mb-2">
+                <label class="fw-bold">Context Size</label>
+                <input type="number" class="form-control" @bind=backendContextSize />
+            </div>
+            <div class="mb-2">
+                <label class="fw-bold">GPU Layer Count</label>
+                <input type="number" class="form-control" @bind=backendGpuLayerCount />
+            </div>
+            <div class="mb-2">
+                <label class="fw-bold">Batch Size</label>
+                <input type="number" class="form-control" @bind=backendBatchSize />
+            </div>
+            <div class="mb-1">
+                <MudSwitch @bind-Value="@backendAutoFallback" Label="Auto Fallback" Color="Color.Success" UncheckedColor="Color.Default"></MudSwitch>
+            </div>
+            <div class="mb-1">
+                <MudSwitch @bind-Value="@backendShowLogs" Label="Show Logs" Color="Color.Info" UncheckedColor="Color.Default"></MudSwitch>
+            </div>
+            <div class="mb-1">
+                <MudSwitch @bind-Value="@backendSkipCheck" Label="Skip Check" Color="Color.Warning" UncheckedColor="Color.Default"></MudSwitch>
+            </div>
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+
+    <div class="mt-4">
+        <button disabled="@processing" class="btn btn-success" @onclick=OnSave>
+            @if (processing)
+            {
+                <i class="fa-duotone fa-refresh fa-spin"></i>
+            }
+            Save
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public AIModel Model { get; set; }
+    [Parameter] public string Class { get; set; }
+    [CascadingParameter] public IMudDialogInstance MudDialog { get; set; }
+    [Inject] public ModelClientFactory ModelClientFactory { get; set; }
+    [Inject] public IToastService ToastService { get; set; }
+
+    bool processing = false;
+    bool lookingUp = false;
+    string? huggingFaceUrl;
+    string? lookupError;
+    HuggingFaceModelInfo? hfModel;
+    HuggingFaceGGUFFile? selectedGGUF;
+
+    // Backend settings local state
+    BackendRuntimes backendRuntime;
+    uint backendContextSize;
+    int backendGpuLayerCount;
+    uint backendBatchSize;
+    bool backendAutoFallback;
+    bool backendShowLogs;
+    bool backendSkipCheck;
+
+    AIModelTypes modelType;
+
+    protected override void OnInitialized()
+    {
+        modelType = Model.Type;
+
+        if (Model.Backend is not null)
+        {
+            backendRuntime = Model.Backend.Runtime;
+            backendContextSize = Model.Backend.ContextSize;
+            backendGpuLayerCount = Model.Backend.GpuLayerCount;
+            backendBatchSize = Model.Backend.BatchSize;
+            backendAutoFallback = Model.Backend.AutoFallback;
+            backendShowLogs = Model.Backend.ShowLogs;
+            backendSkipCheck = Model.Backend.SkipCheck;
+        }
+        else
+        {
+            backendRuntime = BackendRuntimes.Auto;
+            backendContextSize = 8192;
+            backendGpuLayerCount = -1;
+            backendBatchSize = 128;
+            backendAutoFallback = true;
+        }
+    }
+
+    void OnThinkLevelToggle(ThinkLevels level, bool isChecked)
+    {
+        if (isChecked && !Model.ThinkLevels.Contains(level))
+            Model.ThinkLevels.Add(level);
+        else if (!isChecked)
+            Model.ThinkLevels.Remove(level);
+    }
+
+    async Task OnLookup()
+    {
+        if (string.IsNullOrWhiteSpace(huggingFaceUrl))
+            return;
+
+        lookingUp = true;
+        lookupError = null;
+        hfModel = null;
+        selectedGGUF = null;
+
+        try
+        {
+            var client = ModelClientFactory.Create();
+            var response = await client.LookupHuggingFaceModelAsync(new LookupHuggingFaceModelRequest { RepoUrl = huggingFaceUrl });
+
+            if (response.Success)
+            {
+                hfModel = response.Model;
+            }
+            else
+            {
+                lookupError = response.ErrorMessage;
+            }
+        }
+        catch (Exception ex)
+        {
+            lookupError = $"Lookup failed: {ex.Message}";
+        }
+
+        lookingUp = false;
+    }
+
+    void OnSelectGGUF(HuggingFaceGGUFFile file)
+    {
+        selectedGGUF = file;
+
+        if (hfModel is not null)
+        {
+            if (string.IsNullOrWhiteSpace(Model.Name))
+                Model.Name = $"{hfModel.ModelName} {file.QuantType}";
+
+            Model.FileName = file.FileName;
+            Model.Url = file.DownloadUrl;
+
+            // Map pipeline tag to model type
+            modelType = MapPipelineTag(hfModel.PipelineTag);
+            Model.Type = modelType;
+
+            // Set context size from HF metadata
+            if (hfModel.ContextLength > 0)
+                backendContextSize = hfModel.ContextLength;
+
+            // Infer multimodal from tags
+            if (hfModel.Tags.Any(t => t.Contains("vision", StringComparison.OrdinalIgnoreCase) ||
+                                      t.Contains("multimodal", StringComparison.OrdinalIgnoreCase)))
+                Model.IsMultiModal = true;
+        }
+    }
+
+    static AIModelTypes MapPipelineTag(string pipelineTag)
+    {
+        return pipelineTag?.ToLowerInvariant() switch
+        {
+            "text-generation" => AIModelTypes.TextGeneration,
+            "image-to-text" => AIModelTypes.TextGeneration,
+            "text-to-image" => AIModelTypes.ImageGeneration,
+            "text-to-audio" => AIModelTypes.AudioGeneration,
+            "text-to-video" => AIModelTypes.VideoGeneration,
+            "automatic-speech-recognition" => AIModelTypes.SpeechToText,
+            "text-to-speech" => AIModelTypes.TextToSpeech,
+            _ => AIModelTypes.TextGeneration
+        };
+    }
+
+    static string FormatSize(long bytes)
+    {
+        if (bytes >= 1_073_741_824)
+            return $"{bytes / 1_073_741_824.0:F1} GB";
+        if (bytes >= 1_048_576)
+            return $"{bytes / 1_048_576.0:F1} MB";
+        return $"{bytes / 1024.0:F0} KB";
+    }
+
+    async Task OnSave()
+    {
+        if (string.IsNullOrWhiteSpace(Model.Name))
+        {
+            ToastService.ShowError("Name is required.");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(Model.FileName))
+        {
+            ToastService.ShowError("File Name is required.");
+            return;
+        }
+
+        processing = true;
+
+        Model.Type = modelType;
+        Model.Backend = new BackendSettings
+        {
+            Runtime = backendRuntime,
+            ContextSize = backendContextSize,
+            GpuLayerCount = backendGpuLayerCount,
+            BatchSize = backendBatchSize,
+            AutoFallback = backendAutoFallback,
+            ShowLogs = backendShowLogs,
+            SkipCheck = backendSkipCheck
+        };
+
+        try
+        {
+            var client = ModelClientFactory.Create();
+
+            if (string.IsNullOrEmpty(Model.Id))
+            {
+                await client.CreateModelAsync(new CreateModelRequest { Model = Model });
+                ToastService.ShowSuccess("Model created successfully.");
+            }
+            else
+            {
+                await client.UpdateModelAsync(new UpdateModelRequest { Model = Model });
+                ToastService.ShowSuccess("Model updated successfully.");
+            }
+
+            if (MudDialog is not null)
+                MudDialog.Close();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error saving model: {ex.Message}");
+        }
+
+        processing = false;
+    }
+}

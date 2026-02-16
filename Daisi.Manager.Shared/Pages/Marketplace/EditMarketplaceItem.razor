@@ -159,25 +159,169 @@
                     </div>
                 }
 
-                @if (_itemType is "BotTool" or "HostTool" or "Plugin")
+                @if (_itemType == "HostTool")
                 {
                     <div class="mb-3">
-                        <label class="form-label fw-bold">
-                            Package Upload (ZIP)
-                            <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
-                               title="Upload a ZIP file following the DAISI package format. Must contain a manifest (plugin.md, skill.md, or tool.md) at the root, plus your DLLs and an icon file. Max 100 MB. See the Submission Requirements for full details."></i>
-                        </label>
-                        <InputFile class="form-control" OnChange="OnFileSelected" accept=".zip" />
-                        @if (_selectedFile is not null)
-                        {
-                            <small class="text-muted">Selected: @_selectedFile.Name (@(_selectedFile.Size / 1024) KB)</small>
-                        }
-                        <div class="mt-1">
-                            <a href="https://daisi.ai/learn/marketplace/submission-requirements" target="_blank" class="small text-accent">
-                                <i class="fa-duotone fa-arrow-up-right-from-square me-1"></i> View ZIP structure requirements
-                            </a>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="secureExecution" @bind="_isSecureExecution" />
+                            <label class="form-check-label fw-bold" for="secureExecution">
+                                Secure Execution
+                                <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                                   title="When enabled, the tool runs on your server instead of being downloaded as a DLL to consumer hosts. You provide an API endpoint that the ORC calls at execution time."></i>
+                            </label>
                         </div>
                     </div>
+
+                    @if (_isSecureExecution)
+                    {
+                        <div class="card bg-dark-subtle border-info mb-3">
+                            <div class="card-body">
+                                <h6 class="text-info mb-3"><i class="fa-duotone fa-lock me-1"></i> Secure Execution Settings</h6>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Endpoint URL *</label>
+                                    <input type="url" class="form-control" @bind="_secureEndpointUrl" placeholder="https://myfunc.azurewebsites.net/api" />
+                                    <small class="text-muted">Base URL of your provider API. The ORC will POST to /configure and /execute.</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Auth Key *</label>
+                                    <input type="password" class="form-control" @bind="_secureAuthKey" placeholder="Shared secret for ORC-to-provider auth" />
+                                    <small class="text-muted">Sent as X-Daisi-Auth header. Must match what your provider expects.</small>
+                                </div>
+
+                                <hr />
+                                <h6 class="fw-bold mb-3">Tool Definition</h6>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Tool ID *</label>
+                                        <input type="text" class="form-control" @bind="_secureToolId" placeholder="weather-lookup" />
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Tool Name *</label>
+                                        <input type="text" class="form-control" @bind="_secureToolName" placeholder="Weather Lookup" />
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Use Instructions *</label>
+                                    <textarea class="form-control" rows="3" @bind="_secureToolInstructions" placeholder="Tell the AI when and how to use this tool..."></textarea>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Tool Group</label>
+                                    <select class="form-select" @bind="_secureToolGroup">
+                                        <option value="InformationTools">Information Tools</option>
+                                        <option value="IntegrationTools">Integration Tools</option>
+                                        <option value="CodingTools">Coding Tools</option>
+                                        <option value="MediaTools">Media Tools</option>
+                                        <option value="FileTools">File Tools</option>
+                                        <option value="MathTools">Math Tools</option>
+                                    </select>
+                                </div>
+
+                                <hr />
+                                <h6 class="fw-bold mb-3">
+                                    Call Parameters
+                                    <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                                       title="Parameters the AI provides at execution time (e.g. 'city', 'query'). These are NOT secrets."></i>
+                                </h6>
+
+                                @foreach (var param in _callParameters)
+                                {
+                                    <div class="row g-2 mb-2 align-items-center">
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control form-control-sm" @bind="param.Name" placeholder="Name" />
+                                        </div>
+                                        <div class="col-md-5">
+                                            <input type="text" class="form-control form-control-sm" @bind="param.Description" placeholder="Description" />
+                                        </div>
+                                        <div class="col-md-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" @bind="param.IsRequired" />
+                                                <label class="form-check-label small">Required</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => _callParameters.Remove(param)">
+                                                <i class="fa-duotone fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                                <button class="btn btn-sm btn-outline-info" @onclick="() => _callParameters.Add(new CallParameterEntry())">
+                                    <i class="fa-duotone fa-plus me-1"></i> Add Parameter
+                                </button>
+
+                                <hr />
+                                <h6 class="fw-bold mb-3">
+                                    Setup Parameters
+                                    <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                                       title="Credentials and configuration users must provide (e.g. API keys). These are sent directly to your server and never stored by Daisinet."></i>
+                                </h6>
+
+                                @foreach (var param in _setupParameters)
+                                {
+                                    <div class="row g-2 mb-2 align-items-center">
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control form-control-sm" @bind="param.Name" placeholder="Name" />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" class="form-control form-control-sm" @bind="param.Description" placeholder="Description" />
+                                        </div>
+                                        <div class="col-md-2">
+                                            <select class="form-select form-select-sm" @bind="param.Type">
+                                                <option value="text">Text</option>
+                                                <option value="password">Password</option>
+                                                <option value="apikey">API Key</option>
+                                                <option value="url">URL</option>
+                                                <option value="json">JSON</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" @bind="param.IsRequired" />
+                                                <label class="form-check-label small">Required</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => _setupParameters.Remove(param)">
+                                                <i class="fa-duotone fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                                <button class="btn btn-sm btn-outline-info" @onclick="() => _setupParameters.Add(new SetupParameterEntry())">
+                                    <i class="fa-duotone fa-plus me-1"></i> Add Setup Parameter
+                                </button>
+                            </div>
+                        </div>
+                    }
+                }
+
+                @if (_itemType is "BotTool" or "HostTool" or "Plugin")
+                {
+                    @if (!(_itemType == "HostTool" && _isSecureExecution))
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                Package Upload (ZIP)
+                                <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                                   title="Upload a ZIP file following the DAISI package format. Must contain a manifest (plugin.md, skill.md, or tool.md) at the root, plus your DLLs and an icon file. Max 100 MB. See the Submission Requirements for full details."></i>
+                            </label>
+                            <InputFile class="form-control" OnChange="OnFileSelected" accept=".zip" />
+                            @if (_selectedFile is not null)
+                            {
+                                <small class="text-muted">Selected: @_selectedFile.Name (@(_selectedFile.Size / 1024) KB)</small>
+                            }
+                            <div class="mt-1">
+                                <a href="https://daisi.ai/learn/marketplace/submission-requirements" target="_blank" class="small text-accent">
+                                    <i class="fa-duotone fa-arrow-up-right-from-square me-1"></i> View ZIP structure requirements
+                                </a>
+                            </div>
+                        </div>
+                    }
                 }
 
                 @if (_itemType == "Skill" && string.IsNullOrEmpty(_skillId))
@@ -217,11 +361,21 @@
                                 <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
                                    title="Free: No cost, available to everyone. One-Time Purchase: Users pay once with credits for permanent access. Subscription: Users pay recurring credits at a set interval."></i>
                             </label>
-                            <select class="form-select" @bind="_pricingModel">
-                                <option value="Free">Free</option>
-                                <option value="OneTimePurchase">One-Time Purchase</option>
-                                <option value="Subscription">Subscription</option>
-                            </select>
+                            @if (_isPremiumProvider)
+                            {
+                                <select class="form-select" @bind="_pricingModel">
+                                    <option value="Free">Free</option>
+                                    <option value="OneTimePurchase">One-Time Purchase</option>
+                                    <option value="Subscription">Subscription</option>
+                                </select>
+                            }
+                            else
+                            {
+                                <select class="form-select" @bind="_pricingModel" disabled>
+                                    <option value="Free">Free</option>
+                                </select>
+                                <small class="text-warning"><i class="fa-duotone fa-crown me-1"></i>Upgrade to Premium to sell items for credits</small>
+                            }
                         </div>
 
                         @if (_pricingModel == "OneTimePurchase")
@@ -331,9 +485,46 @@
     private string? _rejectionReason;
     private IBrowserFile? _selectedFile;
     private MarketplaceItemInfo? _existingItem;
+    private bool _isPremiumProvider;
+
+    // Secure execution fields
+    private bool _isSecureExecution;
+    private string _secureEndpointUrl = string.Empty;
+    private string _secureAuthKey = string.Empty;
+    private string _secureToolId = string.Empty;
+    private string _secureToolName = string.Empty;
+    private string _secureToolInstructions = string.Empty;
+    private string _secureToolGroup = "InformationTools";
+    private List<CallParameterEntry> _callParameters = [];
+    private List<SetupParameterEntry> _setupParameters = [];
+
+    private class CallParameterEntry
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public bool IsRequired { get; set; } = true;
+    }
+
+    private class SetupParameterEntry
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Type { get; set; } = "text";
+        public bool IsRequired { get; set; } = true;
+    }
 
     protected override async Task OnParametersSetAsync()
     {
+        // Load provider profile to check Premium status
+        try
+        {
+            var accountId = await AuthService.GetAccountIdAsync() ?? string.Empty;
+            var client = MarketplaceClientFactory.Create();
+            var profileResponse = await client.GetProviderProfileAsync(new GetProviderProfileRequest { AccountId = accountId });
+            _isPremiumProvider = profileResponse.Profile?.IsPremium ?? false;
+        }
+        catch { }
+
         if (IsEdit)
         {
             _loading = true;
@@ -359,6 +550,33 @@
                     _subscriptionPeriodDays = _existingItem.SubscriptionPeriodDays;
                     _visibility = _existingItem.Visibility;
                     _rejectionReason = _existingItem.RejectionReason;
+
+                    // Load secure execution fields
+                    _isSecureExecution = _existingItem.IsSecureExecution;
+                    _secureEndpointUrl = _existingItem.SecureEndpointUrl;
+                    _secureAuthKey = _existingItem.SecureAuthKey;
+
+                    if (_existingItem.SecureToolDefinition is not null)
+                    {
+                        _secureToolId = _existingItem.SecureToolDefinition.ToolId;
+                        _secureToolName = _existingItem.SecureToolDefinition.Name;
+                        _secureToolInstructions = _existingItem.SecureToolDefinition.UseInstructions;
+                        _secureToolGroup = _existingItem.SecureToolDefinition.ToolGroup;
+                        _callParameters = _existingItem.SecureToolDefinition.Parameters.Select(p => new CallParameterEntry
+                        {
+                            Name = p.Name,
+                            Description = p.Description,
+                            IsRequired = p.IsRequired
+                        }).ToList();
+                    }
+
+                    _setupParameters = _existingItem.SetupParameters.Select(sp => new SetupParameterEntry
+                    {
+                        Name = sp.Name,
+                        Description = sp.Description,
+                        Type = sp.Type,
+                        IsRequired = sp.IsRequired
+                    }).ToList();
                 }
             }
             catch (Exception ex)
@@ -415,6 +633,49 @@
             item.SubscriptionPeriodDays = _subscriptionPeriodDays;
             item.Visibility = _visibility;
             item.Status = status;
+
+            // Secure execution fields
+            item.IsSecureExecution = _isSecureExecution;
+            item.SecureEndpointUrl = _isSecureExecution ? _secureEndpointUrl : string.Empty;
+            item.SecureAuthKey = _isSecureExecution ? _secureAuthKey : string.Empty;
+
+            item.SetupParameters.Clear();
+            if (_isSecureExecution)
+            {
+                foreach (var sp in _setupParameters.Where(sp => !string.IsNullOrWhiteSpace(sp.Name)))
+                {
+                    item.SetupParameters.Add(new SecureToolSetupParameter
+                    {
+                        Name = sp.Name,
+                        Description = sp.Description,
+                        Type = sp.Type,
+                        IsRequired = sp.IsRequired
+                    });
+                }
+
+                var toolDef = new SecureToolDefinitionInfo
+                {
+                    MarketplaceItemId = item.Id ?? string.Empty,
+                    ToolId = _secureToolId,
+                    Name = _secureToolName,
+                    UseInstructions = _secureToolInstructions,
+                    ToolGroup = _secureToolGroup
+                };
+                foreach (var cp in _callParameters.Where(cp => !string.IsNullOrWhiteSpace(cp.Name)))
+                {
+                    toolDef.Parameters.Add(new SecureToolParameterInfo
+                    {
+                        Name = cp.Name,
+                        Description = cp.Description,
+                        IsRequired = cp.IsRequired
+                    });
+                }
+                item.SecureToolDefinition = toolDef;
+            }
+            else
+            {
+                item.SecureToolDefinition = null;
+            }
 
             CommitTagInput();
             item.Tags.Clear();

@@ -44,6 +44,10 @@
         <label class="fw-bold">Auto-Update</label>
         <MudSwitch @bind-Value="Settings.Host.AutoUpdate" Color="Color.Success" UncheckedColor="Color.Error" Label="@(Settings.Host.AutoUpdate ? "Allow the Host to auto-update (recommended)" : "Manual Update ")"></MudSwitch>
     </div>
+    <div class="mt-3">
+        <label class="fw-bold">Tools Only</label>
+        <MudSwitch @bind-Value="Settings.Host.ToolsOnly" Color="Color.Info" UncheckedColor="Color.Default" Label="@(Settings.Host.ToolsOnly ? "Tools-only mode (no AI model loading)" : "Full host (loads AI models)")"></MudSwitch>
+    </div>
 </div>
 @code {
     [Parameter] public Daisi.Protos.V1.Settings Settings { get; set; }

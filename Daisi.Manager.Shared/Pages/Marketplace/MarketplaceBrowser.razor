@@ -65,6 +65,10 @@
                             </div>
                             <p class="card-text text-muted small">@item.ShortDescription</p>
                             <div class="d-flex flex-wrap gap-1 mb-2">
+                                @if (item.IsFeatured)
+                                {
+                                    <span class="badge bg-warning text-dark"><i class="fa-duotone fa-star me-1"></i>Featured</span>
+                                }
                                 <span class="badge @GetTypeBadge(item.ItemType)">@GetTypeLabel(item.ItemType)</span>
                                 @foreach (var tag in item.Tags.Take(3))
                                 {

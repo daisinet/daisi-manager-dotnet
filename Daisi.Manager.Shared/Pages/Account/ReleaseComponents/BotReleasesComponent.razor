@@ -1,0 +1,157 @@
+
+<div class="d-flex align-items-center gap-2 mb-2">
+    <select class="form-control" style="max-width:200px;" @bind="selectedGroup">
+        <option value="">All Groups</option>
+        @foreach (var g in releaseGroups)
+        {
+            <option value="@g">@g</option>
+        }
+    </select>
+</div>
+
+@if (loading)
+{
+    <p>Loading Bot Releases...</p>
+}
+else if (!FilteredReleases.Any())
+{
+    <div class="alert alert-warning mt-3">There are no bot releases to show.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table mt-md-3">
+            <thead>
+                <tr>
+                    <th>Status</th>
+                    <th>Version</th>
+                    <th>Group</th>
+                    <th>Release Notes</th>
+                    <th>TUI Download</th>
+                    <th>MAUI Download</th>
+                    <th>Date</th>
+                    <th class="text-center"># Installs</th>
+                    <th class="text-center"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var release in FilteredReleases)
+                {
+                    <tr>
+                        <td>
+                            @if (release.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inactive</span>
+                            }
+                        </td>
+                        <td>@release.Version</td>
+                        <td><span class="badge border border-info">@release.ReleaseGroup</span></td>
+                        <td>@(release.ReleaseNotes ?? "")</td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(release.TuiDownloadUrl))
+                            {
+                                <a href="@release.TuiDownloadUrl" target="_blank" class="btn btn-sm btn-outline-info">
+                                    <i class="fa-duotone fa-download"></i> TUI
+                                </a>
+                            }
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(release.MauiDownloadUrl))
+                            {
+                                <a href="@release.MauiDownloadUrl" target="_blank" class="btn btn-sm btn-outline-info">
+                                    <i class="fa-duotone fa-download"></i> MAUI
+                                </a>
+                            }
+                        </td>
+                        <td>@release.DateCreated?.ToDateTime().ToString("yyyy-MM-dd HH:mm")</td>
+                        <td class="text-center">@release.InstallCount</td>
+                        <td class="text-end">
+                            @if (!release.IsActive)
+                            {
+                                <button class="btn btn-sm btn-outline-success" @onclick="@(() => OnActivate(release))">
+                                    <i class="fa-duotone fa-power-off"></i> Activate
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    [Inject] ReleaseClientFactory ReleaseClientFactory { get; set; }
+    [Inject] IToastService ToastService { get; set; }
+
+    List<BotReleaseInfo> allReleases = new();
+    bool loading = true;
+    string selectedGroup = "";
+
+    static readonly string[] releaseGroups = ["beta", "group1", "group2", "production"];
+
+    IEnumerable<BotReleaseInfo> FilteredReleases =>
+        string.IsNullOrEmpty(selectedGroup)
+            ? allReleases
+            : allReleases.Where(r => r.ReleaseGroup == selectedGroup);
+
+    protected async override Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    async Task LoadData()
+    {
+        loading = true;
+
+        try
+        {
+            var releaseClient = ReleaseClientFactory.Create();
+
+            var releaseTasks = releaseGroups.Select(g =>
+                releaseClient.GetBotReleasesAsync(new GetBotReleasesRequest { ReleaseGroup = g }).ResponseAsync);
+
+            var releaseResponses = await Task.WhenAll(releaseTasks);
+            allReleases = releaseResponses.SelectMany(r => r.Releases).OrderByDescending(r => r.DateCreated?.ToDateTime()).ToList();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error loading bot releases: {ex.Message}");
+        }
+
+        loading = false;
+    }
+
+    async Task OnActivate(BotReleaseInfo release)
+    {
+        try
+        {
+            var client = ReleaseClientFactory.Create();
+            var response = await client.ActivateBotReleaseAsync(new ActivateBotReleaseRequest
+            {
+                ReleaseId = release.Id,
+                ReleaseGroup = release.ReleaseGroup
+            });
+
+            if (response.Release is not null)
+            {
+                foreach (var r in allReleases.Where(r => r.ReleaseGroup == release.ReleaseGroup))
+                {
+                    r.IsActive = false;
+                }
+                release.IsActive = true;
+
+                ToastService.ShowSuccess($"Bot release {release.Version} activated for {release.ReleaseGroup}");
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error activating bot release: {ex.Message}");
+        }
+    }
+}

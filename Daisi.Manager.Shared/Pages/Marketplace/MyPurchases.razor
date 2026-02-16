@@ -29,6 +29,7 @@
                         <th>Credits Paid</th>
                         <th>Date</th>
                         <th>Status</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -77,6 +78,14 @@
                                     <span class="badge bg-success">Owned</span>
                                 }
                             </td>
+                            <td>
+                                @if (_secureItemIds.Contains(purchase.MarketplaceItemId) && !string.IsNullOrEmpty(purchase.SecureInstallId))
+                                {
+                                    <a href="/marketplace/configure/@purchase.MarketplaceItemId/@purchase.SecureInstallId" class="btn btn-sm btn-outline-info" @onclick:stopPropagation="true">
+                                        <i class="fa-duotone fa-gear me-1"></i> Configure
+                                    </a>
+                                }
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -91,6 +100,7 @@
     [Inject] public NavigationManager NavigationManager { get; set; } = default!;
 
     private List<MarketplacePurchaseInfo> _purchases = [];
+    private HashSet<string> _secureItemIds = [];
     private bool _loading = true;
 
     protected override async Task OnInitializedAsync()
@@ -103,6 +113,18 @@
                 var client = MarketplaceClientFactory.Create();
                 var response = await client.GetMyPurchasesAsync(new GetMyPurchasesRequest { AccountId = accountId });
                 _purchases = response.Purchases.ToList();
+
+                // Check which purchased items are secure execution tools
+                foreach (var purchase in _purchases)
+                {
+                    try
+                    {
+                        var itemResponse = await client.GetMarketplaceItemAsync(new GetMarketplaceItemRequest { Id = purchase.MarketplaceItemId });
+                        if (itemResponse.Item?.IsSecureExecution == true)
+                            _secureItemIds.Add(purchase.MarketplaceItemId);
+                    }
+                    catch { }
+                }
             }
         }
         catch (Exception ex)

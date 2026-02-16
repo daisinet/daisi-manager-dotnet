@@ -7,6 +7,9 @@
             <option value="@AdminPages.Releases">Releases</option>
             <option value="@AdminPages.Accounts">Accounts</option>
             <option value="@AdminPages.MarketplaceReview">Marketplace Review</option>
+            <option value="@AdminPages.Providers">Providers</option>
+            <option value="@AdminPages.CreditAnomalies">Credit Anomalies</option>
+            <option value="@AdminPages.Models">Models</option>
         </select>
     </div>
     <div class="d-none d-md-block col-12 col-md-4 bg-dark-subtle border-end py-4 @(FormFactor.GetFormFactor() != "Mobile" ? "vh-100" : "")">
@@ -27,13 +30,28 @@
                     <i class="fa-duotone fa-store me-2"></i> Marketplace Review
                 </h4>
             </a>
+            <a href="/admin/providers" class="list-group-item @(CurrentPage == AdminPages.Providers ? "active" : "") cursor-pointer">
+                <h4 class="mt-2">
+                    <i class="fa-duotone fa-crown me-2"></i> Providers
+                </h4>
+            </a>
+            <a href="/admin/creditanomalies" class="list-group-item @(CurrentPage == AdminPages.CreditAnomalies ? "active" : "") cursor-pointer">
+                <h4 class="mt-2">
+                    <i class="fa-duotone fa-shield-exclamation me-2"></i> Credit Anomalies
+                </h4>
+            </a>
+            <a href="/admin/models" class="list-group-item @(CurrentPage == AdminPages.Models ? "active" : "") cursor-pointer">
+                <h4 class="mt-2">
+                    <i class="fa-duotone fa-microchip-ai me-2"></i> Models
+                </h4>
+            </a>
         </div>
     </div>
 
     <div class="col-12 col-md-8 mt-2 pt-md-4 px-md-4">
         @if (CurrentPage == AdminPages.Releases)
         {
-            <Daisi.Manager.Shared.Pages.Account.ReleaseComponents.AccountReleasesComponent></Daisi.Manager.Shared.Pages.Account.ReleaseComponents.AccountReleasesComponent>
+            <Daisi.Manager.Shared.Pages.Account.ReleaseComponents.ReleasesTabsComponent />
         }
         else if (CurrentPage == AdminPages.Accounts)
         {
@@ -43,6 +61,18 @@
         {
             <Daisi.Manager.Shared.Pages.Admin.MarketplaceReviewQueue />
         }
+        else if (CurrentPage == AdminPages.Providers)
+        {
+            <Daisi.Manager.Shared.Pages.Admin.AdminProvidersComponent />
+        }
+        else if (CurrentPage == AdminPages.CreditAnomalies)
+        {
+            <Daisi.Manager.Shared.Pages.Admin.CreditAnomalies />
+        }
+        else if (CurrentPage == AdminPages.Models)
+        {
+            <Daisi.Manager.Shared.Pages.Admin.AdminModelsComponent />
+        }
     </div>
 </div>
 @code {
@@ -50,7 +80,10 @@
     {
         Releases,
         Accounts,
-        MarketplaceReview
+        MarketplaceReview,
+        Providers,
+        CreditAnomalies,
+        Models
     }
 
     [Parameter] public string? Page { get; set; }

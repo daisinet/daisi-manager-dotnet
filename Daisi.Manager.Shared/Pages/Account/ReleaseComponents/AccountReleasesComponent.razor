@@ -1,7 +1,23 @@
 
-<div class="row">
-    <div class="col"><h3>Releases</h3></div>
-    <div class="col-12 col-md-auto d-flex align-items-center gap-2">
+@if (!HideHeader)
+{
+    <div class="row">
+        <div class="col"><h3>Releases</h3></div>
+        <div class="col-12 col-md-auto d-flex align-items-center gap-2">
+            <select class="form-control" style="max-width:200px;" @bind="selectedGroup" @bind:after="OnGroupChanged">
+                <option value="">All Groups</option>
+                @foreach (var g in releaseGroups)
+                {
+                    <option value="@g">@g</option>
+                }
+            </select>
+            <button class="btn btn-outline-success" @onclick="OnCreate"><i class="fa-duotone fa-rocket"></i> Start Release</button>
+        </div>
+    </div>
+}
+else
+{
+    <div class="d-flex align-items-center gap-2 mb-2">
         <select class="form-control" style="max-width:200px;" @bind="selectedGroup" @bind:after="OnGroupChanged">
             <option value="">All Groups</option>
             @foreach (var g in releaseGroups)
@@ -9,9 +25,8 @@
                 <option value="@g">@g</option>
             }
         </select>
-        <button class="btn btn-outline-success" @onclick="OnCreate"><i class="fa-duotone fa-rocket"></i> Start Release</button>
     </div>
-</div>
+}
 
 @if (loading)
 {
@@ -82,6 +97,8 @@ else
 }
 
 @code {
+    [Parameter] public bool HideHeader { get; set; }
+
     [Inject] IDialogService DialogService { get; set; }
     [Inject] ReleaseClientFactory ReleaseClientFactory { get; set; }
     [Inject] HostClientFactory HostClientFactory { get; set; }
