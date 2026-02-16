@@ -65,6 +65,20 @@ The Admin section includes a full account management dashboard at **Admin > Acco
 
 The accounts list is at `/admin/accounts` and each account's detail page is at `/admin/accounts/{id}`.
 
+## Secure Tool Management
+
+The Manager provides UI for both providers creating secure tools and consumers configuring them:
+
+**Provider side** (`EditMarketplaceItem.razor`): When creating a Host Tool marketplace item, providers can enable "Secure Execution" which reveals fields for:
+- Endpoint URL and auth key (for ORC-to-provider communication during install/uninstall)
+- Tool definition: ID, name, use instructions, tool group
+- Call parameters (what the AI provides at execution time)
+- Setup parameters (what users must provide: API keys, credentials, etc.)
+
+**Consumer side** (`ConfigureSecureTool.razor`): After purchasing a secure tool, users navigate to `/marketplace/configure/{itemId}/{installId}` to enter their setup data (API keys, credentials). The Manager calls the provider directly via HTTP — no ORC relay. A security notice explains that credentials go directly to the provider and are never stored on Daisinet servers.
+
+**My Purchases** (`MyPurchases.razor`): Purchased secure tools show a "Configure" button that includes the `SecureInstallId` from the purchase record in the URL, enabling direct provider communication.
+
 ## One-Click Release Automation
 The Manager provides a "Start Release" button on the Releases page that triggers the full DAISI release pipeline — SDK publish (if changed), ORC deploy, and Host release — with a single click. The Releases page is accessible from **Account > Releases** for account owners and from **Admin > Releases** for admin users.
 
