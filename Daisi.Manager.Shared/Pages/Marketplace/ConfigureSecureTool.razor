@@ -1,4 +1,4 @@
-@page "/marketplace/configure/{ItemId}/{InstallId}"
+@page "/marketplace/configure/{ItemId}/{InstallId}/{BundleInstallId?}"
 @using Daisi.Manager.Shared.Services
 @inject HttpClient Http
 
@@ -97,6 +97,13 @@
 @code {
     [Parameter] public string ItemId { get; set; } = string.Empty;
     [Parameter] public string InstallId { get; set; } = string.Empty;
+    [Parameter] public string? BundleInstallId { get; set; }
+
+    /// <summary>
+    /// For OAuth calls, use BundleInstallId if present (shared across bundle), else fall back to InstallId.
+    /// Non-OAuth calls (configure) always use the per-tool InstallId.
+    /// </summary>
+    private string OAuthInstallId => !string.IsNullOrEmpty(BundleInstallId) ? BundleInstallId : InstallId;
 
     [Inject] public MarketplaceClientFactory MarketplaceClientFactory { get; set; } = default!;
     [Inject] public IToastService ToastService { get; set; } = default!;
