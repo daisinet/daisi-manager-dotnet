@@ -79,6 +79,17 @@ The Manager provides UI for both providers creating secure tools and consumers c
 
 **My Purchases** (`MyPurchases.razor`): Purchased secure tools show a "Configure" button that includes the `SecureInstallId` from the purchase record in the URL, enabling direct provider communication.
 
+## News Article Management
+The Admin section includes a full news/blog article management page at **Admin > News**. Admin users can:
+
+- **Browse and search** all published articles
+- **Create new articles** with a title, author, image URL, markdown body, and tags
+- **Live markdown preview** while editing article content
+- **Edit existing articles** — title, author, body, image, and tags
+- **Delete articles** with confirmation dialog
+
+Articles created here appear on the public website's `/news` page. The previous unauthenticated create page on the public site has been removed in favor of this admin-only workflow.
+
 ## One-Click Release Automation
 The Manager provides a "Start Release" button on the Releases page that triggers the full DAISI release pipeline — SDK publish (if changed), ORC deploy, and Host release — with a single click. The Releases page is accessible from **Account > Releases** for account owners and from **Admin > Releases** for admin users.
 
