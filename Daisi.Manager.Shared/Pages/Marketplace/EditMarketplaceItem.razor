@@ -277,6 +277,7 @@
                                                 <option value="apikey">API Key</option>
                                                 <option value="url">URL</option>
                                                 <option value="json">JSON</option>
+                                                <option value="oauth">OAuth</option>
                                             </select>
                                         </div>
                                         <div class="col-md-2">
@@ -291,6 +292,19 @@
                                             </button>
                                         </div>
                                     </div>
+                                    @if (param.Type == "oauth")
+                                    {
+                                        <div class="row g-2 mb-3 ms-2 ps-2 border-start border-info">
+                                            <div class="col-md-5">
+                                                <input type="url" class="form-control form-control-sm" @bind="param.AuthUrl" placeholder="OAuth Auth URL (e.g. https://your-api.com/api/auth/start)" />
+                                                <small class="text-muted">Provider's OAuth initiation endpoint</small>
+                                            </div>
+                                            <div class="col-md-5">
+                                                <input type="text" class="form-control form-control-sm" @bind="param.ServiceLabel" placeholder="Service Label (e.g. Office 365)" />
+                                                <small class="text-muted">Displayed on the Connect button</small>
+                                            </div>
+                                        </div>
+                                    }
                                 }
                                 <button class="btn btn-sm btn-outline-info" @onclick="() => _setupParameters.Add(new SetupParameterEntry())">
                                     <i class="fa-duotone fa-plus me-1"></i> Add Setup Parameter
@@ -511,6 +525,8 @@
         public string Description { get; set; } = string.Empty;
         public string Type { get; set; } = "text";
         public bool IsRequired { get; set; } = true;
+        public string AuthUrl { get; set; } = string.Empty;
+        public string ServiceLabel { get; set; } = string.Empty;
     }
 
     protected override async Task OnParametersSetAsync()
@@ -575,7 +591,9 @@
                         Name = sp.Name,
                         Description = sp.Description,
                         Type = sp.Type,
-                        IsRequired = sp.IsRequired
+                        IsRequired = sp.IsRequired,
+                        AuthUrl = sp.AuthUrl,
+                        ServiceLabel = sp.ServiceLabel
                     }).ToList();
                 }
             }
@@ -649,7 +667,9 @@
                         Name = sp.Name,
                         Description = sp.Description,
                         Type = sp.Type,
-                        IsRequired = sp.IsRequired
+                        IsRequired = sp.IsRequired,
+                        AuthUrl = sp.AuthUrl,
+                        ServiceLabel = sp.ServiceLabel
                     });
                 }
 

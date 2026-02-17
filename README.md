@@ -77,6 +77,10 @@ The Manager provides UI for both providers creating secure tools and consumers c
 
 **Consumer side** (`ConfigureSecureTool.razor`): After purchasing a secure tool, users navigate to `/marketplace/configure/{itemId}/{installId}` to enter their setup data (API keys, credentials). The Manager calls the provider directly via HTTP — no ORC relay. A security notice explains that credentials go directly to the provider and are never stored on Daisinet servers.
 
+For setup parameters with type `oauth`, the configure page renders a "Connect to [ServiceLabel]" button instead of a text input. Clicking it opens a popup to the provider's `AuthUrl`, which handles the external OAuth consent flow. After authorization, the popup redirects to `/marketplace/oauth-callback` (a simple "Connection Successful" page that auto-closes). The configure page polls the provider's `/auth/status` endpoint every 3 seconds until the connection shows as active.
+
+**OAuth callback** (`OAuthCallback.razor`): Minimal page at `/marketplace/oauth-callback` that shows a success message and auto-closes the popup window after 1.5 seconds.
+
 **My Purchases** (`MyPurchases.razor`): Purchased secure tools show a "Configure" button that includes the `SecureInstallId` from the purchase record in the URL, enabling direct provider communication.
 
 ## One-Click Release Automation
