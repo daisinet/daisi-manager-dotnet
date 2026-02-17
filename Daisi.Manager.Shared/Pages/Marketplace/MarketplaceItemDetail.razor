@@ -45,7 +45,7 @@
                                 <span class="badge bg-warning text-dark ms-2 fs-6"><i class="fa-duotone fa-star me-1"></i>Featured</span>
                             }
                         </h2>
-                        <p class="text-muted mb-1">@_item.Author &middot; v@_item.Version</p>
+                        <p class="text-muted mb-1">@_item.Author &middot; v@(_item.Version)</p>
                         <div class="d-flex flex-wrap gap-1">
                             <span class="badge @GetTypeBadge(_item.ItemType)">@GetTypeLabel(_item.ItemType)</span>
                             @foreach (var tag in _item.Tags)
