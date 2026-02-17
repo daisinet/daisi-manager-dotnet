@@ -46,7 +46,7 @@ else if (_reviewTab == ReviewTab.Items)
                     @foreach (var item in _pendingItems)
                     {
                         <tr>
-                            <td><strong>@item.Name</strong> <small class="text-muted">v@item.Version</small></td>
+                            <td><strong>@item.Name</strong> <small class="text-muted">v@(item.Version)</small></td>
                             <td><span class="badge @GetTypeBadge(item.ItemType)">@GetTypeLabel(item.ItemType)</span></td>
                             <td>@item.Author</td>
                             <td class="small text-muted">@item.AccountId</td>
