@@ -75,9 +75,24 @@ The Manager provides UI for both providers creating secure tools and consumers c
 - Call parameters (what the AI provides at execution time)
 - Setup parameters (what users must provide: API keys, credentials, etc.)
 
-**Consumer side** (`ConfigureSecureTool.razor`): After purchasing a secure tool, users navigate to `/marketplace/configure/{itemId}/{installId}` to enter their setup data (API keys, credentials). The Manager calls the provider directly via HTTP — no ORC relay. A security notice explains that credentials go directly to the provider and are never stored on Daisinet servers.
+**Consumer side** (`ConfigureSecureTool.razor`): After purchasing a secure tool, users navigate to `/marketplace/configure/{itemId}/{installId}/{bundleInstallId?}` to enter their setup data (API keys, credentials). The Manager calls the provider directly via HTTP — no ORC relay. A security notice explains that credentials go directly to the provider and are never stored on Daisinet servers. When a `BundleInstallId` is present (for plugin-bundled tools), OAuth calls use the bundle ID so all tools in the bundle share OAuth tokens, while non-OAuth setup calls always use the per-tool `InstallId`.
 
-**My Purchases** (`MyPurchases.razor`): Purchased secure tools show a "Configure" button that includes the `SecureInstallId` from the purchase record in the URL, enabling direct provider communication.
+For setup parameters with type `oauth`, the configure page renders a "Connect to [ServiceLabel]" button instead of a text input. Clicking it opens a popup to the provider's `AuthUrl`, which handles the external OAuth consent flow. After authorization, the popup redirects to `/marketplace/oauth-callback` (a simple "Connection Successful" page that auto-closes). The configure page polls the provider's `/auth/status` endpoint every 3 seconds until the connection shows as active.
+
+**OAuth callback** (`OAuthCallback.razor`): Minimal page at `/marketplace/oauth-callback` that shows a success message and auto-closes the popup window after 1.5 seconds.
+
+**My Purchases** (`MyPurchases.razor`): Purchased secure tools show a "Configure" button that includes the `SecureInstallId` and optionally `BundleInstallId` from the purchase record in the URL, enabling direct provider communication with shared OAuth support for plugin bundles.
+
+## News Article Management
+The Admin section includes a full news/blog article management page at **Admin > News**. Admin users can:
+
+- **Browse and search** all published articles
+- **Create new articles** with a title, author, image URL, markdown body, and tags
+- **Live markdown preview** while editing article content
+- **Edit existing articles** — title, author, body, image, and tags
+- **Delete articles** with confirmation dialog
+
+Articles created here appear on the public website's `/news` page. The previous unauthenticated create page on the public site has been removed in favor of this admin-only workflow.
 
 ## One-Click Release Automation
 The Manager provides a "Start Release" button on the Releases page that triggers the full DAISI release pipeline — SDK publish (if changed), ORC deploy, and Host release — with a single click. The Releases page is accessible from **Account > Releases** for account owners and from **Admin > Releases** for admin users.

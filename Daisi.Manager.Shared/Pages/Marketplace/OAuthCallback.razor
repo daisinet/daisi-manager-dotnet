@@ -1,0 +1,24 @@
+@page "/marketplace/oauth-callback"
+
+<div class="d-flex justify-content-center align-items-center" style="min-height: 60vh;">
+    <div class="text-center">
+        <div class="mb-3">
+            <i class="fa-duotone fa-check-circle text-success" style="font-size: 4rem;"></i>
+        </div>
+        <h3 class="fw-bold">Connection Successful</h3>
+        <p class="text-muted">This window will close automatically.</p>
+    </div>
+</div>
+
+@code {
+    [Inject] public IJSRuntime JS { get; set; } = default!;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Task.Delay(1500);
+            await JS.InvokeVoidAsync("window.close");
+        }
+    }
+}
