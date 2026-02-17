@@ -75,9 +75,9 @@ The Manager provides UI for both providers creating secure tools and consumers c
 - Call parameters (what the AI provides at execution time)
 - Setup parameters (what users must provide: API keys, credentials, etc.)
 
-**Consumer side** (`ConfigureSecureTool.razor`): After purchasing a secure tool, users navigate to `/marketplace/configure/{itemId}/{installId}` to enter their setup data (API keys, credentials). The Manager calls the provider directly via HTTP — no ORC relay. A security notice explains that credentials go directly to the provider and are never stored on Daisinet servers.
+**Consumer side** (`ConfigureSecureTool.razor`): After purchasing a secure tool, users navigate to `/marketplace/configure/{itemId}/{installId}/{bundleInstallId?}` to enter their setup data (API keys, credentials). The Manager calls the provider directly via HTTP — no ORC relay. A security notice explains that credentials go directly to the provider and are never stored on Daisinet servers. When a `BundleInstallId` is present (for plugin-bundled tools), OAuth calls use the bundle ID so all tools in the bundle share OAuth tokens, while non-OAuth setup calls always use the per-tool `InstallId`.
 
-**My Purchases** (`MyPurchases.razor`): Purchased secure tools show a "Configure" button that includes the `SecureInstallId` from the purchase record in the URL, enabling direct provider communication.
+**My Purchases** (`MyPurchases.razor`): Purchased secure tools show a "Configure" button that includes the `SecureInstallId` and optionally `BundleInstallId` from the purchase record in the URL, enabling direct provider communication with shared OAuth support for plugin bundles.
 
 ## News Article Management
 The Admin section includes a full news/blog article management page at **Admin > News**. Admin users can:
