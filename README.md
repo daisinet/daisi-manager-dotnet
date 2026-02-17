@@ -83,6 +83,20 @@ For setup parameters with type `oauth`, the configure page renders a "Connect to
 
 **My Purchases** (`MyPurchases.razor`): Purchased secure tools show a "Configure" button that includes the `SecureInstallId` and optionally `BundleInstallId` from the purchase record in the URL, enabling direct provider communication with shared OAuth support for plugin bundles.
 
+## Plugin Bundle Creation
+
+Plugins are marketplace items that bundle multiple tools and skills into a single installable package. Providers create plugins through the Edit Marketplace Item page (`EditMarketplaceItem.razor`).
+
+**Creating a plugin bundle:**
+1. Navigate to **Marketplace > Provider Dashboard > Create New Item**
+2. Select **Plugin** as the item type — a "Bundled Items" section appears
+3. The dropdown lists all non-Plugin items (Skills, Bot Tools, Host Tools) published under your provider account
+4. Select items from the dropdown to add them to the bundle — they appear as removable badges
+5. Optionally upload a ZIP package and configure pricing
+6. Save or submit for review — the selected item IDs are persisted as `BundledItemIds`
+
+**Viewing a plugin's bundled items:** The marketplace item detail page (`MarketplaceItemDetail.razor`) lists each bundled item by name and type, with links to their individual detail pages. When a user purchases a plugin, the system generates a shared `BundleInstallId` so all bundled tools can share OAuth tokens during configuration.
+
 ## News Article Management
 The Admin section includes a full news/blog article management page at **Admin > News**. Admin users can:
 

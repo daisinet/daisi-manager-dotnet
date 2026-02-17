@@ -80,7 +80,25 @@
                 {
                     <div class="mb-4">
                         <h5>Included Items</h5>
-                        <p class="text-muted">This plugin includes @_item.BundledItemIds.Count bundled items.</p>
+                        @if (_bundledItems.Count > 0)
+                        {
+                            <div class="list-group">
+                                @foreach (var bundled in _bundledItems)
+                                {
+                                    <a href="/marketplace/item/@bundled.Id" class="list-group-item list-group-item-action bg-dark-subtle d-flex align-items-center">
+                                        <i class="@GetTypeIcon(bundled.ItemType) me-2"></i>
+                                        <div>
+                                            <strong>@bundled.Name</strong>
+                                            <span class="badge @GetTypeBadge(bundled.ItemType) ms-2">@GetTypeLabel(bundled.ItemType)</span>
+                                        </div>
+                                    </a>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted">This plugin includes @_item.BundledItemIds.Count bundled items.</p>
+                        }
                     </div>
                 }
             </div>
@@ -190,6 +208,7 @@
     private bool _hasPurchased;
     private bool _purchasing;
     private string? _purchaseError;
+    private List<MarketplaceItemInfo> _bundledItems = [];
 
     protected override async Task OnParametersSetAsync()
     {
@@ -215,6 +234,21 @@
                 // Load provider profile
                 var providerResponse = await client.GetProviderProfileAsync(new GetProviderProfileRequest { AccountId = _item.AccountId });
                 _provider = providerResponse.Profile;
+
+                // Load bundled items for Plugins
+                if (_item.ItemType == MarketplaceItemType.Plugin && _item.BundledItemIds.Count > 0)
+                {
+                    foreach (var bundledId in _item.BundledItemIds)
+                    {
+                        try
+                        {
+                            var bundledResponse = await client.GetMarketplaceItemAsync(new GetMarketplaceItemRequest { Id = bundledId });
+                            if (bundledResponse.Item is not null)
+                                _bundledItems.Add(bundledResponse.Item);
+                        }
+                        catch { }
+                    }
+                }
             }
         }
         catch (Exception ex)
