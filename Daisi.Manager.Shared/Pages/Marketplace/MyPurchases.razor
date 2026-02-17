@@ -81,7 +81,10 @@
                             <td>
                                 @if (_secureItemIds.Contains(purchase.MarketplaceItemId) && !string.IsNullOrEmpty(purchase.SecureInstallId))
                                 {
-                                    <a href="/marketplace/configure/@purchase.MarketplaceItemId/@purchase.SecureInstallId" class="btn btn-sm btn-outline-info" @onclick:stopPropagation="true">
+                                    var configUrl = !string.IsNullOrEmpty(purchase.BundleInstallId)
+                                        ? $"/marketplace/configure/{purchase.MarketplaceItemId}/{purchase.SecureInstallId}/{purchase.BundleInstallId}"
+                                        : $"/marketplace/configure/{purchase.MarketplaceItemId}/{purchase.SecureInstallId}";
+                                    <a href="@configUrl" class="btn btn-sm btn-outline-info" @onclick:stopPropagation="true">
                                         <i class="fa-duotone fa-gear me-1"></i> Configure
                                     </a>
                                 }

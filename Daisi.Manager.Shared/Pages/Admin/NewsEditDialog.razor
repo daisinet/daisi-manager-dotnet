@@ -1,0 +1,128 @@
+@using Markdig
+
+<div class="@Class">
+    <div class="mb-2">
+        <label class="fw-bold">Title *</label>
+        <input class="form-control" @bind=Article.Title placeholder="Article title (required)" />
+    </div>
+    <div class="mb-2">
+        <label class="fw-bold">Author</label>
+        <input class="form-control" @bind=Article.Author placeholder="Author name" />
+    </div>
+    <div class="mb-2">
+        <label class="fw-bold">Author Link</label>
+        <input class="form-control" @bind=Article.AuthorLink placeholder="https://..." />
+    </div>
+    <div class="mb-2">
+        <label class="fw-bold">Image URL</label>
+        <input class="form-control" @bind=Article.ImageUrl placeholder="/assets/img/blog/image.jpg" />
+    </div>
+    <div class="mb-2">
+        <label class="fw-bold">Tags</label>
+        <input class="form-control" @bind=tagsText placeholder="Comma-separated tags" />
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-md-6">
+            <label class="fw-bold">Body Markdown *</label>
+            <textarea rows="16" class="form-control mt-1" @bind=Article.BodyMarkdown @bind:event="oninput" @bind:after=OnMarkdownChanged></textarea>
+        </div>
+        <div class="col-md-6">
+            <label class="fw-bold">Preview</label>
+            <div class="card bg-dark-subtle mt-1 p-3" style="max-height: 420px; overflow-y: auto;">
+                @if (!string.IsNullOrWhiteSpace(Article.ImageUrl))
+                {
+                    <img src="@Article.ImageUrl" class="img img-fluid mb-2" style="max-width:200px" />
+                }
+                @((MarkupString)renderedHtml)
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <button disabled="@processing" class="btn btn-success" @onclick=OnSave>
+            @if (processing)
+            {
+                <i class="fa-duotone fa-refresh fa-spin"></i>
+            }
+            Save
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public BlogArticle Article { get; set; }
+    [Parameter] public string Class { get; set; }
+    [CascadingParameter] public IMudDialogInstance MudDialog { get; set; }
+    [Inject] public BlogClientFactory BlogClientFactory { get; set; }
+    [Inject] public IToastService ToastService { get; set; }
+
+    bool processing = false;
+    string tagsText = string.Empty;
+    string renderedHtml = string.Empty;
+
+    static readonly MarkdownPipeline pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+
+    protected override void OnInitialized()
+    {
+        if (Article.Tags.Count > 0)
+            tagsText = string.Join(", ", Article.Tags);
+
+        OnMarkdownChanged();
+    }
+
+    void OnMarkdownChanged()
+    {
+        renderedHtml = Markdown.ToHtml(Article.BodyMarkdown ?? string.Empty, pipeline);
+    }
+
+    async Task OnSave()
+    {
+        if (string.IsNullOrWhiteSpace(Article.Title))
+        {
+            ToastService.ShowError("Title is required.");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(Article.BodyMarkdown))
+        {
+            ToastService.ShowError("Body markdown is required.");
+            return;
+        }
+
+        processing = true;
+
+        Article.Tags.Clear();
+        if (!string.IsNullOrWhiteSpace(tagsText))
+        {
+            foreach (var tag in tagsText.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                Article.Tags.Add(tag);
+            }
+        }
+
+        try
+        {
+            var client = BlogClientFactory.Create();
+
+            if (string.IsNullOrEmpty(Article.Id))
+            {
+                await client.CreateBlogAsync(new CreateBlogRequest { Blog = Article });
+                ToastService.ShowSuccess("Article created successfully.");
+            }
+            else
+            {
+                await client.UpdateBlogAsync(new UpdateBlogRequest { Blog = Article });
+                ToastService.ShowSuccess("Article updated successfully.");
+            }
+
+            if (MudDialog is not null)
+                MudDialog.Close();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error saving article: {ex.Message}");
+        }
+
+        processing = false;
+    }
+}

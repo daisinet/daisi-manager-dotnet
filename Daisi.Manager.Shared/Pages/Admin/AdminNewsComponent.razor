@@ -1,0 +1,169 @@
+<div class="row">
+    <div class="col">
+        <h3 class="mt-2 mt-md-0">News Articles</h3>
+    </div>
+    <div class="col-12 col-md-auto">
+        <div class="input-group">
+            <input class="form-control" placeholder="Search Articles" @bind=searchText @onkeyup=OnSearchTextKeyUp />
+            <button class="btn btn-outline-success me-1" @onclick=@(async (_) => await RefreshArticles())><i class="fa-duotone fa-search"></i></button>
+            <button class="btn btn-outline-success" @onclick=OnCreateArticle><i class="fa-duotone fa-plus"></i> <span>Add Article</span></button>
+        </div>
+    </div>
+</div>
+
+@if (allArticles is null)
+{
+    <p>Loading Articles...</p>
+}
+else
+{
+    <div class="row mt-3 mb-3">
+        <div class="col-6 col-md-3">
+            <div class="card bg-dark-subtle text-center p-2">
+                <div class="fw-bold fs-4">@totalCount</div>
+                <small>Total Articles</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover mt-1">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Author</th>
+                    <th>Date</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var article in FilteredArticles)
+                {
+                    <tr>
+                        <td><a class="text-white" href="#" @onclick:preventDefault @onclick=@(async (_) => await OnEditArticle(article))>@article.Title</a></td>
+                        <td>@article.Author</td>
+                        <td>@(article.DateCreated?.ToDateTime().ToString("MMM dd, yyyy") ?? "—")</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary me-1" @onclick=@(async (_) => await OnEditArticle(article))>
+                                <i class="fa-duotone fa-pen-to-square"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" @onclick=@(async (_) => await OnDeleteArticle(article))>
+                                <i class="fa-duotone fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    [Inject] public BlogClientFactory BlogClientFactory { get; set; }
+    [Inject] public IToastService ToastService { get; set; }
+    [Inject] public IDialogService DialogService { get; set; }
+
+    List<BlogArticle>? allArticles;
+    int totalCount;
+    string? searchText;
+
+    IEnumerable<BlogArticle> FilteredArticles =>
+        string.IsNullOrWhiteSpace(searchText)
+            ? allArticles ?? Enumerable.Empty<BlogArticle>()
+            : (allArticles ?? Enumerable.Empty<BlogArticle>()).Where(a =>
+                a.Title.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                a.Author.Contains(searchText, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshArticles();
+    }
+
+    async Task OnSearchTextKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            StateHasChanged();
+    }
+
+    async Task RefreshArticles()
+    {
+        allArticles = null;
+        try
+        {
+            var client = BlogClientFactory.Create();
+            var response = await client.GetBlogsAsync(new GetBlogsRequest
+            {
+                Paging = new PagingInfo { PageIndex = 1, PageSize = 100 }
+            });
+            allArticles = response.Blogs.ToList();
+            totalCount = response.TotalCount;
+        }
+        catch (Exception ex)
+        {
+            allArticles = new();
+            ToastService.ShowError($"Error loading articles: {ex.Message}");
+        }
+    }
+
+    async Task OnCreateArticle()
+    {
+        var article = new BlogArticle();
+
+        var dialogReference = await DialogService.ShowAsync<NewsEditDialog>("Add Article",
+            new DialogParameters()
+            {
+                { nameof(NewsEditDialog.Article), article },
+                { nameof(NewsEditDialog.Class), "px-4 pb-4" }
+            },
+            new DialogOptions() { CloseOnEscapeKey = true, CloseButton = true, MaxWidth = MaxWidth.Large, FullWidth = true });
+
+        if (!(await dialogReference.Result).Canceled)
+        {
+            await RefreshArticles();
+        }
+    }
+
+    async Task OnEditArticle(BlogArticle article)
+    {
+        var cloned = article.Clone();
+
+        var dialogReference = await DialogService.ShowAsync<NewsEditDialog>("Edit Article",
+            new DialogParameters()
+            {
+                { nameof(NewsEditDialog.Article), cloned },
+                { nameof(NewsEditDialog.Class), "px-4 pb-4" }
+            },
+            new DialogOptions() { CloseOnEscapeKey = true, CloseButton = true, MaxWidth = MaxWidth.Large, FullWidth = true });
+
+        if (!(await dialogReference.Result).Canceled)
+        {
+            await RefreshArticles();
+        }
+    }
+
+    async Task OnDeleteArticle(BlogArticle article)
+    {
+        var confirmed = await DialogService.ConfirmAsync("Delete Article", $"Are you sure you want to delete \"{article.Title}\"? This is permanent.", Color.Error);
+        if (confirmed)
+        {
+            try
+            {
+                var client = BlogClientFactory.Create();
+                var response = await client.DeleteBlogAsync(new DeleteBlogRequest { Id = article.Id });
+                if (response.Success)
+                {
+                    ToastService.ShowSuccess($"Article \"{article.Title}\" deleted.");
+                    await RefreshArticles();
+                }
+                else
+                {
+                    ToastService.ShowError("Failed to delete article.");
+                }
+            }
+            catch (Exception ex)
+            {
+                ToastService.ShowError($"Error deleting article: {ex.Message}");
+            }
+        }
+    }
+}
