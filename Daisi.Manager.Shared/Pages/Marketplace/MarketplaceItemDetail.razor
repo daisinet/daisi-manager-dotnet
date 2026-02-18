@@ -101,6 +101,34 @@
                         }
                     </div>
                 }
+
+                @if (_containingPlugins.Count > 0)
+                {
+                    <div class="mb-4">
+                        <h5><i class="fa-duotone fa-puzzle-piece me-1"></i> Available in Plugins</h5>
+                        <div class="list-group">
+                            @foreach (var plugin in _containingPlugins)
+                            {
+                                <a href="/marketplace/item/@plugin.Id" class="list-group-item list-group-item-action bg-dark-subtle d-flex align-items-center">
+                                    @if (!string.IsNullOrEmpty(plugin.IconUrl))
+                                    {
+                                        <img src="@plugin.IconUrl" alt="@plugin.Name" class="rounded me-2" width="32" height="32" />
+                                    }
+                                    else
+                                    {
+                                        <i class="fa-duotone fa-puzzle-piece me-2"></i>
+                                    }
+                                    <div>
+                                        <strong>@plugin.Name</strong>
+                                        <span class="badge bg-success ms-2">Plugin</span>
+                                        <br />
+                                        <small class="text-muted">@plugin.ShortDescription</small>
+                                    </div>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                }
             </div>
 
             <div class="col-md-4">
@@ -115,6 +143,13 @@
                             <button class="btn btn-success w-100" disabled>
                                 <i class="fa-duotone fa-check me-1"></i> Already Owned
                             </button>
+                            @if (_item.IsSecureExecution && !string.IsNullOrEmpty(_purchase?.SecureInstallId))
+                            {
+                                <a href="/marketplace/configure/@_item.Id/@_purchase.SecureInstallId/@_purchase.BundleInstallId"
+                                   class="btn btn-outline-info w-100 mt-2">
+                                    <i class="fa-duotone fa-gear me-1"></i> Configure
+                                </a>
+                            }
                         }
                         else if (_item.PricingModel == MarketplacePricingModel.MarketplacePricingFree)
                         {
@@ -212,11 +247,13 @@
 
     private MarketplaceItemInfo? _item;
     private ProviderProfileInfo? _provider;
+    private MarketplacePurchaseInfo? _purchase;
     private bool _loading = true;
     private bool _hasPurchased;
     private bool _purchasing;
     private string? _purchaseError;
     private List<MarketplaceItemInfo> _bundledItems = [];
+    private List<MarketplaceItemInfo> _containingPlugins = [];
 
     protected override async Task OnParametersSetAsync()
     {
@@ -239,9 +276,29 @@
                 });
                 _hasPurchased = entitlementResponse.IsEntitled;
 
+                // Load purchase record for secure tool configure link
+                if (_hasPurchased)
+                {
+                    var purchasesResponse = await client.GetMyPurchasesAsync(new GetMyPurchasesRequest { AccountId = accountId });
+                    _purchase = purchasesResponse.Purchases.FirstOrDefault(p => p.MarketplaceItemId == Id);
+                }
+
                 // Load provider profile
                 var providerResponse = await client.GetProviderProfileAsync(new GetProviderProfileRequest { AccountId = _item.AccountId });
                 _provider = providerResponse.Profile;
+
+                // Load plugins that contain this tool
+                if (_item.ItemType != MarketplaceItemType.Plugin)
+                {
+                    var pluginsResponse = await client.BrowseMarketplaceAsync(new BrowseMarketplaceRequest
+                    {
+                        ItemType = MarketplaceItemType.Plugin,
+                        FilterByType = true
+                    });
+                    _containingPlugins = pluginsResponse.Items
+                        .Where(p => p.BundledItemIds.Contains(Id))
+                        .ToList();
+                }
 
                 // Load bundled items for Plugins
                 if (_item.ItemType == MarketplaceItemType.Plugin && _item.BundledItemIds.Count > 0)
@@ -285,6 +342,7 @@
             if (response.Success)
             {
                 _hasPurchased = true;
+                _purchase = response.Purchase;
                 ToastService.ShowSuccess($"Successfully acquired {_item!.Name}!");
             }
             else
