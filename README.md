@@ -74,6 +74,7 @@ The Manager provides UI for both providers creating secure tools and consumers c
 - Tool definition: ID, name, use instructions, tool group
 - Call parameters (what the AI provides at execution time)
 - Setup parameters (what users must provide: API keys, credentials, etc.)
+- **Execution Cost (credits)** — visible when Secure Execution is enabled. Allows providers to set a per-execution credit cost (0 = free). This lets providers monetize tool usage on a per-call basis.
 
 **Consumer side** (`ConfigureSecureTool.razor`): After purchasing a secure tool, users navigate to `/marketplace/configure/{itemId}/{installId}/{bundleInstallId?}` to enter their setup data (API keys, credentials). The Manager calls the provider directly via HTTP — no ORC relay. A security notice explains that credentials go directly to the provider and are never stored on Daisinet servers. When a `BundleInstallId` is present (for plugin-bundled tools), OAuth calls use the bundle ID so all tools in the bundle share OAuth tokens, while non-OAuth setup calls always use the per-tool `InstallId`.
 
@@ -82,6 +83,22 @@ For setup parameters with type `oauth`, the configure page renders a "Connect to
 **OAuth callback** (`OAuthCallback.razor`): Minimal page at `/marketplace/oauth-callback` that shows a success message and auto-closes the popup window after 1.5 seconds.
 
 **My Purchases** (`MyPurchases.razor`): Purchased secure tools show a "Configure" button that includes the `SecureInstallId` and optionally `BundleInstallId` from the purchase record in the URL, enabling direct provider communication with shared OAuth support for plugin bundles.
+
+## Plugin Bundle Creation
+
+Plugins are marketplace items that bundle multiple tools and skills into a single installable package. Providers create plugins through the Edit Marketplace Item page (`EditMarketplaceItem.razor`).
+
+**Creating a plugin bundle:**
+1. Navigate to **Marketplace > Provider Dashboard > Create New Item**
+2. Select **Plugin** as the item type — a "Bundled Items" section appears
+3. The dropdown lists all non-Plugin items (Skills, Bot Tools, Host Tools) published under your provider account
+4. Select items from the dropdown to add them to the bundle — they appear as removable badges
+5. Optionally upload a ZIP package and configure pricing
+6. Save or submit for review — the selected item IDs are persisted as `BundledItemIds`
+
+**Viewing a plugin's bundled items:** The marketplace item detail page (`MarketplaceItemDetail.razor`) lists each bundled item by name and type, with links to their individual detail pages. When a user purchases a plugin, the system generates a shared `BundleInstallId` so all bundled tools can share OAuth tokens during configuration.
+
+**Execution cost display:** The marketplace item detail page (`MarketplaceItemDetail.razor`) shows execution cost in the pricing card when the item has `IsSecureExecution` enabled and `ExecutionCreditCost > 0`. This lets consumers see the per-execution credit cost before purchasing.
 
 ## News Article Management
 The Admin section includes a full news/blog article management page at **Admin > News**. Admin users can:

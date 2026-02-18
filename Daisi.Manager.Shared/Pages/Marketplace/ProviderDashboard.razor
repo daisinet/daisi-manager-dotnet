@@ -193,7 +193,7 @@
                                         @foreach (var item in _items)
                                         {
                                             <tr>
-                                                <td><strong>@item.Name</strong> <small class="text-muted">v@item.Version</small></td>
+                                                <td><strong>@item.Name</strong> <small class="text-muted">v@(item.Version)</small></td>
                                                 <td><span class="badge @GetTypeBadge(item.ItemType)">@GetTypeLabel(item.ItemType)</span></td>
                                                 <td><span class="badge @GetItemStatusBadge(item.Status)">@item.Status</span></td>
                                                 <td>

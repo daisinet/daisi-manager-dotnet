@@ -40,7 +40,7 @@
                         <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
                            title="Skill: A prompt-template behavioral overlay (markdown). Bot Tool: An executable function for bot agents. Host Tool: An executable function for host infrastructure. Plugin: A bundle of skills and tools packaged together."></i>
                     </label>
-                    <select class="form-select" @bind="_itemType" disabled="@IsEdit">
+                    <select class="form-select" value="@_itemType" @onchange="OnItemTypeChanged" disabled="@IsEdit">
                         <option value="Skill">Skill</option>
                         <option value="BotTool">Bot Tool</option>
                         <option value="HostTool">Host Tool</option>
@@ -314,6 +314,52 @@
                     }
                 }
 
+                @if (_itemType == "Plugin")
+                {
+                    <div class="card bg-dark-subtle border-info mb-4">
+                        <div class="card-body">
+                            <h5>
+                                Bundled Items
+                                <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                                   title="Select which tools and skills to include in this plugin bundle. Only items you have published are available."></i>
+                            </h5>
+                            <p class="text-muted small">Select which tools and skills to include in this plugin bundle.</p>
+
+                            @if (_bundledItems.Count > 0)
+                            {
+                                <div class="d-flex flex-wrap gap-1 mb-3">
+                                    @foreach (var item in _bundledItems)
+                                    {
+                                        <span class="badge bg-info text-dark d-inline-flex align-items-center gap-1 py-1 px-2">
+                                            @item.Name
+                                            <button type="button" class="btn-close btn-close-sm ms-1" style="font-size: 0.5rem;" @onclick="() => RemoveBundledItem(item)" @onclick:stopPropagation="true"></button>
+                                        </span>
+                                    }
+                                </div>
+                            }
+
+                            @if (_loadingAvailableItems)
+                            {
+                                <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+                            }
+                            else if (_availableItems.Count > 0)
+                            {
+                                <select class="form-select" @onchange="OnBundledItemSelected">
+                                    <option value="">— Add a tool or skill —</option>
+                                    @foreach (var available in _availableItems.Where(a => !_bundledItems.Any(b => b.Id == a.Id)))
+                                    {
+                                        <option value="@available.Id">@available.Name (@GetTypeString(available.ItemType))</option>
+                                    }
+                                </select>
+                            }
+                            else
+                            {
+                                <p class="text-muted small mb-0">No published tools or skills found. Create and publish items first, then add them to this bundle.</p>
+                            }
+                        </div>
+                    </div>
+                }
+
                 @if (_itemType is "BotTool" or "HostTool" or "Plugin")
                 {
                     @if (!(_itemType == "HostTool" && _isSecureExecution))
@@ -424,6 +470,19 @@
                             </div>
                         }
 
+                        @if (_isSecureExecution)
+                        {
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    Execution Cost (credits)
+                                    <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                                       title="Credits charged to the consumer each time the tool executes. Set to 0 for free execution. This can be changed at any time — each execution records the cost at the time it runs."></i>
+                                </label>
+                                <input type="number" class="form-control" @bind="_executionCreditCost" min="0" />
+                                <small class="text-muted">Credits charged per tool execution. 0 = free.</small>
+                            </div>
+                        }
+
                         <hr />
 
                         <div class="mb-3">
@@ -501,6 +560,8 @@
     private MarketplaceItemInfo? _existingItem;
     private bool _isPremiumProvider;
 
+    private long _executionCreditCost;
+
     // Secure execution fields
     private bool _isSecureExecution;
     private string _secureEndpointUrl = string.Empty;
@@ -527,6 +588,17 @@
         public bool IsRequired { get; set; } = true;
         public string AuthUrl { get; set; } = string.Empty;
         public string ServiceLabel { get; set; } = string.Empty;
+    }
+
+    // Bundled items (Plugin)
+    private List<BundledItemEntry> _bundledItems = [];
+    private List<MarketplaceItemInfo> _availableItems = [];
+    private bool _loadingAvailableItems;
+
+    private class BundledItemEntry
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
     }
 
     protected override async Task OnParametersSetAsync()
@@ -571,6 +643,7 @@
                     _isSecureExecution = _existingItem.IsSecureExecution;
                     _secureEndpointUrl = _existingItem.SecureEndpointUrl;
                     _secureAuthKey = _existingItem.SecureAuthKey;
+                    _executionCreditCost = _existingItem.ExecutionCreditCost;
 
                     if (_existingItem.SecureToolDefinition is not null)
                     {
@@ -595,6 +668,31 @@
                         AuthUrl = sp.AuthUrl,
                         ServiceLabel = sp.ServiceLabel
                     }).ToList();
+
+                    // Load bundled items for Plugins
+                    if (_itemType == "Plugin")
+                    {
+                        await LoadAvailableItemsAsync();
+                        foreach (var bundledId in _existingItem.BundledItemIds)
+                        {
+                            var match = _availableItems.FirstOrDefault(a => a.Id == bundledId);
+                            if (match is not null)
+                            {
+                                _bundledItems.Add(new BundledItemEntry { Id = match.Id, Name = match.Name });
+                            }
+                            else
+                            {
+                                // Item may have been deleted or belongs to another provider; fetch individually
+                                try
+                                {
+                                    var bundledResponse = await client.GetMarketplaceItemAsync(new GetMarketplaceItemRequest { Id = bundledId });
+                                    if (bundledResponse.Item is not null)
+                                        _bundledItems.Add(new BundledItemEntry { Id = bundledResponse.Item.Id, Name = bundledResponse.Item.Name });
+                                }
+                                catch { }
+                            }
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -608,6 +706,53 @@
     private void OnFileSelected(InputFileChangeEventArgs e)
     {
         _selectedFile = e.File;
+    }
+
+    private async Task OnItemTypeChanged(ChangeEventArgs e)
+    {
+        _itemType = e.Value?.ToString() ?? "Skill";
+        if (_itemType == "Plugin" && _availableItems.Count == 0)
+        {
+            await LoadAvailableItemsAsync();
+        }
+    }
+
+    private async Task LoadAvailableItemsAsync()
+    {
+        _loadingAvailableItems = true;
+        try
+        {
+            var accountId = await AuthService.GetAccountIdAsync() ?? string.Empty;
+            var client = MarketplaceClientFactory.Create();
+            var response = await client.GetProviderItemsAsync(new GetProviderItemsRequest { AccountId = accountId });
+            // Show non-Plugin items (Skills, Bot Tools, Host Tools) — exclude the current item being edited
+            _availableItems = response.Items
+                .Where(i => i.ItemType != MarketplaceItemType.Plugin)
+                .Where(i => !IsEdit || i.Id != Id)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error loading available items: {ex.Message}");
+        }
+        _loadingAvailableItems = false;
+    }
+
+    private void OnBundledItemSelected(ChangeEventArgs e)
+    {
+        var selectedId = e.Value?.ToString();
+        if (string.IsNullOrEmpty(selectedId)) return;
+
+        var item = _availableItems.FirstOrDefault(a => a.Id == selectedId);
+        if (item is not null && !_bundledItems.Any(b => b.Id == selectedId))
+        {
+            _bundledItems.Add(new BundledItemEntry { Id = item.Id, Name = item.Name });
+        }
+    }
+
+    private void RemoveBundledItem(BundledItemEntry item)
+    {
+        _bundledItems.Remove(item);
     }
 
     private async Task SaveDraftAsync()
@@ -649,6 +794,7 @@
             item.CreditPrice = _creditPrice;
             item.SubscriptionCreditPrice = _subscriptionCreditPrice;
             item.SubscriptionPeriodDays = _subscriptionPeriodDays;
+            item.ExecutionCreditCost = _isSecureExecution ? _executionCreditCost : 0;
             item.Visibility = _visibility;
             item.Status = status;
 
@@ -702,6 +848,16 @@
             foreach (var tag in _tags)
             {
                 item.Tags.Add(tag);
+            }
+
+            // Bundled items (Plugin)
+            item.BundledItemIds.Clear();
+            if (_itemType == "Plugin")
+            {
+                foreach (var bundled in _bundledItems)
+                {
+                    item.BundledItemIds.Add(bundled.Id);
+                }
             }
 
             var userName = await AuthService.GetUserNameAsync();

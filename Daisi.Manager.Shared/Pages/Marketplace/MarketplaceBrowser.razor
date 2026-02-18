@@ -45,7 +45,7 @@
             @foreach (var item in _items)
             {
                 <div class="col">
-                    <div class="card h-100 bg-dark-subtle border-secondary" role="button" @onclick="() => ViewItem(item.Id)">
+                    <div class="card h-100 bg-dark-subtle @GetTypeBorder(item.ItemType)" role="button" @onclick="() => ViewItem(item.Id)">
                         <div class="card-body">
                             <div class="d-flex align-items-start mb-2">
                                 @if (!string.IsNullOrEmpty(item.IconUrl))
@@ -60,7 +60,7 @@
                                 }
                                 <div>
                                     <h5 class="card-title mb-0">@item.Name</h5>
-                                    <small class="text-muted">@item.Author &middot; v@item.Version</small>
+                                    <small class="text-muted">@item.Author &middot; v@(item.Version)</small>
                                 </div>
                             </div>
                             <p class="card-text text-muted small">@item.ShortDescription</p>
@@ -79,7 +79,7 @@
                         <div class="card-footer d-flex justify-content-between align-items-center">
                             <span class="fw-bold @GetPriceBadge(item)">@GetPriceLabel(item)</span>
                             <small class="text-muted">
-                                <i class="fa-solid fa-download me-1"></i>@item.DownloadCount
+                                <i class="fa-duotone fa-download me-1"></i>@item.DownloadCount
                             </small>
                         </div>
                     </div>
@@ -158,6 +158,15 @@
         MarketplaceItemType.HostTool => "fa-duotone fa-server",
         MarketplaceItemType.Plugin => "fa-duotone fa-puzzle-piece",
         _ => "fa-duotone fa-box"
+    };
+
+    private static string GetTypeBorder(MarketplaceItemType type) => type switch
+    {
+        MarketplaceItemType.Skill => "border-info",
+        MarketplaceItemType.BotTool => "border-primary",
+        MarketplaceItemType.HostTool => "border-warning",
+        MarketplaceItemType.Plugin => "border-success",
+        _ => "border-secondary"
     };
 
     private static string GetTypeBadge(MarketplaceItemType type) => type switch

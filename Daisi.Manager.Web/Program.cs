@@ -15,6 +15,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddSingleton<IFormFactor, FormFactor>();
 builder.Services.AddBlazoredToast();
 builder.Services.AddMudServices();
+builder.Services.AddHttpClient();
 
 
 builder.Services.AddDaisiForWeb()

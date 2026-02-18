@@ -33,6 +33,14 @@
             <strong>Security Notice:</strong> Your credentials are sent directly to the provider (<code>@_item.SecureEndpointUrl</code>) and are <strong>never stored on Daisinet servers</strong>.
         </div>
 
+        @if (_previouslyConfigured)
+        {
+            <div class="alert alert-success mt-3">
+                <i class="fa-duotone fa-check-circle me-2"></i>
+                <strong>Previously configured.</strong> This tool has existing settings on the provider. Saving new values will overwrite the previous configuration.
+            </div>
+        }
+
         @if (_item.SetupParameters.Count == 0)
         {
             <div class="alert alert-warning">
@@ -100,15 +108,30 @@
                             }
                             else if (param.Type is "password" or "apikey")
                             {
-                                <input type="password" class="form-control" @bind="_setupValues[param.Name]" placeholder="@param.Name" />
+                                @if (_configuredKeys.Contains(param.Name))
+                                {
+                                    <div class="text-success small mb-1"><i class="fa-duotone fa-check-circle me-1"></i>Previously configured</div>
+                                }
+                                <input type="password" class="form-control" @bind="_setupValues[param.Name]"
+                                       placeholder="@(_configuredKeys.Contains(param.Name) ? "Enter new value to overwrite" : param.Name)" />
                             }
                             else if (param.Type == "json")
                             {
-                                <textarea class="form-control font-monospace" rows="4" @bind="_setupValues[param.Name]" placeholder="{ }"></textarea>
+                                @if (_configuredKeys.Contains(param.Name))
+                                {
+                                    <div class="text-success small mb-1"><i class="fa-duotone fa-check-circle me-1"></i>Previously configured</div>
+                                }
+                                <textarea class="form-control font-monospace" rows="4" @bind="_setupValues[param.Name]"
+                                          placeholder="@(_configuredKeys.Contains(param.Name) ? "Enter new value to overwrite" : "{ }")"></textarea>
                             }
                             else
                             {
-                                <input type="text" class="form-control" @bind="_setupValues[param.Name]" placeholder="@param.Name" />
+                                @if (_configuredKeys.Contains(param.Name))
+                                {
+                                    <div class="text-success small mb-1"><i class="fa-duotone fa-check-circle me-1"></i>Previously configured</div>
+                                }
+                                <input type="text" class="form-control" @bind="_setupValues[param.Name]"
+                                       placeholder="@(_configuredKeys.Contains(param.Name) ? "Enter new value to overwrite" : param.Name)" />
                             }
                         </div>
                     }
@@ -120,7 +143,14 @@
                 <div class="mt-3">
                     <button class="btn btn-primary" @onclick="SaveConfigurationAsync" disabled="@_saving">
                         @if (_saving) { <span class="spinner-border spinner-border-sm me-1"></span> }
-                        <i class="fa-duotone fa-floppy-disk me-1"></i> Save Configuration
+                        @if (_previouslyConfigured)
+                        {
+                            <i class="fa-duotone fa-rotate me-1"></i> @("Update Configuration")
+                        }
+                        else
+                        {
+                            <i class="fa-duotone fa-floppy-disk me-1"></i> @("Save Configuration")
+                        }
                     </button>
                     <a href="/marketplace" class="btn btn-outline-secondary ms-2">Cancel</a>
                 </div>
@@ -164,6 +194,8 @@
 
     private bool _loading = true;
     private bool _saving;
+    private bool _previouslyConfigured;
+    private List<string> _configuredKeys = [];
     private MarketplaceItemInfo? _item;
     private Dictionary<string, string> _setupValues = new();
     private Dictionary<string, OAuthStatus> _oauthStatuses = new();
@@ -195,6 +227,9 @@
                     .Where(p => p.Type != "oauth")
                     .ToDictionary(p => p.Name, _ => string.Empty);
 
+                // Check if previously configured
+                await CheckConfigureStatusAsync();
+
                 // Check OAuth status for each OAuth parameter
                 foreach (var param in item.SetupParameters.Where(p => p.Type == "oauth"))
                 {
@@ -209,6 +244,29 @@
         _loading = false;
     }
 
+    private async Task CheckConfigureStatusAsync()
+    {
+        try
+        {
+            if (_item is null || string.IsNullOrEmpty(_item.SecureEndpointUrl)) return;
+
+            var requestBody = new { installId = InstallId };
+            var httpResponse = await Http.PostAsJsonAsync(
+                $"{_item.SecureEndpointUrl.TrimEnd('/')}/configure/status", requestBody);
+
+            if (httpResponse.IsSuccessStatusCode)
+            {
+                var result = await httpResponse.Content.ReadFromJsonAsync<ConfigureStatusProviderResponse>();
+                if (result?.IsConfigured == true)
+                {
+                    _previouslyConfigured = true;
+                    _configuredKeys = result.ConfiguredKeys ?? [];
+                }
+            }
+        }
+        catch { }
+    }
+
     private async Task CheckOAuthStatusAsync(SecureToolSetupParameter param)
     {
         _oauthStatuses[param.Name] = OAuthStatus.Checking;
@@ -218,14 +276,14 @@
         {
             if (_item is null || string.IsNullOrEmpty(_item.SecureEndpointUrl)) return;
 
-            var requestBody = new { installId = InstallId, service = param.Name };
+            var requestBody = new { installId = OAuthInstallId, setupKey = param.Name };
             var httpResponse = await Http.PostAsJsonAsync(
                 $"{_item.SecureEndpointUrl.TrimEnd('/')}/auth/status", requestBody);
 
             if (httpResponse.IsSuccessStatusCode)
             {
                 var result = await httpResponse.Content.ReadFromJsonAsync<AuthStatusProviderResponse>();
-                _oauthStatuses[param.Name] = result?.Connected == true
+                _oauthStatuses[param.Name] = result?.IsAuthenticated == true
                     ? OAuthStatus.Connected
                     : OAuthStatus.NotConnected;
             }
@@ -247,7 +305,7 @@
         if (_item is null || string.IsNullOrEmpty(param.AuthUrl)) return;
 
         var callbackUrl = NavigationManager.ToAbsoluteUri("/marketplace/oauth-callback").ToString();
-        var authUrl = $"{param.AuthUrl.TrimEnd('/')}?installId={Uri.EscapeDataString(InstallId)}" +
+        var authUrl = $"{param.AuthUrl.TrimEnd('/')}?installId={Uri.EscapeDataString(OAuthInstallId)}" +
                       $"&returnUrl={Uri.EscapeDataString(callbackUrl)}" +
                       $"&service={Uri.EscapeDataString(param.Name)}";
 
@@ -315,6 +373,8 @@
                 var result = await httpResponse.Content.ReadFromJsonAsync<ConfigureProviderResponse>();
                 if (result?.Success == true)
                 {
+                    _previouslyConfigured = true;
+                    _configuredKeys = _setupValues.Keys.ToList();
                     _successMessage = "Configuration saved successfully. Your credentials have been sent to the provider.";
                     ToastService.ShowSuccess("Configuration saved!");
                 }
@@ -340,5 +400,6 @@
     }
 
     private record ConfigureProviderResponse(bool Success, string? Error);
-    private record AuthStatusProviderResponse(bool Connected, string? ServiceName, string? UserLabel);
+    private record AuthStatusProviderResponse(bool Success, bool IsAuthenticated, string? Error);
+    private record ConfigureStatusProviderResponse(bool Success, bool IsConfigured, List<string>? ConfiguredKeys, string? Error);
 }
