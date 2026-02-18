@@ -218,14 +218,14 @@
         {
             if (_item is null || string.IsNullOrEmpty(_item.SecureEndpointUrl)) return;
 
-            var requestBody = new { installId = InstallId, service = param.Name };
+            var requestBody = new { installId = OAuthInstallId, setupKey = param.Name };
             var httpResponse = await Http.PostAsJsonAsync(
                 $"{_item.SecureEndpointUrl.TrimEnd('/')}/auth/status", requestBody);
 
             if (httpResponse.IsSuccessStatusCode)
             {
                 var result = await httpResponse.Content.ReadFromJsonAsync<AuthStatusProviderResponse>();
-                _oauthStatuses[param.Name] = result?.Connected == true
+                _oauthStatuses[param.Name] = result?.IsAuthenticated == true
                     ? OAuthStatus.Connected
                     : OAuthStatus.NotConnected;
             }
@@ -247,7 +247,7 @@
         if (_item is null || string.IsNullOrEmpty(param.AuthUrl)) return;
 
         var callbackUrl = NavigationManager.ToAbsoluteUri("/marketplace/oauth-callback").ToString();
-        var authUrl = $"{param.AuthUrl.TrimEnd('/')}?installId={Uri.EscapeDataString(InstallId)}" +
+        var authUrl = $"{param.AuthUrl.TrimEnd('/')}?installId={Uri.EscapeDataString(OAuthInstallId)}" +
                       $"&returnUrl={Uri.EscapeDataString(callbackUrl)}" +
                       $"&service={Uri.EscapeDataString(param.Name)}";
 
@@ -340,5 +340,5 @@
     }
 
     private record ConfigureProviderResponse(bool Success, string? Error);
-    private record AuthStatusProviderResponse(bool Connected, string? ServiceName, string? UserLabel);
+    private record AuthStatusProviderResponse(bool Success, bool IsAuthenticated, string? Error);
 }
