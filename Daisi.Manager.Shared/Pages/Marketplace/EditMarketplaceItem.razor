@@ -470,6 +470,19 @@
                             </div>
                         }
 
+                        @if (_isSecureExecution)
+                        {
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    Execution Cost (credits)
+                                    <i class="fa-duotone fa-circle-question text-info ms-1" data-bs-toggle="tooltip"
+                                       title="Credits charged to the consumer each time the tool executes. Set to 0 for free execution. This can be changed at any time — each execution records the cost at the time it runs."></i>
+                                </label>
+                                <input type="number" class="form-control" @bind="_executionCreditCost" min="0" />
+                                <small class="text-muted">Credits charged per tool execution. 0 = free.</small>
+                            </div>
+                        }
+
                         <hr />
 
                         <div class="mb-3">
@@ -546,6 +559,8 @@
     private IBrowserFile? _selectedFile;
     private MarketplaceItemInfo? _existingItem;
     private bool _isPremiumProvider;
+
+    private long _executionCreditCost;
 
     // Secure execution fields
     private bool _isSecureExecution;
@@ -628,6 +643,7 @@
                     _isSecureExecution = _existingItem.IsSecureExecution;
                     _secureEndpointUrl = _existingItem.SecureEndpointUrl;
                     _secureAuthKey = _existingItem.SecureAuthKey;
+                    _executionCreditCost = _existingItem.ExecutionCreditCost;
 
                     if (_existingItem.SecureToolDefinition is not null)
                     {
@@ -778,6 +794,7 @@
             item.CreditPrice = _creditPrice;
             item.SubscriptionCreditPrice = _subscriptionCreditPrice;
             item.SubscriptionPeriodDays = _subscriptionPeriodDays;
+            item.ExecutionCreditCost = _isSecureExecution ? _executionCreditCost : 0;
             item.Visibility = _visibility;
             item.Status = status;
 

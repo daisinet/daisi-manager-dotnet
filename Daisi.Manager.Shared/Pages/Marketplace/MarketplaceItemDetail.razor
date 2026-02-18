@@ -142,6 +142,14 @@
                             <div class="alert alert-danger mt-2 mb-0 small">@_purchaseError</div>
                         }
 
+                        @if (_item.IsSecureExecution && _item.ExecutionCreditCost > 0)
+                        {
+                            <div class="d-flex justify-content-between mb-2 mt-2">
+                                <span class="text-muted">Per execution</span>
+                                <span class="text-warning">@_item.ExecutionCreditCost credits</span>
+                            </div>
+                        }
+
                         <hr />
 
                         <div class="small">
