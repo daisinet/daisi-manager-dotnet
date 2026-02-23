@@ -80,7 +80,14 @@
 
 					<tr>
 						<td>@model.Name</td>
-						<td><span class="badge bg-secondary">@model.Type</span></td>
+						<td>
+						@{
+							var typeDisplay = model.Types_.Count > 0
+								? string.Join(", ", model.Types_.Select(t => t.ToString()))
+								: model.Type.ToString();
+						}
+						<span class="badge bg-secondary">@typeDisplay</span>
+					</td>
 						<td class="text-center">
 							<input type="checkbox" @bind="model.Enabled" />
 						</td>
@@ -90,7 +97,12 @@
 						<td class="text-center">
 							@if (model.IsDefault)
 							{
-								<span class="badge bg-primary">Default</span>
+								var defaultTypes = model.Types_.Count > 0
+									? string.Join(", ", model.Types_.Select(t => t.ToString()))
+									: model.Type.ToString();
+								<MudTooltip Text="@($"Default for: {defaultTypes}")">
+									<span class="badge bg-primary">Default</span>
+								</MudTooltip>
 							}
 							else if (model.Enabled)
 							{
@@ -109,9 +121,21 @@
 
 	void OnSetToDefault(AIModel model)
 	{
+		var modelTypes = model.Types_.Count > 0
+			? model.Types_.ToHashSet()
+			: new HashSet<AIModelTypes> { model.Type };
+
+		// Only clear IsDefault on models that share at least one type with the target model
 		foreach (var m in Settings.Model.Models)
 		{
-			m.IsDefault = false;
+			var mTypes = m.Types_.Count > 0
+				? m.Types_.ToHashSet()
+				: new HashSet<AIModelTypes> { m.Type };
+
+			if (mTypes.Overlaps(modelTypes))
+			{
+				m.IsDefault = false;
+			}
 		}
 		model.IsDefault = true;
 	}
