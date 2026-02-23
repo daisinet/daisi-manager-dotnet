@@ -52,6 +52,18 @@ Manager is the **SSO authority** (single login point) for the entire DAISI syste
 ```
 The `SsoSigningKey` must be the same value in all SSO-participating apps' User Secrets. Generate one with: `python -c "import os,base64; print(base64.b64encode(os.urandom(32)).decode())"`
 
+## Admin Models Management
+
+The Admin section includes a models management page at **Admin > Models** (`AdminModelsComponent.razor`). Admins can create, edit, and delete AI models that are distributed to hosts across the network.
+
+**Key features:**
+- **Multi-type support** — Models can be assigned multiple types (TextGeneration, ImageGeneration, SpeechToText, etc.)
+- **Default per type** — The "Default" toggle now means "default for this model's type(s)." Multiple models can be default as long as they cover different types. The Default column shows a tooltip indicating which types each model is default for.
+- **Backend settings** — Per-model backend engine, runtime, context size, GPU layers, and inference defaults.
+- **Hot-reload** — When models are added or removed, hosts pick up changes automatically at the next heartbeat (no restart required).
+- **Host availability** — The table shows how many hosts currently have each model loaded.
+- **Usage stats** — Filterable by time period (day, week, month, year, all time).
+
 ## Admin Accounts Dashboard
 The Admin section includes a full account management dashboard at **Admin > Accounts**. Admin users can:
 
