@@ -192,6 +192,11 @@
             <div class="mb-1">
                 <MudSwitch @bind-Value="@backendSkipCheck" Label="Skip Check" Color="Color.Warning" UncheckedColor="Color.Default"></MudSwitch>
             </div>
+            <div class="mb-2">
+                <label class="fw-bold">Prompt Format</label>
+                <input class="form-control" @bind=backendPromptFormat placeholder="<|User|>{0}<|Assistant|>" />
+                <small class="text-muted">Optional template where {0} is replaced by the user prompt.</small>
+            </div>
         </MudExpansionPanel>
         <MudExpansionPanel Text="Inference Defaults">
             <p class="small text-muted mb-2">Per-model defaults. Leave blank to use host defaults. Per-request values override these.</p>
@@ -253,6 +258,7 @@
     bool backendShowLogs;
     bool backendSkipCheck;
     string backendEngine = "";
+    string backendPromptFormat = "";
 
     // Inference defaults local state (nullable so blank = use host default)
     float? inferenceTemperature;
@@ -287,6 +293,7 @@
             backendShowLogs = Model.Backend.ShowLogs;
             backendSkipCheck = Model.Backend.SkipCheck;
             backendEngine = Model.Backend.BackendEngine ?? "";
+            backendPromptFormat = Model.Backend.PromptFormat ?? "";
 
             inferenceTemperature = Model.Backend.HasTemperature ? Model.Backend.Temperature : null;
             inferenceTopP = Model.Backend.HasTopP ? Model.Backend.TopP : null;
@@ -478,7 +485,8 @@
             AutoFallback = backendAutoFallback,
             ShowLogs = backendShowLogs,
             SkipCheck = backendSkipCheck,
-            BackendEngine = backendEngine ?? ""
+            BackendEngine = backendEngine ?? "",
+            PromptFormat = backendPromptFormat ?? ""
         };
 
         if (inferenceTemperature.HasValue)
