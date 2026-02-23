@@ -117,7 +117,12 @@ else
                         <td class="text-center">
                             @if (model.IsDefault)
                             {
-                                <i class="fa-duotone fa-star text-warning"></i>
+                                var defaultTypes = model.Types_.Count > 0
+                                    ? string.Join(", ", model.Types_.Select(t => t.ToString()))
+                                    : model.Type.ToString();
+                                <MudTooltip Text="@($"Default for: {defaultTypes}")">
+                                    <i class="fa-duotone fa-star text-warning"></i>
+                                </MudTooltip>
                             }
                         </td>
                         <td class="text-center">
