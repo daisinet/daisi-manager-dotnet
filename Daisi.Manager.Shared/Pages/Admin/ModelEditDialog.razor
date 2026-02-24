@@ -172,16 +172,9 @@
                 </select>
             </div>
             <div class="mb-2">
-                <label class="fw-bold">Context Size</label>
-                <input type="number" class="form-control" @bind=backendContextSize />
-            </div>
-            <div class="mb-2">
-                <label class="fw-bold">GPU Layer Count</label>
-                <input type="number" class="form-control" @bind=backendGpuLayerCount />
-            </div>
-            <div class="mb-2">
-                <label class="fw-bold">Batch Size</label>
-                <input type="number" class="form-control" @bind=backendBatchSize />
+                <div class="alert alert-info py-2 mb-0">
+                    <small><i class="fa-duotone fa-microchip me-1"></i>Context Size, GPU Layers, and Batch Size are auto-tuned by the host at load time.</small>
+                </div>
             </div>
             <div class="mb-1">
                 <MudSwitch @bind-Value="@backendAutoFallback" Label="Auto Fallback" Color="Color.Success" UncheckedColor="Color.Default"></MudSwitch>
@@ -191,6 +184,11 @@
             </div>
             <div class="mb-1">
                 <MudSwitch @bind-Value="@backendSkipCheck" Label="Skip Check" Color="Color.Warning" UncheckedColor="Color.Default"></MudSwitch>
+            </div>
+            <div class="mb-2">
+                <label class="fw-bold">Prompt Format</label>
+                <input class="form-control" @bind=backendPromptFormat placeholder="<|User|>{0}<|Assistant|>" />
+                <small class="text-muted">Optional template where {0} is replaced by the user prompt.</small>
             </div>
         </MudExpansionPanel>
         <MudExpansionPanel Text="Inference Defaults">
@@ -246,13 +244,11 @@
 
     // Backend settings local state
     BackendRuntimes backendRuntime;
-    uint backendContextSize;
-    int backendGpuLayerCount;
-    uint backendBatchSize;
     bool backendAutoFallback;
     bool backendShowLogs;
     bool backendSkipCheck;
     string backendEngine = "";
+    string backendPromptFormat = "";
 
     // Inference defaults local state (nullable so blank = use host default)
     float? inferenceTemperature;
@@ -280,13 +276,11 @@
         if (Model.Backend is not null)
         {
             backendRuntime = Model.Backend.Runtime;
-            backendContextSize = Model.Backend.ContextSize;
-            backendGpuLayerCount = Model.Backend.GpuLayerCount;
-            backendBatchSize = Model.Backend.BatchSize;
             backendAutoFallback = Model.Backend.AutoFallback;
             backendShowLogs = Model.Backend.ShowLogs;
             backendSkipCheck = Model.Backend.SkipCheck;
             backendEngine = Model.Backend.BackendEngine ?? "";
+            backendPromptFormat = Model.Backend.PromptFormat ?? "";
 
             inferenceTemperature = Model.Backend.HasTemperature ? Model.Backend.Temperature : null;
             inferenceTopP = Model.Backend.HasTopP ? Model.Backend.TopP : null;
@@ -297,9 +291,6 @@
         else
         {
             backendRuntime = BackendRuntimes.Auto;
-            backendContextSize = 8192;
-            backendGpuLayerCount = -1;
-            backendBatchSize = 128;
             backendAutoFallback = true;
         }
     }
@@ -377,10 +368,6 @@
             // Auto-set backend engine to LlamaSharp for GGUF files
             backendEngine = "LlamaSharp";
 
-            // Set context size from HF metadata
-            if (hfModel.ContextLength > 0)
-                backendContextSize = hfModel.ContextLength;
-
             // Infer multimodal from tags
             if (hfModel.Tags.Any(t => t.Contains("vision", StringComparison.OrdinalIgnoreCase) ||
                                       t.Contains("multimodal", StringComparison.OrdinalIgnoreCase)))
@@ -415,10 +402,6 @@
                 modelTypes.Clear();
                 modelTypes.Add(mappedType);
             }
-
-            // Set context size from HF metadata
-            if (hfModel.ContextLength > 0)
-                backendContextSize = hfModel.ContextLength;
         }
     }
 
@@ -472,13 +455,11 @@
         Model.Backend = new BackendSettings
         {
             Runtime = backendRuntime,
-            ContextSize = backendContextSize,
-            GpuLayerCount = backendGpuLayerCount,
-            BatchSize = backendBatchSize,
             AutoFallback = backendAutoFallback,
             ShowLogs = backendShowLogs,
             SkipCheck = backendSkipCheck,
-            BackendEngine = backendEngine ?? ""
+            BackendEngine = backendEngine ?? "",
+            PromptFormat = backendPromptFormat ?? ""
         };
 
         if (inferenceTemperature.HasValue)
