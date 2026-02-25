@@ -452,12 +452,21 @@
             Model.FileName = file.FileName;
             Model.Url = file.DownloadUrl;
 
-            // Auto-set backend engine to StableDiffusion for safetensor files
-            backendEngine = "StableDiffusion";
+            // Map pipeline tag to model type (same as GGUF)
+            var mappedType = MapPipelineTag(hfModel.PipelineTag);
+            if (!modelTypes.Contains(mappedType))
+            {
+                modelTypes.Clear();
+                modelTypes.Add(mappedType);
+            }
 
-            // Auto-set model type to ImageGeneration
-            modelTypes.Clear();
-            modelTypes.Add(AIModelTypes.ImageGeneration);
+            // Auto-set backend engine based on model type
+            backendEngine = mappedType == AIModelTypes.ImageGeneration ? "StableDiffusion" : "";
+
+            // Infer multimodal from tags
+            if (hfModel.Tags.Any(t => t.Contains("vision", StringComparison.OrdinalIgnoreCase) ||
+                                      t.Contains("multimodal", StringComparison.OrdinalIgnoreCase)))
+                Model.IsMultiModal = true;
         }
     }
 
