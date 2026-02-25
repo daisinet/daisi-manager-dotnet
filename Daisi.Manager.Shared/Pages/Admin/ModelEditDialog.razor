@@ -1,7 +1,7 @@
 <div class="@Class">
     <div class="card bg-dark-subtle mb-3 p-3">
         <label class="fw-bold mb-1">HuggingFace Lookup</label>
-        <p class="small mb-2">Paste a HuggingFace model URL to auto-fill metadata and pick a GGUF or ONNX file.</p>
+        <p class="small mb-2">Paste a HuggingFace model URL to auto-fill metadata and pick a GGUF, ONNX, or Safetensor file.</p>
         <div class="input-group">
             <input class="form-control" placeholder="https://huggingface.co/owner/repo" @bind=huggingFaceUrl />
             <button class="btn btn-outline-info" disabled="@lookingUp" @onclick=OnLookup>
@@ -94,6 +94,34 @@
                     </table>
                 </div>
             }
+
+            @if (hfModel.SafetensorFiles.Any())
+            {
+                <label class="fw-bold mt-2 mb-1">Select Safetensor File</label>
+                <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>File</th>
+                                <th class="text-end">Size</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var file in hfModel.SafetensorFiles.OrderBy(f => f.SizeBytes))
+                            {
+                                <tr class="cursor-pointer @(selectedSafetensor == file ? "table-active" : "")" @onclick=@(() => OnSelectSafetensor(file))>
+                                    <td>
+                                        <input type="radio" checked="@(selectedSafetensor == file)" />
+                                    </td>
+                                    <td class="small">@file.FileName</td>
+                                    <td class="text-end small">@FormatSize(file.SizeBytes)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
         }
     </div>
 
@@ -158,6 +186,7 @@
                     <option value="">Auto</option>
                     <option value="LlamaSharp">LlamaSharp</option>
                     <option value="OnnxRuntimeGenAI">OnnxRuntimeGenAI</option>
+                    <option value="StableDiffusion">StableDiffusion</option>
                 </select>
             </div>
             <div class="mb-2">
@@ -241,6 +270,7 @@
     HuggingFaceModelInfo? hfModel;
     HuggingFaceGGUFFile? selectedGGUF;
     HuggingFaceONNXFile? selectedONNX;
+    HuggingFaceSafetensorFile? selectedSafetensor;
 
     // Backend settings local state
     BackendRuntimes backendRuntime;
@@ -321,6 +351,7 @@
         hfModel = null;
         selectedGGUF = null;
         selectedONNX = null;
+        selectedSafetensor = null;
 
         try
         {
@@ -348,6 +379,7 @@
     {
         selectedGGUF = file;
         selectedONNX = null;
+        selectedSafetensor = null;
 
         if (hfModel is not null)
         {
@@ -379,6 +411,7 @@
     {
         selectedONNX = file;
         selectedGGUF = null;
+        selectedSafetensor = null;
 
         if (hfModel is not null)
         {
@@ -402,6 +435,29 @@
                 modelTypes.Clear();
                 modelTypes.Add(mappedType);
             }
+        }
+    }
+
+    void OnSelectSafetensor(HuggingFaceSafetensorFile file)
+    {
+        selectedSafetensor = file;
+        selectedGGUF = null;
+        selectedONNX = null;
+
+        if (hfModel is not null)
+        {
+            if (string.IsNullOrWhiteSpace(Model.Name))
+                Model.Name = hfModel.ModelName;
+
+            Model.FileName = file.FileName;
+            Model.Url = file.DownloadUrl;
+
+            // Auto-set backend engine to StableDiffusion for safetensor files
+            backendEngine = "StableDiffusion";
+
+            // Auto-set model type to ImageGeneration
+            modelTypes.Clear();
+            modelTypes.Add(AIModelTypes.ImageGeneration);
         }
     }
 
