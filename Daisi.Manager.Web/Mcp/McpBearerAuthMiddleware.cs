@@ -1,13 +1,8 @@
-using Daisi.Protos.V1;
-using Daisi.SDK.Clients.V1.Orc;
-using Daisi.SDK.Interfaces.Authentication;
-using Daisi.SDK.Models;
-
 namespace Daisi.Manager.Web.Mcp
 {
     /// <summary>
     /// Request middleware scoped to <c>/mcp</c> paths. Extracts a Bearer token from the
-    /// Authorization header, validates it against the ORC, and populates
+    /// Authorization header, validates it via <see cref="IMcpTokenValidator"/>, and populates
     /// <see cref="McpUserContext"/> and <c>HttpContext.Items["McpClientKey"]</c>.
     /// Returns 401 for invalid or missing tokens on MCP paths.
     /// </summary>
@@ -20,7 +15,7 @@ namespace Daisi.Manager.Web.Mcp
             _next = next;
         }
 
-        public async Task InvokeAsync(HttpContext context, McpUserContext mcpUserContext)
+        public async Task InvokeAsync(HttpContext context, McpUserContext mcpUserContext, IMcpTokenValidator tokenValidator)
         {
             var path = context.Request.Path.Value ?? "";
 
@@ -48,18 +43,12 @@ namespace Daisi.Manager.Web.Mcp
                 return;
             }
 
-            // Validate against ORC using a temporary key provider
+            // Validate token
             try
             {
-                var tempProvider = new InlineClientKeyProvider(clientKey);
-                var authClient = new AuthClientFactory(tempProvider).Create();
-                var response = authClient.ValidateClientKey(new ValidateClientKeyRequest
-                {
-                    SecretKey = DaisiStaticSettings.SecretKey ?? "",
-                    ClientKey = clientKey
-                });
+                var result = tokenValidator.Validate(clientKey);
 
-                if (response is null || !response.IsValid)
+                if (result is null)
                 {
                     context.Response.StatusCode = 401;
                     await context.Response.WriteAsync("Invalid client key.");
@@ -67,9 +56,9 @@ namespace Daisi.Manager.Web.Mcp
                 }
 
                 // Populate scoped McpUserContext
-                mcpUserContext.AccountId = response.HasUserAccountId ? response.UserAccountId : "";
-                mcpUserContext.UserId = response.HasUserId ? response.UserId : "";
-                mcpUserContext.UserName = response.HasUserName ? response.UserName : "";
+                mcpUserContext.AccountId = result.AccountId;
+                mcpUserContext.UserId = result.UserId;
+                mcpUserContext.UserName = result.UserName;
                 mcpUserContext.ClientKey = clientKey;
 
                 // Store for HybridClientKeyProvider
@@ -83,15 +72,6 @@ namespace Daisi.Manager.Web.Mcp
             }
 
             await _next(context);
-        }
-
-        /// <summary>
-        /// Temporary <see cref="IClientKeyProvider"/> that returns a fixed client key.
-        /// Used to create an AuthClient for validating the Bearer token.
-        /// </summary>
-        private class InlineClientKeyProvider(string clientKey) : IClientKeyProvider
-        {
-            public string GetClientKey() => clientKey;
         }
     }
 }
