@@ -123,6 +123,60 @@ The Admin section includes a full news/blog article management page at **Admin >
 
 Articles created here appear on the public website's `/news` page. The previous unauthenticated create page on the public site has been removed in favor of this admin-only workflow.
 
+## MCP Integrations
+
+The Manager provides a full UI for managing MCP (Model Context Protocol) server connections at **Integrations** (`/integrations`). Users can connect external data sources and have their data automatically synced into DAISI Drive for RAG-powered AI search.
+
+**Pages:**
+
+- **MCP Home** (`McpHome.razor`, `/integrations`) — Two-column layout. Left sidebar lists registered MCP servers with status badges (Active, Paused, Error, Connecting). Right panel shows the selected server's detail view.
+- **Add MCP Server** (`AddMcpServer.razor`, `/integrations/add`) — Registration form with fields for server name, URL, authentication type (None, Bearer Token, API Key), auth secret, target repository, and sync interval (5 min to 24 hours).
+- **MCP Server Detail** (`McpServerDetail.razor`) — Component showing editable configuration, status info (last sync, server ID), discovered resources table with per-resource sync toggles, and action buttons (Sync Now, Delete, Save Changes).
+
+**Navigation:** The "Integrations" item appears in the main navigation bar between Marketplace and Account.
+
+## MCP Server (Credit Data Tools)
+
+The Manager hosts an MCP (Model Context Protocol) HTTP endpoint at `/mcp` that exposes credit data tools. Any MCP-compatible client (Claude Desktop, VS Code Copilot, etc.) can connect using a DAISI client key as a Bearer token.
+
+### Authentication
+
+MCP clients authenticate by sending a DAISI client key as a Bearer token in the `Authorization` header. The middleware validates the key against the ORC and scopes all queries to the authenticated user's account.
+
+### Available Tools
+
+| Tool | Description | Parameters |
+|------|-------------|-----------|
+| `get_credit_balance` | Current balance, total earned/spent/purchased, and earn multipliers | none |
+| `get_credit_transactions` | Paginated transaction history | `pageSize` (default 20, max 100), `pageIndex` (default 0) |
+| `get_earnings_summary` | Earning transactions filtered and aggregated by type | `count` (default 50, max 200) |
+| `get_spending_summary` | Spending transactions filtered and aggregated by type | `count` (default 50, max 200) |
+
+### Client Configuration
+
+Claude Desktop (`claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "daisi": {
+      "url": "https://manager.daisinet.com/mcp",
+      "headers": {
+        "Authorization": "Bearer <your-daisi-client-key>"
+      }
+    }
+  }
+}
+```
+
+The client key is the same key generated when creating an App in the Manager.
+
+### Architecture
+
+- `McpBearerAuthMiddleware` — validates Bearer tokens on `/mcp` paths against the ORC
+- `HybridClientKeyProvider` — replaces `CookieClientKeyProvider`; checks for Bearer-derived key first, falls back to cookies for Blazor pages
+- `McpUserContext` — scoped service populated by the middleware with the authenticated user's identity
+- `CreditTools` — `[McpServerToolType]` class containing the 4 credit data tools
+
 ## One-Click Release Automation
 The Manager provides a "Start Release" button on the Releases page that triggers the full DAISI release pipeline — SDK publish (if changed), ORC deploy, and Host release — with a single click. The Releases page is accessible from **Account > Releases** for account owners and from **Admin > Releases** for admin users.
 

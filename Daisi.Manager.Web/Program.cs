@@ -1,7 +1,9 @@
 using Blazored.Toast;
 using Daisi.Manager.Shared.Services;
 using Daisi.Manager.Web.Components;
+using Daisi.Manager.Web.Mcp;
 using Daisi.Manager.Web.Services;
+using Daisi.SDK.Interfaces.Authentication;
 using Daisi.SDK.Models;
 using Daisi.SDK.Web.Extensions;
 using MudBlazor.Services;
@@ -17,13 +19,23 @@ builder.Services.AddBlazoredToast();
 builder.Services.AddMudServices();
 builder.Services.AddHttpClient();
 
-
 builder.Services.AddDaisiForWeb()
-                .AddDaisiMiddleware()
-                .AddDaisiCookieKeyProvider();
+                .AddDaisiMiddleware();
 
+// Replace cookie-only key provider with hybrid (Bearer + cookie) provider
+builder.Services.AddScoped<IClientKeyProvider, HybridClientKeyProvider>();
+
+// MCP server services
+builder.Services.AddScoped<McpUserContext>();
+builder.Services.AddMcpServer()
+    .WithHttpTransport()
+    .WithToolsFromAssembly();
 
 var app = builder.Build();
+
+// MCP Bearer auth must run before DaisiMiddleware
+app.UseMiddleware<McpBearerAuthMiddleware>();
+
 app.UseDaisiMiddleware();
 
 // Configure the HTTP request pipeline.
@@ -39,6 +51,8 @@ app.UseHttpsRedirection();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+
+app.MapMcp();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()

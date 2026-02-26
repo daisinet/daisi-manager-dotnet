@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="0.8.0-preview.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Daisi.Manager.Shared\Daisi.Manager.Shared.csproj" />
   </ItemGroup>
 
