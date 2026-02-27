@@ -4,6 +4,11 @@
 @layout BlankLayout
 @inject NavigationManager nav
 
+<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh;">
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+    <MudText Typo="Typo.h6" Class="mt-4">Redirecting...</MudText>
+</div>
+
 @code {
 	[Inject] AuthService AuthService { get; set; }
 	[Inject] NavigationManager Navigation { get; set; }
@@ -14,13 +19,8 @@
 	[SupplyParameterFromQuery] public string keyExpiration { get; set; }
 	[SupplyParameterFromQuery] public string returnUrl { get; set; }
 
-	protected async override Task OnParametersSetAsync()
-	{
-
-
-	}
 	protected async override Task OnInitializedAsync()
 	{
-		Navigation.NavigateTo(returnUrl ?? "/");
+		Navigation.NavigateTo(returnUrl ?? "/", true);
 	}
 }
