@@ -27,6 +27,7 @@ builder.Services.AddScoped<IClientKeyProvider, HybridClientKeyProvider>();
 
 // MCP server services
 builder.Services.AddScoped<McpUserContext>();
+builder.Services.AddSingleton<IMcpTokenValidator, OrcMcpTokenValidator>();
 builder.Services.AddMcpServer()
     .WithHttpTransport()
     .WithToolsFromAssembly();
@@ -62,3 +63,5 @@ app.MapRazorComponents<App>()
 DaisiStaticSettings.LoadFromConfiguration(builder.Configuration.AsEnumerable().ToDictionary(keySelector: x => x.Key, elementSelector: x => x.Value));
 
 app.Run();
+
+public partial class Program { }

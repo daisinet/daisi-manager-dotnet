@@ -1,0 +1,304 @@
+@page "/data-connectors/{ServerId}"
+@using Daisi.Manager.Shared.Services
+@using Daisi.Protos.V1
+@using Daisi.SDK.Clients.V1.Orc
+
+<div class="mb-3">
+    <a href="data-connectors" class="text-decoration-none">
+        <span class="fa-duotone fa-arrow-left me-1"></span> Back to Data Connectors
+    </a>
+</div>
+
+@if (IsLoading)
+{
+    <div class="d-flex justify-content-center my-5">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (ErrorMessage is not null)
+{
+    <div class="alert alert-danger">@ErrorMessage</div>
+}
+else if (Server is not null)
+{
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>@Server.Name</h3>
+        <div>
+            <button class="btn btn-outline-primary me-2" @onclick="TriggerSync"
+                    disabled="@(Server.Status == McpServerStatus.McpStatusSyncing)">
+                <span class="fa-duotone fa-sync me-1"></span> Sync Now
+            </button>
+            <button class="btn btn-outline-danger" @onclick="ConfirmDelete">
+                <span class="fa-duotone fa-trash me-1"></span> Delete
+            </button>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Server Info</h5>
+                    <table class="table table-sm">
+                        <tr>
+                            <td class="text-muted">URL</td>
+                            <td>@Server.ServerUrl</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Auth Type</td>
+                            <td>@Server.AuthType.ToString().Replace("McpAuth", "")</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Status</td>
+                            <td>
+                                <span class="badge @GetStatusBadgeClass(Server.Status)">
+                                    @Server.Status.ToString().Replace("McpStatus", "")
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Sync Interval</td>
+                            <td>@Server.SyncIntervalMinutes minutes</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Resources Synced</td>
+                            <td>@Server.ResourcesSynced</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Created</td>
+                            <td>@Server.DateCreated.ToDateTime().ToString("g")</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Last Sync</td>
+                            <td>
+                                @if (Server.DateLastSync != null)
+                                {
+                                    @Server.DateLastSync.ToDateTime().ToString("g")
+                                }
+                                else
+                                {
+                                    <span>Never</span>
+                                }
+                            </td>
+                        </tr>
+                    </table>
+
+                    @if (!string.IsNullOrEmpty(Server.LastError))
+                    {
+                        <div class="alert alert-danger mt-2">
+                            <strong>Last Error:</strong> @Server.LastError
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Drive Repository</h5>
+                    <p class="text-muted small">
+                        Synced data is stored in a dedicated Drive repository.
+                        Grant users access to this repository to include MCP data in their search results.
+                    </p>
+                    @if (!string.IsNullOrEmpty(Server.RepositoryId))
+                    {
+                        <p><strong>Repository ID:</strong> @Server.RepositoryId</p>
+                    }
+                    else
+                    {
+                        <p class="text-muted">Repository will be created on first sync.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="mb-3">Discovered Resources</h4>
+    @if (Server.DiscoveredResources.Count == 0)
+    {
+        <div class="alert alert-info">
+            No resources discovered yet. Trigger a sync to discover available resources.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Enabled</th>
+                        <th>Name</th>
+                        <th>URI</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var resource in Server.DiscoveredResources)
+                    {
+                        <tr>
+                            <td>
+                                <input type="checkbox" class="form-check-input"
+                                       checked="@resource.Enabled"
+                                       @onchange="(e) => ToggleResource(resource, (bool)(e.Value ?? false))" />
+                            </td>
+                            <td>@resource.Name</td>
+                            <td class="text-muted small">@resource.Uri</td>
+                            <td class="small">@resource.MimeType</td>
+                            <td class="text-muted small">@resource.Description</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (HasPendingChanges)
+        {
+            <div class="d-flex justify-content-end">
+                <button class="btn btn-primary" @onclick="SaveResourceChanges">
+                    Save Resource Settings
+                </button>
+            </div>
+        }
+    }
+
+    @if (ShowDeleteConfirm)
+    {
+        <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Delete MCP Server</h5>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to delete <strong>@Server.Name</strong>?</p>
+                        <p class="text-muted">This will remove the server registration. Synced files in Drive will remain.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" @onclick="() => ShowDeleteConfirm = false">Cancel</button>
+                        <button class="btn btn-danger" @onclick="DeleteServer">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public string ServerId { get; set; } = string.Empty;
+    [Inject] public McpClientFactory McpClientFactory { get; set; } = default!;
+    [Inject] public IToastService ToastService { get; set; } = default!;
+    [Inject] public NavigationManager NavigationManager { get; set; } = default!;
+
+    bool IsLoading { get; set; } = true;
+    string? ErrorMessage { get; set; }
+    McpServerInfo? Server { get; set; }
+    bool ShowDeleteConfirm { get; set; }
+    bool HasPendingChanges { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadServerAsync();
+    }
+
+    async Task LoadServerAsync()
+    {
+        try
+        {
+            IsLoading = true;
+            var client = McpClientFactory.Create();
+            var response = await client.GetServerAsync(ServerId);
+            Server = response.Server;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    async Task TriggerSync()
+    {
+        try
+        {
+            var client = McpClientFactory.Create();
+            var response = await client.TriggerSyncAsync(ServerId);
+            if (response.Success)
+            {
+                ToastService.ShowSuccess("Sync triggered");
+                await LoadServerAsync();
+            }
+            else
+            {
+                ToastService.ShowError($"Sync failed: {response.Error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+    }
+
+    void ToggleResource(McpDiscoveredResource resource, bool enabled)
+    {
+        resource.Enabled = enabled;
+        HasPendingChanges = true;
+    }
+
+    async Task SaveResourceChanges()
+    {
+        if (Server == null) return;
+
+        try
+        {
+            var client = McpClientFactory.Create();
+            var request = new UpdateMcpServerRequest { ServerId = ServerId };
+            request.DiscoveredResources.AddRange(Server.DiscoveredResources);
+            await client.UpdateServerAsync(request);
+            HasPendingChanges = false;
+            ToastService.ShowSuccess("Resource settings saved");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+    }
+
+    void ConfirmDelete() => ShowDeleteConfirm = true;
+
+    async Task DeleteServer()
+    {
+        try
+        {
+            var client = McpClientFactory.Create();
+            var response = await client.RemoveServerAsync(ServerId);
+            if (response.Success)
+            {
+                ToastService.ShowSuccess("Server deleted");
+                NavigationManager.NavigateTo("/data-connectors");
+            }
+            else
+            {
+                ToastService.ShowError($"Delete failed: {response.Error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+    }
+
+    static string GetStatusBadgeClass(McpServerStatus status) => status switch
+    {
+        McpServerStatus.McpStatusConnected => "bg-success",
+        McpServerStatus.McpStatusSyncing => "bg-info",
+        McpServerStatus.McpStatusError => "bg-danger",
+        McpServerStatus.McpStatusDisabled => "bg-secondary",
+        _ => "bg-warning"
+    };
+}

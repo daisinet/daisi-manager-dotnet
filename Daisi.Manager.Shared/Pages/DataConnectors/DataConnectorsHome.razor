@@ -1,0 +1,185 @@
+@page "/data-connectors"
+@using Daisi.Manager.Shared.Services
+@using Daisi.Protos.V1
+@using Daisi.SDK.Clients.V1.Orc
+
+<h3 class="mb-4">Data Connectors</h3>
+<p class="text-muted mb-4">Connect external data sources via MCP to make their content searchable through Drive's vector search.</p>
+
+@if (IsLoading)
+{
+    <div class="d-flex justify-content-center my-5">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (ErrorMessage is not null)
+{
+    <div class="alert alert-danger">@ErrorMessage</div>
+}
+else
+{
+    <div class="d-flex justify-content-end mb-3">
+        <button class="btn btn-primary" @onclick="ShowAddDialog">
+            <span class="fa-duotone fa-plus me-1"></span> Add MCP Server
+        </button>
+    </div>
+
+    @if (Servers.Count == 0)
+    {
+        <div class="alert alert-info">
+            No MCP servers registered yet. Click "Add MCP Server" to connect an external data source.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Server URL</th>
+                        <th>Status</th>
+                        <th>Resources</th>
+                        <th>Last Sync</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var server in Servers)
+                    {
+                        <tr>
+                            <td>
+                                <a href="data-connectors/@server.Id">@server.Name</a>
+                            </td>
+                            <td class="text-muted small">@server.ServerUrl</td>
+                            <td>
+                                <span class="badge @GetStatusBadgeClass(server.Status)">
+                                    @server.Status.ToString().Replace("McpStatus", "")
+                                </span>
+                            </td>
+                            <td>@server.ResourcesSynced / @server.DiscoveredResources.Count</td>
+                            <td class="text-muted small">
+                                @if (server.DateLastSync != null)
+                                {
+                                    @server.DateLastSync.ToDateTime().ToString("g")
+                                }
+                                else
+                                {
+                                    <span>Never</span>
+                                }
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => TriggerSync(server.Id)"
+                                        disabled="@(server.Status == McpServerStatus.McpStatusSyncing)">
+                                    <span class="fa-duotone fa-sync"></span>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveServer(server.Id)">
+                                    <span class="fa-duotone fa-trash"></span>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    @if (ShowAdd)
+    {
+        <AddMcpServerDialog OnClose="OnAddDialogClosed" />
+    }
+}
+
+@code {
+    bool IsLoading { get; set; } = true;
+    string? ErrorMessage { get; set; }
+    List<McpServerInfo> Servers { get; set; } = [];
+    bool ShowAdd { get; set; }
+
+    [Inject] public McpClientFactory McpClientFactory { get; set; } = default!;
+    [Inject] public IToastService ToastService { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadServersAsync();
+    }
+
+    async Task LoadServersAsync()
+    {
+        try
+        {
+            IsLoading = true;
+            var client = McpClientFactory.Create();
+            var response = await client.ListServersAsync();
+            Servers = response.Servers.ToList();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading servers: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    void ShowAddDialog() => ShowAdd = true;
+
+    async Task OnAddDialogClosed(bool saved)
+    {
+        ShowAdd = false;
+        if (saved)
+            await LoadServersAsync();
+    }
+
+    async Task TriggerSync(string serverId)
+    {
+        try
+        {
+            var client = McpClientFactory.Create();
+            var response = await client.TriggerSyncAsync(serverId);
+            if (response.Success)
+                ToastService.ShowSuccess("Sync triggered successfully");
+            else
+                ToastService.ShowError($"Failed to trigger sync: {response.Error}");
+            await LoadServersAsync();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+    }
+
+    async Task RemoveServer(string serverId)
+    {
+        try
+        {
+            var client = McpClientFactory.Create();
+            var response = await client.RemoveServerAsync(serverId);
+            if (response.Success)
+            {
+                ToastService.ShowSuccess("Server removed");
+                await LoadServersAsync();
+            }
+            else
+            {
+                ToastService.ShowError($"Failed to remove: {response.Error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error: {ex.Message}");
+        }
+    }
+
+    static string GetStatusBadgeClass(McpServerStatus status) => status switch
+    {
+        McpServerStatus.McpStatusConnected => "bg-success",
+        McpServerStatus.McpStatusSyncing => "bg-info",
+        McpServerStatus.McpStatusError => "bg-danger",
+        McpServerStatus.McpStatusDisabled => "bg-secondary",
+        _ => "bg-warning"
+    };
+}

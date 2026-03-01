@@ -176,6 +176,25 @@ The client key is the same key generated when creating an App in the Manager.
 - `HybridClientKeyProvider` — replaces `CookieClientKeyProvider`; checks for Bearer-derived key first, falls back to cookies for Blazor pages
 - `McpUserContext` — scoped service populated by the middleware with the authenticated user's identity
 - `CreditTools` — `[McpServerToolType]` class containing the 4 credit data tools
+- `DataConnectorTools` — `[McpServerToolType]` class containing 3 data connector management tools
+
+### Data Connector Tools
+
+In addition to credit tools, the MCP endpoint exposes tools for managing MCP data connectors:
+
+| Tool | Description | Parameters |
+|------|-------------|-----------|
+| `list_data_connectors` | List all registered MCP data connectors for the account | none |
+| `get_connector_status` | Get detailed status of a specific connector | `serverId` |
+| `trigger_connector_sync` | Trigger an immediate sync for a connector | `serverId` |
+
+### Data Connectors UI
+
+The Manager provides a dedicated UI for managing MCP data connectors at **Data Connectors** (`/data-connectors`):
+
+- **DataConnectorsHome.razor** (`/data-connectors`) — Lists registered MCP servers with status badges, last sync time, and resource counts. Actions: Add, Sync Now, Delete.
+- **AddMcpServerDialog.razor** — Modal form for registering new MCP servers with name, URL, auth type, auth secret, and sync interval.
+- **McpServerDetail.razor** (`/data-connectors/{ServerId}`) — Server info, Drive repository link, discovered resources table with enable/disable toggles, Sync Now button, and Delete with confirmation.
 
 ## One-Click Release Automation
 The Manager provides a "Start Release" button on the Releases page that triggers the full DAISI release pipeline — SDK publish (if changed), ORC deploy, and Host release — with a single click. The Releases page is accessible from **Account > Releases** for account owners and from **Admin > Releases** for admin users.
