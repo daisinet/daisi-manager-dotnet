@@ -12,6 +12,11 @@
                             <i class="fa-duotone fa-circle me-1"></i> @SelectedHost.Status
                         </span>
                     </div>
+                    <div class="mb-3">
+                        <button class="btn btn-sm btn-outline-warning" @onclick=OnCopySecretKey>
+                            <i class="fa-duotone fa-key me-1"></i> Copy Secret Key
+                        </button>
+                    </div>
                     <table class="table table-dark table-borderless mb-0">
                         <tbody>
                             @if (!string.IsNullOrWhiteSpace(SelectedHost.Region))
@@ -274,6 +279,8 @@
 @code {
     [Parameter] public Host SelectedHost { get; set; }
     [Inject] public HostClientFactory HostClientFactory { get; set; }
+    [Inject] public IJSRuntime JS { get; set; }
+    [Inject] public IToastService ToastService { get; set; }
 
     string selectedTimeframe = "month";
     bool loadingStats = false;
@@ -371,6 +378,27 @@
         if (seconds < 60) return $"{seconds}s";
         if (seconds < 3600) return $"{seconds / 60}m {seconds % 60}s";
         return $"{seconds / 3600}h {(seconds % 3600) / 60}m";
+    }
+
+    async Task OnCopySecretKey()
+    {
+        try
+        {
+            var response = await HostClientFactory.Create().GetSecretKeyAsync(new GetSecretKeyRequest { HostId = SelectedHost.Id });
+            if (!string.IsNullOrEmpty(response.SecretKey))
+            {
+                await JS.InvokeVoidAsync("navigator.clipboard.writeText", response.SecretKey);
+                ToastService.ShowInfo("Secret key copied to clipboard.");
+            }
+            else
+            {
+                ToastService.ShowWarning("No secret key found for this host.");
+            }
+        }
+        catch
+        {
+            ToastService.ShowError("Unable to retrieve secret key.");
+        }
     }
 
     string GetStatusBadge(HostStatus status) => status switch

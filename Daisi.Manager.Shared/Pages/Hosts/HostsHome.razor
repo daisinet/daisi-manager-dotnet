@@ -1,4 +1,5 @@
 ﻿@page "/hosts"
+@page "/hosts/{HostId}"
 @attribute [Manager]
 @using Blazored.Toast.Services
 @using Daisi.Manager.Shared.Pages.Hosts.SettingsComponents
@@ -33,7 +34,7 @@
             <ul class="list-group">
                 @foreach (var host in Hosts)
                 {
-                    <a href="#" @onclick:preventDefault class="list-group-item @(host.Id == SelectedHost?.Id ? "active" : "") cursor-pointer" @onclick="() => SelectHost(host)">
+                    <a href="/hosts/@host.Id" class="list-group-item @(host.Id == SelectedHost?.Id ? "active" : "") cursor-pointer">
                         <h4 class="mt-2">
 
                             <OnlineStatusIcon Online="@(host.Status == HostStatus.Online)"></OnlineStatusIcon>
@@ -103,7 +104,7 @@
 
                                 @foreach (var h in hostGroup)
                                 {
-                                    <li><a class="dropdown-item" href="#" @onclick:preventDefault @onclick=@(() => SelectHost(h))>@h.Name</a></li>
+                                    <li><a class="dropdown-item" href="/hosts/@h.Id">@h.Name</a></li>
                                 }
 
                             }
@@ -214,13 +215,30 @@
 
     bool MoreHosts => totalHostCount > (pageIndex + 1) * pageSize;
 
+    [Parameter] public string? HostId { get; set; }
+
     [Inject] public IFormFactor FormFactor { get; set; }
     [Inject] public HostClientFactory HostClientFactory { get; set; }
     [Inject] public IDialogService DialogService { get; set; }
+    [Inject] public NavigationManager NavigationManager { get; set; }
 
-    protected async override Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        await LoadHostsAsync();
+        if (!Hosts.Any())
+            await LoadHostsAsync(selectFirst: false);
+
+        if (!string.IsNullOrEmpty(HostId))
+        {
+            var match = Hosts.FirstOrDefault(h => h.Id == HostId);
+            if (match is not null)
+                SelectedHost = match;
+            else
+                SelectedHost = Hosts.FirstOrDefault();
+        }
+        else
+        {
+            SelectedHost ??= Hosts.FirstOrDefault();
+        }
     }
     async Task OnSearchKeyUp(KeyboardEventArgs keyboardEventArgs)
     {
@@ -230,11 +248,11 @@
             await LoadHostsAsync();
         }
     }
-    async Task LoadHostsAsync()
+    async Task LoadHostsAsync(bool selectFirst = true)
     {
         loadingHosts = true;
 
-        var request = new GetHostsRequest();        
+        var request = new GetHostsRequest();
         request.Paging.PageIndex = pageIndex;
         request.Paging.PageSize = pageSize;
         request.Paging.SearchTerm = SearchTerm ?? string.Empty;
@@ -243,9 +261,13 @@
         totalHostCount = response.TotalCount;
 
         Hosts = response.Hosts.OrderBy(h => h.Name).ToList();
-        var firstHost = Hosts.FirstOrDefault();
-        if (firstHost is not null)
-            await SelectHost(firstHost);
+
+        if (selectFirst)
+        {
+            var firstHost = Hosts.FirstOrDefault();
+            if (firstHost is not null)
+                await SelectHost(firstHost);
+        }
 
         loadingHosts = false;
     }
@@ -278,8 +300,8 @@
     }
     async Task SelectHost(Host host)
     {
-        //CurrentPage = HostPages.Dashboard;
         SelectedHost = host;
+        NavigationManager.NavigateTo($"/hosts/{host.Id}");
         StateHasChanged();
     }
     string GetStatusClass(Host host)

@@ -11,6 +11,7 @@
         <p>Please make sure to save your secret key in a safe place and never share this with untrusted sources. You will need it to configure your host software.</p>
         <div class="mt-4 p-3 border rounded-3 text-warning">
             <label class="fw-bold">Secret Key: @registerHostResponse.SecretKey</label>
+            <button class="btn btn-sm p-0 ms-2" @onclick=OnCopySecretKey><i class="fa-duotone fa-copy"></i></button>
         </div>
         <div class="mt-4">
             <button class="btn btn-primary" @onclick=@(() => NavigationManager.NavigateTo($"/hosts/{registerHostResponse.HostId}"))>Go to Your Host Details</button>
@@ -108,6 +109,8 @@
     [Inject] NavigationManager NavigationManager { get; set; }
     [Inject] AuthService auth { get; set; }
     [Inject] HostClientFactory hostClientFactory { get; set; }
+    [Inject] IJSRuntime JS { get; set; }
+    [Inject] IToastService ToastService { get; set; }
     bool isLoading = false;
     bool isSetupComplete = false;
     RegisterHostResponse registerHostResponse;
@@ -120,5 +123,10 @@
     {
         registerHostResponse = await hostClientFactory.Create().RegisterAsync(new RegisterHostRequest() { Host = host });
         isSetupComplete = registerHostResponse != null && !string.IsNullOrEmpty(registerHostResponse.SecretKey);
+    }
+    async Task OnCopySecretKey()
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", registerHostResponse.SecretKey);
+        ToastService.ShowInfo("Secret key copied to clipboard.");
     }
 }
