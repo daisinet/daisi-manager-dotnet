@@ -196,6 +196,35 @@ The Manager provides a dedicated UI for managing MCP data connectors at **Data C
 - **AddMcpServerDialog.razor** — Modal form for registering new MCP servers with name, URL, auth type, auth secret, and sync interval.
 - **McpServerDetail.razor** (`/data-connectors/{ServerId}`) — Server info, Drive repository link, discovered resources table with enable/disable toggles, Sync Now button, and Delete with confirmation.
 
+## Phase 3: Training UI
+
+### Training Pages
+
+A new section in the Manager for managing LoRA fine-tuning, accessible from the top navigation bar under **Training** (`/training`). The page has three tabs:
+
+- **Datasets** (`DatasetsTab.razor`) — List all training datasets with name, base model, status, sample count, and size. Create new datasets from Drive file IDs or delete existing ones. Status badges indicate whether a dataset is generating, ready, or failed.
+- **Training Jobs** (`TrainingJobsTab.razor`) — List all training jobs with status, progress bars, and cost estimates. Submit new jobs via a dialog with hyperparameter controls (epochs, batch size, learning rate, LoRA rank/alpha, QLoRA toggle, max sequence length). Cancel active jobs. Click a job row to view its detail page.
+- **Adapters** (`AdaptersTab.razor`) — List all LoRA adapters with name, base model, status, file size, and source training job. Activate/deactivate toggle per adapter (only one active adapter per base model per account). Delete adapters.
+
+### Job Detail Page
+
+`JobDetail.razor` (`/training/jobs/{jobId}`) provides real-time training progress monitoring:
+
+- **Progress bar** with epoch, step, loss, elapsed time, and estimated remaining time.
+- **Details card** showing base model, dataset, cost, creation date, and result adapter link.
+- **Hyperparameters card** showing all training configuration.
+- **Auto-refresh** every 5 seconds for active jobs.
+- **Cancel** button for active jobs.
+
+### Dialogs
+
+- **CreateDatasetDialog** — MudDialog form for creating datasets with name, description, base model, and comma-separated Drive file IDs.
+- **SubmitJobDialog** — MudDialog form for submitting training jobs with dataset ID, base model, tunable hyperparameters, and cost estimation button.
+
+### Navigation
+
+A "Training" link with `fa-duotone fa-brain-circuit` icon has been added to the `MainLayout` top navigation between "Integrations" and "Account".
+
 ## One-Click Release Automation
 The Manager provides a "Start Release" button on the Releases page that triggers the full DAISI release pipeline — SDK publish (if changed), ORC deploy, and Host release — with a single click. The Releases page is accessible from **Account > Releases** for account owners and from **Admin > Releases** for admin users.
 
