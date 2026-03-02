@@ -25,7 +25,7 @@
 
         <div class="my-2 input-group">
             <input disabled="@loadingHosts" class="form-control" @bind=SearchTerm placeholder="Search Your Account's Hosts" @onkeyup=OnSearchKeyUp />
-            <button class="btn btn-outline-success" @onclick=LoadHostsAsync>
+            <button class="btn btn-outline-success" @onclick="@(() => LoadHostsAsync())">
                 <i class="fa-duotone fa-search"></i>
             </button>
         </div>
@@ -91,7 +91,7 @@
                             <li>
                                 <div class="input-group">
                                     <input disabled="@loadingHosts" class="form-control" @bind=SearchTerm placeholder="Search Hosts" @onkeyup=OnSearchKeyUp />
-                                    <button class="btn btn-outline-success" @onclick=LoadHostsAsync @onclick:stopPropagation>
+                                    <button class="btn btn-outline-success" @onclick="@(() => LoadHostsAsync())" @onclick:stopPropagation>
                                         <i class="fa-duotone fa-search"></i>
                                     </button>
                                 </div>
