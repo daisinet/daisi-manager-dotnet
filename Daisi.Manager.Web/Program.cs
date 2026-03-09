@@ -53,7 +53,7 @@ app.UseAntiforgery();
 
 app.MapStaticAssets();
 
-app.MapMcp();
+app.MapMcp("/mcp");
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
