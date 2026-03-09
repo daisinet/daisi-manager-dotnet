@@ -123,6 +123,108 @@ The Admin section includes a full news/blog article management page at **Admin >
 
 Articles created here appear on the public website's `/news` page. The previous unauthenticated create page on the public site has been removed in favor of this admin-only workflow.
 
+## MCP Integrations
+
+The Manager provides a full UI for managing MCP (Model Context Protocol) server connections at **Integrations** (`/integrations`). Users can connect external data sources and have their data automatically synced into DAISI Drive for RAG-powered AI search.
+
+**Pages:**
+
+- **MCP Home** (`McpHome.razor`, `/integrations`) — Two-column layout. Left sidebar lists registered MCP servers with status badges (Active, Paused, Error, Connecting). Right panel shows the selected server's detail view.
+- **Add MCP Server** (`AddMcpServer.razor`, `/integrations/add`) — Registration form with fields for server name, URL, authentication type (None, Bearer Token, API Key), auth secret, target repository, and sync interval (5 min to 24 hours).
+- **MCP Server Detail** (`McpServerDetail.razor`) — Component showing editable configuration, status info (last sync, server ID), discovered resources table with per-resource sync toggles, and action buttons (Sync Now, Delete, Save Changes).
+
+**Navigation:** The "Integrations" item appears in the main navigation bar between Marketplace and Account.
+
+## MCP Server (Credit Data Tools)
+
+The Manager hosts an MCP (Model Context Protocol) HTTP endpoint at `/mcp` that exposes credit data tools. Any MCP-compatible client (Claude Desktop, VS Code Copilot, etc.) can connect using a DAISI client key as a Bearer token.
+
+### Authentication
+
+MCP clients authenticate by sending a DAISI client key as a Bearer token in the `Authorization` header. The middleware validates the key against the ORC and scopes all queries to the authenticated user's account.
+
+### Available Tools
+
+| Tool | Description | Parameters |
+|------|-------------|-----------|
+| `get_credit_balance` | Current balance, total earned/spent/purchased, and earn multipliers | none |
+| `get_credit_transactions` | Paginated transaction history | `pageSize` (default 20, max 100), `pageIndex` (default 0) |
+| `get_earnings_summary` | Earning transactions filtered and aggregated by type | `count` (default 50, max 200) |
+| `get_spending_summary` | Spending transactions filtered and aggregated by type | `count` (default 50, max 200) |
+
+### Client Configuration
+
+Claude Desktop (`claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "daisi": {
+      "url": "https://manager.daisinet.com/mcp",
+      "headers": {
+        "Authorization": "Bearer <your-daisi-client-key>"
+      }
+    }
+  }
+}
+```
+
+The client key is the same key generated when creating an App in the Manager.
+
+### Architecture
+
+- `McpBearerAuthMiddleware` — validates Bearer tokens on `/mcp` paths against the ORC
+- `HybridClientKeyProvider` — replaces `CookieClientKeyProvider`; checks for Bearer-derived key first, falls back to cookies for Blazor pages
+- `McpUserContext` — scoped service populated by the middleware with the authenticated user's identity
+- `CreditTools` — `[McpServerToolType]` class containing the 4 credit data tools
+- `DataConnectorTools` — `[McpServerToolType]` class containing 3 data connector management tools
+
+### Data Connector Tools
+
+In addition to credit tools, the MCP endpoint exposes tools for managing MCP data connectors:
+
+| Tool | Description | Parameters |
+|------|-------------|-----------|
+| `list_data_connectors` | List all registered MCP data connectors for the account | none |
+| `get_connector_status` | Get detailed status of a specific connector | `serverId` |
+| `trigger_connector_sync` | Trigger an immediate sync for a connector | `serverId` |
+
+### Data Connectors UI
+
+The Manager provides a dedicated UI for managing MCP data connectors at **Data Connectors** (`/data-connectors`):
+
+- **DataConnectorsHome.razor** (`/data-connectors`) — Lists registered MCP servers with status badges, last sync time, and resource counts. Actions: Add, Sync Now, Delete.
+- **AddMcpServerDialog.razor** — Modal form for registering new MCP servers with name, URL, auth type, auth secret, and sync interval.
+- **McpServerDetail.razor** (`/data-connectors/{ServerId}`) — Server info, Drive repository link, discovered resources table with enable/disable toggles, Sync Now button, and Delete with confirmation.
+
+## Phase 3: Training UI
+
+### Training Pages
+
+A new section in the Manager for managing LoRA fine-tuning, accessible from the top navigation bar under **Training** (`/training`). The page has three tabs:
+
+- **Datasets** (`DatasetsTab.razor`) — List all training datasets with name, base model, status, sample count, and size. Create new datasets from Drive file IDs or delete existing ones. Status badges indicate whether a dataset is generating, ready, or failed.
+- **Training Jobs** (`TrainingJobsTab.razor`) — List all training jobs with status, progress bars, and cost estimates. Submit new jobs via a dialog with hyperparameter controls (epochs, batch size, learning rate, LoRA rank/alpha, QLoRA toggle, max sequence length). Cancel active jobs. Click a job row to view its detail page.
+- **Adapters** (`AdaptersTab.razor`) — List all LoRA adapters with name, base model, status, file size, and source training job. Activate/deactivate toggle per adapter (only one active adapter per base model per account). Delete adapters.
+
+### Job Detail Page
+
+`JobDetail.razor` (`/training/jobs/{jobId}`) provides real-time training progress monitoring:
+
+- **Progress bar** with epoch, step, loss, elapsed time, and estimated remaining time.
+- **Details card** showing base model, dataset, cost, creation date, and result adapter link.
+- **Hyperparameters card** showing all training configuration.
+- **Auto-refresh** every 5 seconds for active jobs.
+- **Cancel** button for active jobs.
+
+### Dialogs
+
+- **CreateDatasetDialog** — MudDialog form for creating datasets with name, description, base model, and comma-separated Drive file IDs.
+- **SubmitJobDialog** — MudDialog form for submitting training jobs with dataset ID, base model, tunable hyperparameters, and cost estimation button.
+
+### Navigation
+
+A "Training" link with `fa-duotone fa-brain-circuit` icon has been added to the `MainLayout` top navigation between "Integrations" and "Account".
+
 ## One-Click Release Automation
 The Manager provides a "Start Release" button on the Releases page that triggers the full DAISI release pipeline — SDK publish (if changed), ORC deploy, and Host release — with a single click. The Releases page is accessible from **Account > Releases** for account owners and from **Admin > Releases** for admin users.
 

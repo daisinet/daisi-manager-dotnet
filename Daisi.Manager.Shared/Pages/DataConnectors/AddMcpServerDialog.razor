@@ -1,0 +1,113 @@
+@using Daisi.Manager.Shared.Services
+@using Daisi.Protos.V1
+@using Daisi.SDK.Clients.V1.Orc
+
+<div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add MCP Server</h5>
+                <button type="button" class="btn-close" @onclick="Cancel"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Name</label>
+                    <input type="text" class="form-control" @bind="Name" placeholder="My CRM Data" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Server URL</label>
+                    <input type="url" class="form-control" @bind="ServerUrl" placeholder="https://mcp-server.example.com" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Authentication</label>
+                    <select class="form-select" @bind="AuthType">
+                        <option value="@McpAuthType.McpAuthNone">None</option>
+                        <option value="@McpAuthType.McpAuthBearer">Bearer Token</option>
+                        <option value="@McpAuthType.McpAuthApiKey">API Key</option>
+                    </select>
+                </div>
+                @if (AuthType != McpAuthType.McpAuthNone)
+                {
+                    <div class="mb-3">
+                        <label class="form-label">
+                            @(AuthType == McpAuthType.McpAuthBearer ? "Bearer Token" : "API Key")
+                        </label>
+                        <input type="password" class="form-control" @bind="AuthSecret" />
+                    </div>
+                }
+                <div class="mb-3">
+                    <label class="form-label">Sync Interval (minutes)</label>
+                    <input type="number" class="form-control" @bind="SyncIntervalMinutes" min="5" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(Error))
+                {
+                    <div class="alert alert-danger">@Error</div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="Cancel" disabled="@IsSaving">Cancel</button>
+                <button type="button" class="btn btn-primary" @onclick="Save" disabled="@IsSaving">
+                    @if (IsSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                    }
+                    Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback<bool> OnClose { get; set; }
+    [Inject] public McpClientFactory McpClientFactory { get; set; } = default!;
+    [Inject] public IToastService ToastService { get; set; } = default!;
+
+    string Name { get; set; } = string.Empty;
+    string ServerUrl { get; set; } = string.Empty;
+    McpAuthType AuthType { get; set; } = McpAuthType.McpAuthNone;
+    string AuthSecret { get; set; } = string.Empty;
+    int SyncIntervalMinutes { get; set; } = 60;
+    string? Error { get; set; }
+    bool IsSaving { get; set; }
+
+    async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(Name) || string.IsNullOrWhiteSpace(ServerUrl))
+        {
+            Error = "Name and Server URL are required.";
+            return;
+        }
+
+        try
+        {
+            IsSaving = true;
+            Error = null;
+
+            var client = McpClientFactory.Create();
+            var response = await client.RegisterServerAsync(
+                Name, ServerUrl, AuthType, AuthSecret, SyncIntervalMinutes);
+
+            if (response.Success)
+            {
+                ToastService.ShowSuccess($"MCP server '{Name}' registered successfully");
+                await OnClose.InvokeAsync(true);
+            }
+            else
+            {
+                Error = response.Error?.ToString() ?? "Registration failed";
+            }
+        }
+        catch (Exception ex)
+        {
+            Error = ex.Message;
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    async Task Cancel() => await OnClose.InvokeAsync(false);
+}
