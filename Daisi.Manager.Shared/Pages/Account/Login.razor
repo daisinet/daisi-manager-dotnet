@@ -41,7 +41,7 @@
 
 			<hr class="mt-5" />
 			<div class="mt-4">
-				<a class="text-light" href="/account/register">Don't have an account? Register here.</a>
+				<a class="text-light" href="/account/register@(!string.IsNullOrWhiteSpace(ReturnUrl) ? $"?returnUrl={Uri.EscapeDataString(ReturnUrl)}" : "")">Don't have an account? Register here.</a>
 			</div>
 		</div>
 
