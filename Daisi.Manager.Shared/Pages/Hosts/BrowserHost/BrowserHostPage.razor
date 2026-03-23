@@ -111,7 +111,7 @@
                     @if (isOnline)
                     {
                         <div class="d-flex align-items-center">
-                            <span class="text-success"><i class="fa-duotone fa-circle-check"></i> Online as @selectedHostName</span>
+                            <span class="text-success"><i class="fa-duotone fa-circle-check"></i> Online</span>
                             <button class="btn btn-sm btn-outline-danger ms-auto" @onclick="GoOffline">Disconnect</button>
                         </div>
                         <div><span class="text-secondary">Uptime:</span> @GetUptime()</div>
@@ -216,7 +216,7 @@
         </div>
 
         @* Chat messages *@
-        <div class="flex-grow-1 overflow-auto p-3" style="font-family: monospace; font-size: 13px; white-space: pre-wrap;">
+        <div id="chat-messages-panel" class="flex-grow-1 overflow-auto p-3" style="font-family: monospace; font-size: 13px; white-space: pre-wrap;">
             @((MarkupString)chatHtml)
             @if (isGenerating)
             {
@@ -519,7 +519,7 @@
     private async Task StopGeneration() => await JS.InvokeVoidAsync("browserHost.stopGeneration");
     private async Task OnChatKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") await SendMessage(); }
 
-    [JSInvokable] public void OnToken(string token) { chatHtml += System.Net.WebUtility.HtmlEncode(token); InvokeAsync(StateHasChanged); }
+    [JSInvokable] public void OnToken(string token) { chatHtml += System.Net.WebUtility.HtmlEncode(token); InvokeAsync(async () => { StateHasChanged(); await ScrollToBottom("chat-messages-panel"); }); }
     [JSInvokable] public void OnGenerationComplete(int tokenCount, double tokPerSec) { statsText = $"{tokenCount} tokens | {tokPerSec:F1} tok/s | VRAM: {vramMb} MB"; InvokeAsync(StateHasChanged); }
     [JSInvokable] public void OnLoadProgress(string phase, long bytesDownloaded, long totalBytes) { loadProgressPct = totalBytes > 0 ? (int)(bytesDownloaded * 100 / totalBytes) : 0; loadProgress = $"{phase}... {bytesDownloaded / 1024 / 1024}/{totalBytes / 1024 / 1024} MB"; InvokeAsync(StateHasChanged); }
     [JSInvokable] public void OnOrcConnectionChanged(bool connected) { isOnline = connected; AddLog(connected ? "Connected to ORC" : "Disconnected from ORC", connected ? "text-success" : "text-warning"); InvokeAsync(StateHasChanged); }
@@ -528,7 +528,7 @@
         var css = level switch { "error" => "text-danger", "warn" => "text-warning", "success" => "text-success", _ => "text-secondary" };
         if (message.Contains("HeartbeatRequest") && level == "success") heartbeatCount++;
         AddLog(message, css);
-        InvokeAsync(StateHasChanged);
+        InvokeAsync(async () => { StateHasChanged(); await ScrollToBottom("orc-log-panel"); });
     }
 
     private void AddLog(string text, string css)
@@ -539,6 +539,12 @@
     }
 
     private void ClearLog() { orcLogEntries.Clear(); }
+
+    private async Task ScrollToBottom(string elementId)
+    {
+        try { await JS.InvokeVoidAsync("eval", $"document.getElementById('{elementId}')?.scrollTo(0, document.getElementById('{elementId}').scrollHeight)"); }
+        catch { }
+    }
 
     private static string Capitalize(string s) => string.IsNullOrEmpty(s) ? s : char.ToUpper(s[0]) + s[1..];
 
