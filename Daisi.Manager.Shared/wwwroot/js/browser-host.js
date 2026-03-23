@@ -1,3 +1,4975 @@
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
+var __commonJS = (cb, mod) => function __require() {
+  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+};
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+// node_modules/nice-grpc-common/lib/Metadata.js
+var require_Metadata = __commonJS({
+  "node_modules/nice-grpc-common/lib/Metadata.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Metadata = void 0;
+    exports.Metadata = function Metadata2(init) {
+      const data = /* @__PURE__ */ new Map();
+      const metadata = {
+        set(key, value) {
+          key = normalizeKey(key);
+          if (Array.isArray(value)) {
+            if (value.length === 0) {
+              data.delete(key);
+            } else {
+              for (const item of value) {
+                validate(key, item);
+              }
+              data.set(key, key.endsWith("-bin") ? value : [value.join(", ")]);
+            }
+          } else {
+            validate(key, value);
+            data.set(key, [value]);
+          }
+          return metadata;
+        },
+        append(key, value) {
+          key = normalizeKey(key);
+          validate(key, value);
+          let values = data.get(key);
+          if (values == null) {
+            values = [];
+            data.set(key, values);
+          }
+          values.push(value);
+          if (!key.endsWith("-bin")) {
+            data.set(key, [values.join(", ")]);
+          }
+          return metadata;
+        },
+        delete(key) {
+          key = normalizeKey(key);
+          data.delete(key);
+        },
+        get(key) {
+          var _a;
+          key = normalizeKey(key);
+          return (_a = data.get(key)) === null || _a === void 0 ? void 0 : _a[0];
+        },
+        getAll(key) {
+          var _a;
+          key = normalizeKey(key);
+          return (_a = data.get(key)) !== null && _a !== void 0 ? _a : [];
+        },
+        has(key) {
+          key = normalizeKey(key);
+          return data.has(key);
+        },
+        [Symbol.iterator]() {
+          return data[Symbol.iterator]();
+        }
+      };
+      if (init != null) {
+        const entries = isIterable(init) ? init : Object.entries(init);
+        for (const [key, value] of entries) {
+          metadata.set(key, value);
+        }
+      }
+      return metadata;
+    };
+    function normalizeKey(key) {
+      return key.toLowerCase();
+    }
+    function validate(key, value) {
+      if (!/^[0-9a-z_.-]+$/.test(key)) {
+        throw new Error(`Metadata key '${key}' contains illegal characters`);
+      }
+      if (key.endsWith("-bin")) {
+        if (!(value instanceof Uint8Array)) {
+          throw new Error(`Metadata key '${key}' ends with '-bin', thus it must have binary value`);
+        }
+      } else {
+        if (typeof value !== "string") {
+          throw new Error(`Metadata key '${key}' doesn't end with '-bin', thus it must have string value`);
+        }
+        if (!/^[ -~]*$/.test(value)) {
+          throw new Error(`Metadata value '${value}' of key '${key}' contains illegal characters`);
+        }
+      }
+    }
+    function isIterable(value) {
+      return Symbol.iterator in value;
+    }
+  }
+});
+
+// node_modules/nice-grpc-common/lib/Status.js
+var require_Status = __commonJS({
+  "node_modules/nice-grpc-common/lib/Status.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Status = void 0;
+    var Status2;
+    (function(Status3) {
+      Status3[Status3["OK"] = 0] = "OK";
+      Status3[Status3["CANCELLED"] = 1] = "CANCELLED";
+      Status3[Status3["UNKNOWN"] = 2] = "UNKNOWN";
+      Status3[Status3["INVALID_ARGUMENT"] = 3] = "INVALID_ARGUMENT";
+      Status3[Status3["DEADLINE_EXCEEDED"] = 4] = "DEADLINE_EXCEEDED";
+      Status3[Status3["NOT_FOUND"] = 5] = "NOT_FOUND";
+      Status3[Status3["ALREADY_EXISTS"] = 6] = "ALREADY_EXISTS";
+      Status3[Status3["PERMISSION_DENIED"] = 7] = "PERMISSION_DENIED";
+      Status3[Status3["RESOURCE_EXHAUSTED"] = 8] = "RESOURCE_EXHAUSTED";
+      Status3[Status3["FAILED_PRECONDITION"] = 9] = "FAILED_PRECONDITION";
+      Status3[Status3["ABORTED"] = 10] = "ABORTED";
+      Status3[Status3["OUT_OF_RANGE"] = 11] = "OUT_OF_RANGE";
+      Status3[Status3["UNIMPLEMENTED"] = 12] = "UNIMPLEMENTED";
+      Status3[Status3["INTERNAL"] = 13] = "INTERNAL";
+      Status3[Status3["UNAVAILABLE"] = 14] = "UNAVAILABLE";
+      Status3[Status3["DATA_LOSS"] = 15] = "DATA_LOSS";
+      Status3[Status3["UNAUTHENTICATED"] = 16] = "UNAUTHENTICATED";
+    })(Status2 = exports.Status || (exports.Status = {}));
+  }
+});
+
+// node_modules/nice-grpc-common/lib/MethodDescriptor.js
+var require_MethodDescriptor = __commonJS({
+  "node_modules/nice-grpc-common/lib/MethodDescriptor.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+  }
+});
+
+// node_modules/nice-grpc-common/lib/client/CallOptions.js
+var require_CallOptions = __commonJS({
+  "node_modules/nice-grpc-common/lib/client/CallOptions.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+  }
+});
+
+// node_modules/nice-grpc-common/lib/client/ClientMiddleware.js
+var require_ClientMiddleware = __commonJS({
+  "node_modules/nice-grpc-common/lib/client/ClientMiddleware.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+  }
+});
+
+// node_modules/nice-grpc-common/lib/client/composeClientMiddleware.js
+var require_composeClientMiddleware = __commonJS({
+  "node_modules/nice-grpc-common/lib/client/composeClientMiddleware.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.composeClientMiddleware = void 0;
+    function composeClientMiddleware(middleware1, middleware2) {
+      return (call, options) => {
+        return middleware2(Object.assign(Object.assign({}, call), { next: (request, options2) => {
+          return middleware1(Object.assign(Object.assign({}, call), { request }), options2);
+        } }), options);
+      };
+    }
+    exports.composeClientMiddleware = composeClientMiddleware;
+  }
+});
+
+// node_modules/ts-error/lib/helpers.js
+var require_helpers = __commonJS({
+  "node_modules/ts-error/lib/helpers.js"(exports) {
+    "use strict";
+    exports.__esModule = void 0;
+    exports.__esModule = true;
+    var objectSetPrototypeOfIsDefined = typeof Object.setPrototypeOf === "function";
+    var objectGetPrototypeOfIsDefined = typeof Object.getPrototypeOf === "function";
+    var objectDefinePropertyIsDefined = typeof Object.defineProperty === "function";
+    var objectCreateIsDefined = typeof Object.create === "function";
+    var objectHasOwnPropertyIsDefined = typeof Object.prototype.hasOwnProperty === "function";
+    var setPrototypeOf = function setPrototypeOf2(target, prototype) {
+      if (objectSetPrototypeOfIsDefined) {
+        Object.setPrototypeOf(target, prototype);
+      } else {
+        target.__proto__ = prototype;
+      }
+    };
+    exports.setPrototypeOf = setPrototypeOf;
+    var getPrototypeOf = function getPrototypeOf2(target) {
+      if (objectGetPrototypeOfIsDefined) {
+        return Object.getPrototypeOf(target);
+      } else {
+        return target.__proto__ || target.prototype;
+      }
+    };
+    exports.getPrototypeOf = getPrototypeOf;
+    var ie8ObjectDefinePropertyBug = false;
+    var defineProperty = function defineProperty2(target, name, propertyDescriptor) {
+      if (objectDefinePropertyIsDefined && !ie8ObjectDefinePropertyBug) {
+        try {
+          Object.defineProperty(target, name, propertyDescriptor);
+        } catch (e) {
+          ie8ObjectDefinePropertyBug = true;
+          defineProperty2(target, name, propertyDescriptor);
+        }
+      } else {
+        target[name] = propertyDescriptor.value;
+      }
+    };
+    exports.defineProperty = defineProperty;
+    var hasOwnProperty = function hasOwnProperty2(target, name) {
+      if (objectHasOwnPropertyIsDefined) {
+        return target.hasOwnProperty(target, name);
+      } else {
+        return target[name] === void 0;
+      }
+    };
+    exports.hasOwnProperty = hasOwnProperty;
+    var objectCreate = function objectCreate2(prototype, propertyDescriptors) {
+      if (objectCreateIsDefined) {
+        return Object.create(prototype, propertyDescriptors);
+      } else {
+        var F = function F2() {
+        };
+        F.prototype = prototype;
+        var result = new F();
+        if (typeof propertyDescriptors === "undefined") {
+          return result;
+        }
+        if (typeof propertyDescriptors === "null") {
+          throw new Error("PropertyDescriptors must not be null.");
+        }
+        if (typeof propertyDescriptors === "object") {
+          for (var key in propertyDescriptors) {
+            if (hasOwnProperty(propertyDescriptors, key)) {
+              result[key] = propertyDescriptors[key].value;
+            }
+          }
+        }
+        return result;
+      }
+    };
+    exports.objectCreate = objectCreate;
+  }
+});
+
+// node_modules/ts-error/lib/cjs.js
+var require_cjs = __commonJS({
+  "node_modules/ts-error/lib/cjs.js"(exports) {
+    "use strict";
+    exports.__esModule = void 0;
+    exports.__esModule = true;
+    var helpers = require_helpers();
+    var setPrototypeOf = helpers.setPrototypeOf;
+    var getPrototypeOf = helpers.getPrototypeOf;
+    var defineProperty = helpers.defineProperty;
+    var objectCreate = helpers.objectCreate;
+    var uglyErrorPrinting = new Error().toString() === "[object Error]";
+    var extendableErrorName = "";
+    function ExtendableError(message) {
+      var originalConstructor = this.constructor;
+      var constructorName = originalConstructor.name || (function() {
+        var constructorNameMatch = originalConstructor.toString().match(/^function\s*([^\s(]+)/);
+        return constructorNameMatch === null ? extendableErrorName ? extendableErrorName : "Error" : constructorNameMatch[1];
+      })();
+      var constructorNameIsError = constructorName === "Error";
+      var name = constructorNameIsError ? extendableErrorName : constructorName;
+      var instance = Error.apply(this, arguments);
+      setPrototypeOf(instance, getPrototypeOf(this));
+      if (!(instance instanceof originalConstructor) || !(instance instanceof ExtendableError)) {
+        var instance = this;
+        Error.apply(this, arguments);
+        defineProperty(instance, "message", {
+          configurable: true,
+          enumerable: false,
+          value: message,
+          writable: true
+        });
+      }
+      defineProperty(instance, "name", {
+        configurable: true,
+        enumerable: false,
+        value: name,
+        writable: true
+      });
+      if (Error.captureStackTrace) {
+        Error.captureStackTrace(
+          instance,
+          constructorNameIsError ? ExtendableError : originalConstructor
+        );
+      }
+      if (instance.stack === void 0) {
+        var err = new Error(message);
+        err.name = instance.name;
+        instance.stack = err.stack;
+      }
+      if (uglyErrorPrinting) {
+        defineProperty(instance, "toString", {
+          configurable: true,
+          enumerable: false,
+          value: function toString2() {
+            return (this.name || "Error") + (typeof this.message === "undefined" ? "" : ": " + this.message);
+          },
+          writable: true
+        });
+      }
+      return instance;
+    }
+    extendableErrorName = ExtendableError.name || "ExtendableError";
+    ExtendableError.prototype = objectCreate(Error.prototype, {
+      constructor: {
+        value: Error,
+        enumerable: false,
+        writable: true,
+        configurable: true
+      }
+    });
+    exports.ExtendableError = ExtendableError;
+    exports["default"] = exports.ExtendableError;
+  }
+});
+
+// node_modules/nice-grpc-common/lib/client/ClientError.js
+var require_ClientError = __commonJS({
+  "node_modules/nice-grpc-common/lib/client/ClientError.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.ClientError = void 0;
+    var ts_error_1 = require_cjs();
+    var Status_1 = require_Status();
+    var ClientError = class _ClientError extends ts_error_1.ExtendableError {
+      constructor(path, code, details) {
+        super(`${path} ${Status_1.Status[code]}: ${details}`);
+        this.path = path;
+        this.code = code;
+        this.details = details;
+        this.name = "ClientError";
+        Object.defineProperty(this, "@@nice-grpc", {
+          value: true
+        });
+        Object.defineProperty(this, "@@nice-grpc:ClientError", {
+          value: true
+        });
+      }
+      static [Symbol.hasInstance](instance) {
+        if (this !== _ClientError) {
+          return this.prototype.isPrototypeOf(instance);
+        }
+        return typeof instance === "object" && instance !== null && (instance.constructor === _ClientError || instance["@@nice-grpc:ClientError"] === true || instance.name === "ClientError" && instance["@@nice-grpc"] === true);
+      }
+    };
+    exports.ClientError = ClientError;
+  }
+});
+
+// node_modules/nice-grpc-common/lib/server/CallContext.js
+var require_CallContext = __commonJS({
+  "node_modules/nice-grpc-common/lib/server/CallContext.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+  }
+});
+
+// node_modules/nice-grpc-common/lib/server/ServerMiddleware.js
+var require_ServerMiddleware = __commonJS({
+  "node_modules/nice-grpc-common/lib/server/ServerMiddleware.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+  }
+});
+
+// node_modules/nice-grpc-common/lib/server/composeServerMiddleware.js
+var require_composeServerMiddleware = __commonJS({
+  "node_modules/nice-grpc-common/lib/server/composeServerMiddleware.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.composeServerMiddleware = void 0;
+    function composeServerMiddleware(middleware1, middleware2) {
+      return (call, context) => {
+        return middleware1(Object.assign(Object.assign({}, call), { next: (request, context1) => {
+          return middleware2(Object.assign(Object.assign({}, call), { request }), context1);
+        } }), context);
+      };
+    }
+    exports.composeServerMiddleware = composeServerMiddleware;
+  }
+});
+
+// node_modules/nice-grpc-common/lib/server/ServerError.js
+var require_ServerError = __commonJS({
+  "node_modules/nice-grpc-common/lib/server/ServerError.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.ServerError = void 0;
+    var ts_error_1 = require_cjs();
+    var Status_1 = require_Status();
+    var ServerError = class _ServerError extends ts_error_1.ExtendableError {
+      constructor(code, details) {
+        super(`${Status_1.Status[code]}: ${details}`);
+        this.code = code;
+        this.details = details;
+        this.name = "ServerError";
+        Object.defineProperty(this, "@@nice-grpc", {
+          value: true
+        });
+        Object.defineProperty(this, "@@nice-grpc:ServerError", {
+          value: true
+        });
+      }
+      static [Symbol.hasInstance](instance) {
+        if (this !== _ServerError) {
+          return this.prototype.isPrototypeOf(instance);
+        }
+        return typeof instance === "object" && instance !== null && (instance.constructor === _ServerError || instance["@@nice-grpc:ServerError"] === true || instance.name === "ServerError" && instance["@@nice-grpc"] === true);
+      }
+    };
+    exports.ServerError = ServerError;
+  }
+});
+
+// node_modules/nice-grpc-common/lib/index.js
+var require_lib = __commonJS({
+  "node_modules/nice-grpc-common/lib/index.js"(exports) {
+    "use strict";
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __exportStar = exports && exports.__exportStar || function(m, exports2) {
+      for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports2, p)) __createBinding(exports2, m, p);
+    };
+    Object.defineProperty(exports, "__esModule", { value: true });
+    __exportStar(require_Metadata(), exports);
+    __exportStar(require_Status(), exports);
+    __exportStar(require_MethodDescriptor(), exports);
+    __exportStar(require_CallOptions(), exports);
+    __exportStar(require_ClientMiddleware(), exports);
+    __exportStar(require_composeClientMiddleware(), exports);
+    __exportStar(require_ClientError(), exports);
+    __exportStar(require_CallContext(), exports);
+    __exportStar(require_ServerMiddleware(), exports);
+    __exportStar(require_composeServerMiddleware(), exports);
+    __exportStar(require_ServerError(), exports);
+  }
+});
+
+// node_modules/nice-grpc-web/lib/service-definitions/grpc-web.js
+var require_grpc_web = __commonJS({
+  "node_modules/nice-grpc-web/lib/service-definitions/grpc-web.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.fromGrpcWebServiceDefinition = fromGrpcWebServiceDefinition;
+    exports.isGrpcWebServiceDefinition = isGrpcWebServiceDefinition;
+    function fromGrpcWebServiceDefinition(definition) {
+      const result = {};
+      for (const [key, value] of Object.entries(definition)) {
+        if (key === "serviceName") {
+          continue;
+        }
+        const method = value;
+        result[uncapitalize(key)] = {
+          path: `/${definition.serviceName}/${key}`,
+          requestStream: method.requestStream,
+          responseStream: method.responseStream,
+          requestDeserialize: method.requestType.deserializeBinary,
+          requestSerialize: (value2) => value2.serializeBinary(),
+          responseDeserialize: method.responseType.deserializeBinary,
+          responseSerialize: (value2) => value2.serializeBinary(),
+          options: {}
+        };
+      }
+      return result;
+    }
+    function isGrpcWebServiceDefinition(definition) {
+      return "prototype" in definition;
+    }
+    function uncapitalize(value) {
+      if (value.length === 0) {
+        return value;
+      }
+      return value[0].toLowerCase() + value.slice(1);
+    }
+  }
+});
+
+// node_modules/nice-grpc-web/lib/service-definitions/ts-proto.js
+var require_ts_proto = __commonJS({
+  "node_modules/nice-grpc-web/lib/service-definitions/ts-proto.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.fromTsProtoServiceDefinition = fromTsProtoServiceDefinition;
+    exports.isTsProtoServiceDefinition = isTsProtoServiceDefinition;
+    function fromTsProtoServiceDefinition(definition) {
+      const result = {};
+      for (const [key, method] of Object.entries(definition.methods)) {
+        const requestEncode = method.requestType.encode;
+        const requestFromPartial = method.requestType.fromPartial;
+        const responseEncode = method.responseType.encode;
+        const responseFromPartial = method.responseType.fromPartial;
+        result[key] = {
+          path: `/${definition.fullName}/${method.name}`,
+          requestStream: method.requestStream,
+          responseStream: method.responseStream,
+          requestDeserialize: method.requestType.decode,
+          requestSerialize: requestFromPartial != null ? (value) => requestEncode(requestFromPartial(value)).finish() : (value) => requestEncode(value).finish(),
+          responseDeserialize: method.responseType.decode,
+          responseSerialize: responseFromPartial != null ? (value) => responseEncode(responseFromPartial(value)).finish() : (value) => responseEncode(value).finish(),
+          options: method.options
+        };
+      }
+      return result;
+    }
+    function isTsProtoServiceDefinition(definition) {
+      return "name" in definition && "fullName" in definition && "methods" in definition;
+    }
+  }
+});
+
+// node_modules/nice-grpc-web/lib/service-definitions/index.js
+var require_service_definitions = __commonJS({
+  "node_modules/nice-grpc-web/lib/service-definitions/index.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.normalizeServiceDefinition = normalizeServiceDefinition;
+    var grpc_web_1 = require_grpc_web();
+    var ts_proto_1 = require_ts_proto();
+    function normalizeServiceDefinition(definition) {
+      if ((0, grpc_web_1.isGrpcWebServiceDefinition)(definition)) {
+        return (0, grpc_web_1.fromGrpcWebServiceDefinition)(definition);
+      } else if ((0, ts_proto_1.isTsProtoServiceDefinition)(definition)) {
+        return (0, ts_proto_1.fromTsProtoServiceDefinition)(definition);
+      } else {
+        return definition;
+      }
+    }
+  }
+});
+
+// node_modules/abort-controller-x/lib/AbortError.js
+var require_AbortError = __commonJS({
+  "node_modules/abort-controller-x/lib/AbortError.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.catchAbortError = exports.rethrowAbortError = exports.throwIfAborted = exports.isAbortError = exports.AbortError = void 0;
+    var AbortError = class extends Error {
+      constructor() {
+        super("The operation has been aborted");
+        this.message = "The operation has been aborted";
+        this.name = "AbortError";
+        if (typeof Error.captureStackTrace === "function") {
+          Error.captureStackTrace(this, this.constructor);
+        }
+      }
+    };
+    exports.AbortError = AbortError;
+    function isAbortError(error) {
+      return typeof error === "object" && error !== null && error.name === "AbortError";
+    }
+    exports.isAbortError = isAbortError;
+    function throwIfAborted(signal) {
+      if (signal.aborted) {
+        throw new AbortError();
+      }
+    }
+    exports.throwIfAborted = throwIfAborted;
+    function rethrowAbortError(error) {
+      if (isAbortError(error)) {
+        throw error;
+      }
+      return;
+    }
+    exports.rethrowAbortError = rethrowAbortError;
+    function catchAbortError(error) {
+      if (isAbortError(error)) {
+        return;
+      }
+      throw error;
+    }
+    exports.catchAbortError = catchAbortError;
+  }
+});
+
+// node_modules/abort-controller-x/lib/execute.js
+var require_execute = __commonJS({
+  "node_modules/abort-controller-x/lib/execute.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.execute = void 0;
+    var AbortError_1 = require_AbortError();
+    function execute(signal, executor) {
+      return new Promise((resolve, reject) => {
+        if (signal.aborted) {
+          reject(new AbortError_1.AbortError());
+          return;
+        }
+        let removeAbortListener;
+        let finished = false;
+        function finish() {
+          if (!finished) {
+            finished = true;
+            if (removeAbortListener != null) {
+              removeAbortListener();
+            }
+          }
+        }
+        const callback = executor((value) => {
+          resolve(value);
+          finish();
+        }, (reason) => {
+          reject(reason);
+          finish();
+        });
+        if (!finished) {
+          const listener = () => {
+            const callbackResult = callback();
+            if (callbackResult == null) {
+              reject(new AbortError_1.AbortError());
+            } else {
+              callbackResult.then(() => {
+                reject(new AbortError_1.AbortError());
+              }, (reason) => {
+                reject(reason);
+              });
+            }
+            finish();
+          };
+          signal.addEventListener("abort", listener);
+          removeAbortListener = () => {
+            signal.removeEventListener("abort", listener);
+          };
+        }
+      });
+    }
+    exports.execute = execute;
+  }
+});
+
+// node_modules/abort-controller-x/lib/abortable.js
+var require_abortable = __commonJS({
+  "node_modules/abort-controller-x/lib/abortable.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.abortable = void 0;
+    var execute_1 = require_execute();
+    function abortable(signal, promise) {
+      if (signal.aborted) {
+        const noop = () => {
+        };
+        promise.then(noop, noop);
+      }
+      return (0, execute_1.execute)(signal, (resolve, reject) => {
+        promise.then(resolve, reject);
+        return () => {
+        };
+      });
+    }
+    exports.abortable = abortable;
+  }
+});
+
+// node_modules/abort-controller-x/lib/delay.js
+var require_delay = __commonJS({
+  "node_modules/abort-controller-x/lib/delay.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.delay = void 0;
+    var execute_1 = require_execute();
+    function delay(signal, dueTime) {
+      return (0, execute_1.execute)(signal, (resolve) => {
+        const ms = typeof dueTime === "number" ? dueTime : dueTime.getTime() - Date.now();
+        const timer = setTimeout(resolve, ms);
+        return () => {
+          clearTimeout(timer);
+        };
+      });
+    }
+    exports.delay = delay;
+  }
+});
+
+// node_modules/abort-controller-x/lib/forever.js
+var require_forever = __commonJS({
+  "node_modules/abort-controller-x/lib/forever.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.forever = void 0;
+    var execute_1 = require_execute();
+    function forever(signal) {
+      return (0, execute_1.execute)(signal, () => () => {
+      });
+    }
+    exports.forever = forever;
+  }
+});
+
+// node_modules/abort-controller-x/lib/waitForEvent.js
+var require_waitForEvent = __commonJS({
+  "node_modules/abort-controller-x/lib/waitForEvent.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.waitForEvent = void 0;
+    var execute_1 = require_execute();
+    function waitForEvent(signal, target, eventName, options) {
+      return (0, execute_1.execute)(signal, (resolve) => {
+        let unlisten;
+        let finished = false;
+        const handler = (...args) => {
+          resolve(args.length > 1 ? args : args[0]);
+          finished = true;
+          if (unlisten != null) {
+            unlisten();
+          }
+        };
+        unlisten = listen(target, eventName, handler, options);
+        if (finished) {
+          unlisten();
+        }
+        return () => {
+          finished = true;
+          if (unlisten != null) {
+            unlisten();
+          }
+        };
+      });
+    }
+    exports.waitForEvent = waitForEvent;
+    function listen(target, eventName, handler, options) {
+      if (isEventTarget(target)) {
+        target.addEventListener(eventName, handler, options);
+        return () => target.removeEventListener(eventName, handler, options);
+      }
+      if (isJQueryStyleEventEmitter(target)) {
+        target.on(eventName, handler);
+        return () => target.off(eventName, handler);
+      }
+      if (isNodeStyleEventEmitter(target)) {
+        target.addListener(eventName, handler);
+        return () => target.removeListener(eventName, handler);
+      }
+      throw new Error("Invalid event target");
+    }
+    function isNodeStyleEventEmitter(sourceObj) {
+      return isFunction(sourceObj.addListener) && isFunction(sourceObj.removeListener);
+    }
+    function isJQueryStyleEventEmitter(sourceObj) {
+      return isFunction(sourceObj.on) && isFunction(sourceObj.off);
+    }
+    function isEventTarget(sourceObj) {
+      return isFunction(sourceObj.addEventListener) && isFunction(sourceObj.removeEventListener);
+    }
+    var isFunction = (obj) => typeof obj === "function";
+  }
+});
+
+// node_modules/abort-controller-x/lib/all.js
+var require_all = __commonJS({
+  "node_modules/abort-controller-x/lib/all.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.all = void 0;
+    var AbortError_1 = require_AbortError();
+    function all(signal, executor) {
+      return new Promise((resolve, reject) => {
+        if (signal.aborted) {
+          reject(new AbortError_1.AbortError());
+          return;
+        }
+        const innerAbortController = new AbortController();
+        const promises = executor(innerAbortController.signal);
+        if (promises.length === 0) {
+          resolve([]);
+          return;
+        }
+        const abortListener = () => {
+          innerAbortController.abort();
+        };
+        signal.addEventListener("abort", abortListener);
+        let rejection;
+        const results = new Array(promises.length);
+        let settledCount = 0;
+        function settled() {
+          settledCount += 1;
+          if (settledCount === promises.length) {
+            signal.removeEventListener("abort", abortListener);
+            if (rejection != null) {
+              reject(rejection.reason);
+            } else {
+              resolve(results);
+            }
+          }
+        }
+        for (const [i, promise] of promises.entries()) {
+          promise.then((value) => {
+            results[i] = value;
+            settled();
+          }, (reason) => {
+            innerAbortController.abort();
+            if (rejection == null || !(0, AbortError_1.isAbortError)(reason) && (0, AbortError_1.isAbortError)(rejection.reason)) {
+              rejection = { reason };
+            }
+            settled();
+          });
+        }
+      });
+    }
+    exports.all = all;
+  }
+});
+
+// node_modules/abort-controller-x/lib/race.js
+var require_race = __commonJS({
+  "node_modules/abort-controller-x/lib/race.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.race = void 0;
+    var AbortError_1 = require_AbortError();
+    function race(signal, executor) {
+      return new Promise((resolve, reject) => {
+        if (signal.aborted) {
+          reject(new AbortError_1.AbortError());
+          return;
+        }
+        const innerAbortController = new AbortController();
+        const promises = executor(innerAbortController.signal);
+        const abortListener = () => {
+          innerAbortController.abort();
+        };
+        signal.addEventListener("abort", abortListener);
+        let settledCount = 0;
+        function settled(result2) {
+          innerAbortController.abort();
+          settledCount += 1;
+          if (settledCount === promises.length) {
+            signal.removeEventListener("abort", abortListener);
+            if (result2.status === "fulfilled") {
+              resolve(result2.value);
+            } else {
+              reject(result2.reason);
+            }
+          }
+        }
+        let result;
+        for (const promise of promises) {
+          promise.then((value) => {
+            if (result == null) {
+              result = { status: "fulfilled", value };
+            }
+            settled(result);
+          }, (reason) => {
+            if (result == null || !(0, AbortError_1.isAbortError)(reason) && (result.status === "fulfilled" || (0, AbortError_1.isAbortError)(result.reason))) {
+              result = { status: "rejected", reason };
+            }
+            settled(result);
+          });
+        }
+      });
+    }
+    exports.race = race;
+  }
+});
+
+// node_modules/abort-controller-x/lib/retry.js
+var require_retry = __commonJS({
+  "node_modules/abort-controller-x/lib/retry.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.retry = void 0;
+    var delay_1 = require_delay();
+    var AbortError_1 = require_AbortError();
+    async function retry(signal, fn, options = {}) {
+      const { baseMs = 1e3, maxDelayMs = 3e4, onError, maxAttempts = Infinity } = options;
+      let attempt = 0;
+      const reset = () => {
+        attempt = -1;
+      };
+      while (true) {
+        try {
+          return await fn(signal, attempt, reset);
+        } catch (error) {
+          (0, AbortError_1.rethrowAbortError)(error);
+          if (attempt >= maxAttempts) {
+            throw error;
+          }
+          let delayMs;
+          if (attempt === -1) {
+            delayMs = 0;
+          } else {
+            const backoff = Math.min(maxDelayMs, Math.pow(2, attempt) * baseMs);
+            delayMs = Math.round(backoff * (1 + Math.random()) / 2);
+          }
+          if (onError) {
+            onError(error, attempt, delayMs);
+          }
+          if (delayMs !== 0) {
+            await (0, delay_1.delay)(signal, delayMs);
+          }
+          attempt += 1;
+        }
+      }
+    }
+    exports.retry = retry;
+  }
+});
+
+// node_modules/abort-controller-x/lib/spawn.js
+var require_spawn = __commonJS({
+  "node_modules/abort-controller-x/lib/spawn.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.spawn = void 0;
+    var AbortError_1 = require_AbortError();
+    function spawn(signal, fn) {
+      if (signal.aborted) {
+        return Promise.reject(new AbortError_1.AbortError());
+      }
+      const deferredFunctions = [];
+      const spawnAbortController = new AbortController();
+      const spawnSignal = spawnAbortController.signal;
+      const abortSpawn = () => {
+        spawnAbortController.abort();
+      };
+      signal.addEventListener("abort", abortSpawn);
+      const removeAbortListener = () => {
+        signal.removeEventListener("abort", abortSpawn);
+      };
+      const tasks = /* @__PURE__ */ new Set();
+      const abortTasks = () => {
+        for (const task of tasks) {
+          task.abort();
+        }
+      };
+      spawnSignal.addEventListener("abort", abortTasks);
+      const removeSpawnAbortListener = () => {
+        spawnSignal.removeEventListener("abort", abortTasks);
+      };
+      let promise = new Promise((resolve, reject) => {
+        let result;
+        let failure;
+        fork((signal2) => fn(signal2, {
+          defer(fn2) {
+            deferredFunctions.push(fn2);
+          },
+          fork
+        })).join().then((value) => {
+          spawnAbortController.abort();
+          result = { value };
+        }, (error) => {
+          spawnAbortController.abort();
+          if (!(0, AbortError_1.isAbortError)(error) || failure == null) {
+            failure = { error };
+          }
+        });
+        function fork(forkFn) {
+          if (spawnSignal.aborted) {
+            return {
+              abort() {
+              },
+              async join() {
+                throw new AbortError_1.AbortError();
+              }
+            };
+          }
+          const taskAbortController = new AbortController();
+          const taskSignal = taskAbortController.signal;
+          const taskPromise = forkFn(taskSignal);
+          const task = {
+            abort() {
+              taskAbortController.abort();
+            },
+            join: () => taskPromise
+          };
+          tasks.add(task);
+          taskPromise.catch(AbortError_1.catchAbortError).catch((error) => {
+            failure = { error };
+            spawnAbortController.abort();
+          }).finally(() => {
+            tasks.delete(task);
+            if (tasks.size === 0) {
+              if (failure != null) {
+                reject(failure.error);
+              } else {
+                resolve(result.value);
+              }
+            }
+          });
+          return task;
+        }
+      });
+      promise = promise.finally(() => {
+        removeAbortListener();
+        removeSpawnAbortListener();
+        let deferPromise = Promise.resolve();
+        for (let i = deferredFunctions.length - 1; i >= 0; i--) {
+          deferPromise = deferPromise.finally(deferredFunctions[i]);
+        }
+        return deferPromise;
+      });
+      return promise;
+    }
+    exports.spawn = spawn;
+  }
+});
+
+// node_modules/abort-controller-x/lib/run.js
+var require_run = __commonJS({
+  "node_modules/abort-controller-x/lib/run.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.run = void 0;
+    var AbortError_1 = require_AbortError();
+    function run(fn) {
+      const abortController = new AbortController();
+      const promise = fn(abortController.signal).catch(AbortError_1.catchAbortError);
+      return () => {
+        abortController.abort();
+        return promise;
+      };
+    }
+    exports.run = run;
+  }
+});
+
+// node_modules/abort-controller-x/lib/proactiveRetry.js
+var require_proactiveRetry = __commonJS({
+  "node_modules/abort-controller-x/lib/proactiveRetry.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.proactiveRetry = void 0;
+    var AbortError_1 = require_AbortError();
+    var delay_1 = require_delay();
+    var execute_1 = require_execute();
+    function proactiveRetry(signal, fn, options = {}) {
+      const { baseMs = 1e3, onError, maxAttempts = Infinity } = options;
+      return (0, execute_1.execute)(signal, (resolve, reject) => {
+        const innerAbortController = new AbortController();
+        let attemptsExhausted = false;
+        const promises = /* @__PURE__ */ new Map();
+        function handleFulfilled(value) {
+          innerAbortController.abort();
+          promises.clear();
+          resolve(value);
+        }
+        function handleRejected(err, attempt) {
+          promises.delete(attempt);
+          if (attemptsExhausted && promises.size === 0) {
+            reject(err);
+            return;
+          }
+          if ((0, AbortError_1.isAbortError)(err)) {
+            return;
+          }
+          if (onError) {
+            try {
+              onError(err, attempt);
+            } catch (err2) {
+              innerAbortController.abort();
+              promises.clear();
+              reject(err2);
+            }
+          }
+        }
+        async function makeAttempts(signal2) {
+          for (let attempt = 0; ; attempt++) {
+            const promise = fn(signal2, attempt);
+            promises.set(attempt, promise);
+            promise.then(handleFulfilled, (err) => handleRejected(err, attempt));
+            if (attempt + 1 >= maxAttempts) {
+              break;
+            }
+            const backoff = Math.pow(2, attempt) * baseMs;
+            const delayMs = Math.round(backoff * (1 + Math.random()) / 2);
+            await (0, delay_1.delay)(signal2, delayMs);
+          }
+          attemptsExhausted = true;
+        }
+        makeAttempts(innerAbortController.signal).catch(AbortError_1.catchAbortError);
+        return () => {
+          innerAbortController.abort();
+        };
+      });
+    }
+    exports.proactiveRetry = proactiveRetry;
+  }
+});
+
+// node_modules/abort-controller-x/lib/index.js
+var require_lib2 = __commonJS({
+  "node_modules/abort-controller-x/lib/index.js"(exports) {
+    "use strict";
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __exportStar = exports && exports.__exportStar || function(m, exports2) {
+      for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports2, p)) __createBinding(exports2, m, p);
+    };
+    Object.defineProperty(exports, "__esModule", { value: true });
+    __exportStar(require_abortable(), exports);
+    __exportStar(require_AbortError(), exports);
+    __exportStar(require_delay(), exports);
+    __exportStar(require_execute(), exports);
+    __exportStar(require_forever(), exports);
+    __exportStar(require_waitForEvent(), exports);
+    __exportStar(require_all(), exports);
+    __exportStar(require_race(), exports);
+    __exportStar(require_retry(), exports);
+    __exportStar(require_spawn(), exports);
+    __exportStar(require_run(), exports);
+    __exportStar(require_proactiveRetry(), exports);
+  }
+});
+
+// node_modules/js-base64/base64.js
+var require_base64 = __commonJS({
+  "node_modules/js-base64/base64.js"(exports, module) {
+    (function(global2, factory) {
+      typeof exports === "object" && typeof module !== "undefined" ? module.exports = factory() : typeof define === "function" && define.amd ? define(factory) : (
+        // cf. https://github.com/dankogai/js-base64/issues/119
+        (function() {
+          var _Base64 = global2.Base64;
+          var gBase64 = factory();
+          gBase64.noConflict = function() {
+            global2.Base64 = _Base64;
+            return gBase64;
+          };
+          if (global2.Meteor) {
+            Base64 = gBase64;
+          }
+          global2.Base64 = gBase64;
+        })()
+      );
+    })(typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : exports, function() {
+      "use strict";
+      var version = "3.7.8";
+      var VERSION = version;
+      var _hasBuffer = typeof Buffer === "function";
+      var _TD = typeof TextDecoder === "function" ? new TextDecoder() : void 0;
+      var _TE = typeof TextEncoder === "function" ? new TextEncoder() : void 0;
+      var b64ch = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+      var b64chs = Array.prototype.slice.call(b64ch);
+      var b64tab = (function(a) {
+        var tab = {};
+        a.forEach(function(c, i) {
+          return tab[c] = i;
+        });
+        return tab;
+      })(b64chs);
+      var b64re = /^(?:[A-Za-z\d+\/]{4})*?(?:[A-Za-z\d+\/]{2}(?:==)?|[A-Za-z\d+\/]{3}=?)?$/;
+      var _fromCC = String.fromCharCode.bind(String);
+      var _U8Afrom = typeof Uint8Array.from === "function" ? Uint8Array.from.bind(Uint8Array) : function(it) {
+        return new Uint8Array(Array.prototype.slice.call(it, 0));
+      };
+      var _mkUriSafe = function(src) {
+        return src.replace(/=/g, "").replace(/[+\/]/g, function(m0) {
+          return m0 == "+" ? "-" : "_";
+        });
+      };
+      var _tidyB64 = function(s) {
+        return s.replace(/[^A-Za-z0-9\+\/]/g, "");
+      };
+      var btoaPolyfill = function(bin) {
+        var u32, c0, c1, c2, asc = "";
+        var pad = bin.length % 3;
+        for (var i = 0; i < bin.length; ) {
+          if ((c0 = bin.charCodeAt(i++)) > 255 || (c1 = bin.charCodeAt(i++)) > 255 || (c2 = bin.charCodeAt(i++)) > 255)
+            throw new TypeError("invalid character found");
+          u32 = c0 << 16 | c1 << 8 | c2;
+          asc += b64chs[u32 >> 18 & 63] + b64chs[u32 >> 12 & 63] + b64chs[u32 >> 6 & 63] + b64chs[u32 & 63];
+        }
+        return pad ? asc.slice(0, pad - 3) + "===".substring(pad) : asc;
+      };
+      var _btoa = typeof btoa === "function" ? function(bin) {
+        return btoa(bin);
+      } : _hasBuffer ? function(bin) {
+        return Buffer.from(bin, "binary").toString("base64");
+      } : btoaPolyfill;
+      var _fromUint8Array = _hasBuffer ? function(u8a) {
+        return Buffer.from(u8a).toString("base64");
+      } : function(u8a) {
+        var maxargs = 4096;
+        var strs = [];
+        for (var i = 0, l = u8a.length; i < l; i += maxargs) {
+          strs.push(_fromCC.apply(null, u8a.subarray(i, i + maxargs)));
+        }
+        return _btoa(strs.join(""));
+      };
+      var fromUint8Array = function(u8a, urlsafe) {
+        if (urlsafe === void 0) {
+          urlsafe = false;
+        }
+        return urlsafe ? _mkUriSafe(_fromUint8Array(u8a)) : _fromUint8Array(u8a);
+      };
+      var cb_utob = function(c) {
+        if (c.length < 2) {
+          var cc = c.charCodeAt(0);
+          return cc < 128 ? c : cc < 2048 ? _fromCC(192 | cc >>> 6) + _fromCC(128 | cc & 63) : _fromCC(224 | cc >>> 12 & 15) + _fromCC(128 | cc >>> 6 & 63) + _fromCC(128 | cc & 63);
+        } else {
+          var cc = 65536 + (c.charCodeAt(0) - 55296) * 1024 + (c.charCodeAt(1) - 56320);
+          return _fromCC(240 | cc >>> 18 & 7) + _fromCC(128 | cc >>> 12 & 63) + _fromCC(128 | cc >>> 6 & 63) + _fromCC(128 | cc & 63);
+        }
+      };
+      var re_utob = /[\uD800-\uDBFF][\uDC00-\uDFFFF]|[^\x00-\x7F]/g;
+      var utob = function(u) {
+        return u.replace(re_utob, cb_utob);
+      };
+      var _encode = _hasBuffer ? function(s) {
+        return Buffer.from(s, "utf8").toString("base64");
+      } : _TE ? function(s) {
+        return _fromUint8Array(_TE.encode(s));
+      } : function(s) {
+        return _btoa(utob(s));
+      };
+      var encode = function(src, urlsafe) {
+        if (urlsafe === void 0) {
+          urlsafe = false;
+        }
+        return urlsafe ? _mkUriSafe(_encode(src)) : _encode(src);
+      };
+      var encodeURI = function(src) {
+        return encode(src, true);
+      };
+      var re_btou = /[\xC0-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF7][\x80-\xBF]{3}/g;
+      var cb_btou = function(cccc) {
+        switch (cccc.length) {
+          case 4:
+            var cp = (7 & cccc.charCodeAt(0)) << 18 | (63 & cccc.charCodeAt(1)) << 12 | (63 & cccc.charCodeAt(2)) << 6 | 63 & cccc.charCodeAt(3), offset = cp - 65536;
+            return _fromCC((offset >>> 10) + 55296) + _fromCC((offset & 1023) + 56320);
+          case 3:
+            return _fromCC((15 & cccc.charCodeAt(0)) << 12 | (63 & cccc.charCodeAt(1)) << 6 | 63 & cccc.charCodeAt(2));
+          default:
+            return _fromCC((31 & cccc.charCodeAt(0)) << 6 | 63 & cccc.charCodeAt(1));
+        }
+      };
+      var btou = function(b) {
+        return b.replace(re_btou, cb_btou);
+      };
+      var atobPolyfill = function(asc) {
+        asc = asc.replace(/\s+/g, "");
+        if (!b64re.test(asc))
+          throw new TypeError("malformed base64.");
+        asc += "==".slice(2 - (asc.length & 3));
+        var u24, r1, r2;
+        var binArray = [];
+        for (var i = 0; i < asc.length; ) {
+          u24 = b64tab[asc.charAt(i++)] << 18 | b64tab[asc.charAt(i++)] << 12 | (r1 = b64tab[asc.charAt(i++)]) << 6 | (r2 = b64tab[asc.charAt(i++)]);
+          if (r1 === 64) {
+            binArray.push(_fromCC(u24 >> 16 & 255));
+          } else if (r2 === 64) {
+            binArray.push(_fromCC(u24 >> 16 & 255, u24 >> 8 & 255));
+          } else {
+            binArray.push(_fromCC(u24 >> 16 & 255, u24 >> 8 & 255, u24 & 255));
+          }
+        }
+        return binArray.join("");
+      };
+      var _atob = typeof atob === "function" ? function(asc) {
+        return atob(_tidyB64(asc));
+      } : _hasBuffer ? function(asc) {
+        return Buffer.from(asc, "base64").toString("binary");
+      } : atobPolyfill;
+      var _toUint8Array = _hasBuffer ? function(a) {
+        return _U8Afrom(Buffer.from(a, "base64"));
+      } : function(a) {
+        return _U8Afrom(_atob(a).split("").map(function(c) {
+          return c.charCodeAt(0);
+        }));
+      };
+      var toUint8Array = function(a) {
+        return _toUint8Array(_unURI(a));
+      };
+      var _decode = _hasBuffer ? function(a) {
+        return Buffer.from(a, "base64").toString("utf8");
+      } : _TD ? function(a) {
+        return _TD.decode(_toUint8Array(a));
+      } : function(a) {
+        return btou(_atob(a));
+      };
+      var _unURI = function(a) {
+        return _tidyB64(a.replace(/[-_]/g, function(m0) {
+          return m0 == "-" ? "+" : "/";
+        }));
+      };
+      var decode = function(src) {
+        return _decode(_unURI(src));
+      };
+      var isValid = function(src) {
+        if (typeof src !== "string")
+          return false;
+        var s = src.replace(/\s+/g, "").replace(/={0,2}$/, "");
+        return !/[^\s0-9a-zA-Z\+/]/.test(s) || !/[^\s0-9a-zA-Z\-_]/.test(s);
+      };
+      var _noEnum = function(v) {
+        return {
+          value: v,
+          enumerable: false,
+          writable: true,
+          configurable: true
+        };
+      };
+      var extendString = function() {
+        var _add = function(name, body) {
+          return Object.defineProperty(String.prototype, name, _noEnum(body));
+        };
+        _add("fromBase64", function() {
+          return decode(this);
+        });
+        _add("toBase64", function(urlsafe) {
+          return encode(this, urlsafe);
+        });
+        _add("toBase64URI", function() {
+          return encode(this, true);
+        });
+        _add("toBase64URL", function() {
+          return encode(this, true);
+        });
+        _add("toUint8Array", function() {
+          return toUint8Array(this);
+        });
+      };
+      var extendUint8Array = function() {
+        var _add = function(name, body) {
+          return Object.defineProperty(Uint8Array.prototype, name, _noEnum(body));
+        };
+        _add("toBase64", function(urlsafe) {
+          return fromUint8Array(this, urlsafe);
+        });
+        _add("toBase64URI", function() {
+          return fromUint8Array(this, true);
+        });
+        _add("toBase64URL", function() {
+          return fromUint8Array(this, true);
+        });
+      };
+      var extendBuiltins = function() {
+        extendString();
+        extendUint8Array();
+      };
+      var gBase64 = {
+        version,
+        VERSION,
+        atob: _atob,
+        atobPolyfill,
+        btoa: _btoa,
+        btoaPolyfill,
+        fromBase64: decode,
+        toBase64: encode,
+        encode,
+        encodeURI,
+        encodeURL: encodeURI,
+        utob,
+        btou,
+        decode,
+        isValid,
+        fromUint8Array,
+        toUint8Array,
+        extendString,
+        extendUint8Array,
+        extendBuiltins
+      };
+      gBase64.Base64 = {};
+      Object.keys(gBase64).forEach(function(k) {
+        return gBase64.Base64[k] = gBase64[k];
+      });
+      return gBase64;
+    });
+  }
+});
+
+// node_modules/nice-grpc-web/lib/client/transports/fetch.js
+var require_fetch = __commonJS({
+  "node_modules/nice-grpc-web/lib/client/transports/fetch.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.FetchTransport = FetchTransport;
+    var abort_controller_x_1 = require_lib2();
+    var js_base64_1 = require_base64();
+    var nice_grpc_common_1 = require_lib();
+    function FetchTransport(config) {
+      return async function* fetchTransport({ url, body, metadata, signal, method }) {
+        let requestBody;
+        if (!method.requestStream) {
+          let bodyBuffer;
+          for await (const chunk of body) {
+            bodyBuffer = chunk;
+            break;
+          }
+          requestBody = bodyBuffer;
+        } else {
+          let iterator;
+          requestBody = new ReadableStream({
+            type: "bytes",
+            start() {
+              iterator = body[Symbol.asyncIterator]();
+            },
+            async pull(controller) {
+              const { done, value } = await iterator.next();
+              if (done) {
+                controller.close();
+              } else {
+                controller.enqueue(value);
+              }
+            },
+            async cancel() {
+              var _a, _b;
+              await ((_b = (_a = iterator).return) === null || _b === void 0 ? void 0 : _b.call(_a));
+            }
+          });
+        }
+        const response = await fetch(url, {
+          method: "POST",
+          body: requestBody,
+          headers: metadataToHeaders(metadata),
+          signal,
+          cache: config === null || config === void 0 ? void 0 : config.cache,
+          ["duplex"]: "half",
+          credentials: config === null || config === void 0 ? void 0 : config.credentials
+        });
+        yield {
+          type: "header",
+          header: headersToMetadata(response.headers)
+        };
+        if (!response.ok) {
+          const responseText = await response.text();
+          throw new nice_grpc_common_1.ClientError(method.path, getStatusFromHttpCode(response.status), getErrorDetailsFromHttpResponse(response.status, responseText));
+        }
+        (0, abort_controller_x_1.throwIfAborted)(signal);
+        const reader = response.body.getReader();
+        const abortListener = () => {
+          reader.cancel().catch(() => {
+          });
+        };
+        signal.addEventListener("abort", abortListener);
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (value != null) {
+              yield {
+                type: "data",
+                data: value
+              };
+            }
+            if (done) {
+              break;
+            }
+          }
+        } finally {
+          signal.removeEventListener("abort", abortListener);
+          (0, abort_controller_x_1.throwIfAborted)(signal);
+        }
+      };
+    }
+    function metadataToHeaders(metadata) {
+      const headers = new Headers();
+      for (const [key, values] of metadata) {
+        for (const value of values) {
+          headers.append(key, typeof value === "string" ? value : js_base64_1.Base64.fromUint8Array(value));
+        }
+      }
+      return headers;
+    }
+    function headersToMetadata(headers) {
+      const metadata = new nice_grpc_common_1.Metadata();
+      for (const [key, value] of headers) {
+        if (key.endsWith("-bin")) {
+          for (const item of value.split(/,\s?/)) {
+            metadata.append(key, js_base64_1.Base64.toUint8Array(item));
+          }
+        } else {
+          metadata.set(key, value);
+        }
+      }
+      return metadata;
+    }
+    function getStatusFromHttpCode(statusCode) {
+      switch (statusCode) {
+        case 400:
+          return nice_grpc_common_1.Status.INTERNAL;
+        case 401:
+          return nice_grpc_common_1.Status.UNAUTHENTICATED;
+        case 403:
+          return nice_grpc_common_1.Status.PERMISSION_DENIED;
+        case 404:
+          return nice_grpc_common_1.Status.UNIMPLEMENTED;
+        case 429:
+        case 502:
+        case 503:
+        case 504:
+          return nice_grpc_common_1.Status.UNAVAILABLE;
+        default:
+          return nice_grpc_common_1.Status.UNKNOWN;
+      }
+    }
+    function getErrorDetailsFromHttpResponse(statusCode, responseText) {
+      return `Received HTTP ${statusCode} response: ` + (responseText.length > 1e3 ? responseText.slice(0, 1e3) + "... (truncated)" : responseText);
+    }
+  }
+});
+
+// node_modules/nice-grpc-web/lib/client/channel.js
+var require_channel = __commonJS({
+  "node_modules/nice-grpc-web/lib/client/channel.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.createChannel = createChannel3;
+    var fetch_1 = require_fetch();
+    function createChannel3(address, transport = (0, fetch_1.FetchTransport)()) {
+      return { address, transport };
+    }
+  }
+});
+
+// node_modules/nice-grpc-web/lib/utils/isAsyncIterable.js
+var require_isAsyncIterable = __commonJS({
+  "node_modules/nice-grpc-web/lib/utils/isAsyncIterable.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.isAsyncIterable = isAsyncIterable;
+    function isAsyncIterable(value) {
+      return value != null && Symbol.asyncIterator in value;
+    }
+  }
+});
+
+// node_modules/nice-grpc-web/lib/utils/concatBuffers.js
+var require_concatBuffers = __commonJS({
+  "node_modules/nice-grpc-web/lib/utils/concatBuffers.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.concatBuffers = concatBuffers;
+    function concatBuffers(buffers, totalLength) {
+      if (buffers.length === 1) {
+        return buffers[0];
+      }
+      const result = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const buffer of buffers) {
+        result.set(buffer, offset);
+        offset += buffer.length;
+      }
+      return result;
+    }
+  }
+});
+
+// node_modules/nice-grpc-web/lib/client/decodeMetadata.js
+var require_decodeMetadata = __commonJS({
+  "node_modules/nice-grpc-web/lib/client/decodeMetadata.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.decodeMetadata = decodeMetadata;
+    var nice_grpc_common_1 = require_lib();
+    var js_base64_1 = require_base64();
+    function decodeMetadata(data) {
+      const metadata = (0, nice_grpc_common_1.Metadata)();
+      const text = new TextDecoder().decode(data);
+      for (const line of text.split("\r\n")) {
+        if (!line) {
+          continue;
+        }
+        const splitIndex = line.indexOf(":");
+        if (splitIndex === -1) {
+          throw new Error(`Invalid metadata line: ${line}`);
+        }
+        const key = line.slice(0, splitIndex).trim().toLowerCase();
+        const value = line.slice(splitIndex + 1).trim();
+        if (key.endsWith("-bin")) {
+          for (const item of value.split(/,\s?/)) {
+            metadata.append(key, js_base64_1.Base64.toUint8Array(item));
+          }
+        } else {
+          metadata.append(key, value);
+        }
+      }
+      return metadata;
+    }
+  }
+});
+
+// node_modules/nice-grpc-web/lib/client/framing.js
+var require_framing = __commonJS({
+  "node_modules/nice-grpc-web/lib/client/framing.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.LPM_HEADER_LENGTH = void 0;
+    exports.parseLpmHeader = parseLpmHeader;
+    exports.encodeFrame = encodeFrame;
+    exports.LPM_HEADER_LENGTH = 5;
+    function parseLpmHeader(data) {
+      if (data.length !== exports.LPM_HEADER_LENGTH) {
+        throw new Error(`Invalid LPM header length: ${data.length}`);
+      }
+      const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+      const compressed = (view.getUint8(0) & 1) !== 0;
+      const isMetadata = (view.getUint8(0) & 128) !== 0;
+      const length = view.getUint32(1);
+      return {
+        compressed,
+        isMetadata,
+        length
+      };
+    }
+    function encodeFrame(data) {
+      const messageBytes = new Uint8Array(exports.LPM_HEADER_LENGTH + data.length);
+      new DataView(messageBytes.buffer, 1, 4).setUint32(0, data.length, false);
+      messageBytes.set(data, exports.LPM_HEADER_LENGTH);
+      return messageBytes;
+    }
+  }
+});
+
+// node_modules/nice-grpc-web/lib/client/decodeResponse.js
+var require_decodeResponse = __commonJS({
+  "node_modules/nice-grpc-web/lib/client/decodeResponse.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.decodeResponse = decodeResponse;
+    var concatBuffers_1 = require_concatBuffers();
+    var decodeMetadata_1 = require_decodeMetadata();
+    var framing_1 = require_framing();
+    async function* decodeResponse({ response, decode, onHeader, onTrailer }) {
+      let receivedHeader = false;
+      let receivedTrailer = false;
+      let receivedData = false;
+      let buffer = createChunkBuffer(framing_1.LPM_HEADER_LENGTH);
+      let lpmHeader;
+      for await (const frame of response) {
+        if (frame.type === "header") {
+          handleHeader(frame.header);
+        } else if (frame.type === "trailer") {
+          handleTrailer(frame.trailer);
+        } else if (frame.type === "data") {
+          if (receivedTrailer) {
+            throw new Error("Received data after trailer");
+          }
+          let { data } = frame;
+          while (data.length > 0 || (lpmHeader === null || lpmHeader === void 0 ? void 0 : lpmHeader.length) === 0) {
+            const position = Math.min(data.length, buffer.targetLength - buffer.totalLength);
+            const chunk = data.subarray(0, position);
+            data = data.subarray(position);
+            buffer.chunks.push(chunk);
+            buffer.totalLength += chunk.length;
+            if (buffer.totalLength === buffer.targetLength) {
+              const messageBytes = (0, concatBuffers_1.concatBuffers)(buffer.chunks, buffer.totalLength);
+              if (lpmHeader == null) {
+                lpmHeader = (0, framing_1.parseLpmHeader)(messageBytes);
+                buffer = createChunkBuffer(lpmHeader.length);
+              } else {
+                if (lpmHeader.compressed) {
+                  throw new Error("Compressed messages not supported");
+                }
+                if (lpmHeader.isMetadata) {
+                  if (!receivedHeader) {
+                    handleHeader((0, decodeMetadata_1.decodeMetadata)(messageBytes));
+                  } else {
+                    handleTrailer((0, decodeMetadata_1.decodeMetadata)(messageBytes));
+                  }
+                } else {
+                  if (!receivedHeader) {
+                    throw new Error("Received data before header");
+                  }
+                  yield decode(messageBytes);
+                  receivedData = true;
+                }
+                lpmHeader = void 0;
+                buffer = createChunkBuffer(framing_1.LPM_HEADER_LENGTH);
+              }
+            }
+          }
+        }
+      }
+      function handleHeader(header) {
+        if (receivedHeader) {
+          throw new Error("Received multiple headers");
+        }
+        if (receivedData) {
+          throw new Error("Received header after data");
+        }
+        if (receivedTrailer) {
+          throw new Error("Received header after trailer");
+        }
+        receivedHeader = true;
+        onHeader(header);
+      }
+      function handleTrailer(trailer) {
+        if (receivedTrailer) {
+          throw new Error("Received multiple trailers");
+        }
+        receivedTrailer = true;
+        onTrailer(trailer);
+      }
+      function createChunkBuffer(targetLength) {
+        return {
+          chunks: [],
+          totalLength: 0,
+          targetLength
+        };
+      }
+    }
+  }
+});
+
+// node_modules/nice-grpc-web/lib/client/encodeRequest.js
+var require_encodeRequest = __commonJS({
+  "node_modules/nice-grpc-web/lib/client/encodeRequest.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.encodeRequest = encodeRequest;
+    var framing_1 = require_framing();
+    async function* encodeRequest({ request, encode }) {
+      for await (const data of request) {
+        const bytes = encode(data);
+        yield (0, framing_1.encodeFrame)(bytes);
+      }
+    }
+  }
+});
+
+// node_modules/nice-grpc-web/lib/client/makeInternalErrorMessage.js
+var require_makeInternalErrorMessage = __commonJS({
+  "node_modules/nice-grpc-web/lib/client/makeInternalErrorMessage.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.makeInternalErrorMessage = makeInternalErrorMessage;
+    function makeInternalErrorMessage(err) {
+      if (err == null || typeof err !== "object") {
+        return String(err);
+      } else if (typeof err.message === "string") {
+        return err.message;
+      } else {
+        return JSON.stringify(err);
+      }
+    }
+  }
+});
+
+// node_modules/nice-grpc-web/lib/client/parseTrailer.js
+var require_parseTrailer = __commonJS({
+  "node_modules/nice-grpc-web/lib/client/parseTrailer.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.parseTrailer = parseTrailer;
+    var nice_grpc_common_1 = require_lib();
+    function parseTrailer(trailer) {
+      let status;
+      const statusValue = trailer.get("grpc-status");
+      if (statusValue != null) {
+        const statusNum = +statusValue;
+        if (statusNum in nice_grpc_common_1.Status) {
+          status = statusNum;
+        } else {
+          throw new Error(`Received invalid status code from server: ${statusValue}`);
+        }
+      } else {
+        throw new Error("Received no status code from server");
+      }
+      let message = trailer.get("grpc-message");
+      if (message != null) {
+        try {
+          message = decodeURIComponent(message);
+        } catch (_a) {
+        }
+      }
+      const trailerCopy = (0, nice_grpc_common_1.Metadata)(trailer);
+      trailerCopy.delete("grpc-status");
+      trailerCopy.delete("grpc-message");
+      return {
+        status,
+        message,
+        trailer: trailerCopy
+      };
+    }
+  }
+});
+
+// node_modules/nice-grpc-web/lib/client/makeCall.js
+var require_makeCall = __commonJS({
+  "node_modules/nice-grpc-web/lib/client/makeCall.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.makeCall = makeCall;
+    var abort_controller_x_1 = require_lib2();
+    var nice_grpc_common_1 = require_lib();
+    var decodeResponse_1 = require_decodeResponse();
+    var encodeRequest_1 = require_encodeRequest();
+    var makeInternalErrorMessage_1 = require_makeInternalErrorMessage();
+    var parseTrailer_1 = require_parseTrailer();
+    async function* makeCall(definition, channel, request, options) {
+      const { metadata, signal = new AbortController().signal, onHeader, onTrailer } = options;
+      (0, abort_controller_x_1.throwIfAborted)(signal);
+      let receivedTrailersOnly = false;
+      let status;
+      let message;
+      function handleTrailer(trailer) {
+        if (receivedTrailersOnly) {
+          if (new Map(trailer).size > 0) {
+            throw new nice_grpc_common_1.ClientError(definition.path, nice_grpc_common_1.Status.INTERNAL, "Received non-empty trailer after trailers-only response");
+          } else {
+            return;
+          }
+        }
+        const parsedTrailer = (0, parseTrailer_1.parseTrailer)(trailer);
+        ({ status, message } = parsedTrailer);
+        onTrailer === null || onTrailer === void 0 ? void 0 : onTrailer(parsedTrailer.trailer);
+      }
+      const finalMetadata = (0, nice_grpc_common_1.Metadata)(metadata);
+      finalMetadata.set("content-type", "application/grpc-web+proto");
+      finalMetadata.set("x-grpc-web", "1");
+      const innerAbortController = new AbortController();
+      const abortListener = () => {
+        innerAbortController.abort();
+      };
+      signal.addEventListener("abort", abortListener);
+      let finished = false;
+      let requestError;
+      async function* interceptRequestError() {
+        try {
+          for await (const item of request) {
+            if (finished) {
+              throw new Error("Request finished");
+            }
+            yield item;
+          }
+        } catch (err) {
+          requestError = { err };
+          innerAbortController.abort();
+          throw err;
+        }
+      }
+      async function* handleTransportErrors() {
+        try {
+          return yield* channel.transport({
+            url: channel.address + definition.path,
+            metadata: finalMetadata,
+            body: (0, encodeRequest_1.encodeRequest)({
+              request: interceptRequestError(),
+              encode: definition.requestSerialize
+            }),
+            signal: innerAbortController.signal,
+            method: definition
+          });
+        } catch (err) {
+          (0, abort_controller_x_1.rethrowAbortError)(err);
+          throw new nice_grpc_common_1.ClientError(definition.path, nice_grpc_common_1.Status.UNKNOWN, `Transport error: ${(0, makeInternalErrorMessage_1.makeInternalErrorMessage)(err)}`);
+        }
+      }
+      const response = (0, decodeResponse_1.decodeResponse)({
+        response: handleTransportErrors(),
+        decode: definition.responseDeserialize,
+        onHeader(header) {
+          const isTrailersOnly = header.has("grpc-status");
+          if (isTrailersOnly) {
+            handleTrailer(header);
+            receivedTrailersOnly = true;
+          } else {
+            onHeader === null || onHeader === void 0 ? void 0 : onHeader(header);
+          }
+        },
+        onTrailer(trailer) {
+          handleTrailer(trailer);
+        }
+      });
+      try {
+        yield* response;
+      } catch (err) {
+        if (requestError !== void 0) {
+          throw requestError.err;
+        } else if (err instanceof nice_grpc_common_1.ClientError || (0, abort_controller_x_1.isAbortError)(err)) {
+          throw err;
+        } else {
+          throw new nice_grpc_common_1.ClientError(definition.path, nice_grpc_common_1.Status.INTERNAL, (0, makeInternalErrorMessage_1.makeInternalErrorMessage)(err));
+        }
+      } finally {
+        finished = true;
+        signal.removeEventListener("abort", abortListener);
+        if (status != null && status !== nice_grpc_common_1.Status.OK) {
+          throw new nice_grpc_common_1.ClientError(definition.path, status, message !== null && message !== void 0 ? message : "");
+        }
+      }
+      if (status == null) {
+        throw new nice_grpc_common_1.ClientError(definition.path, nice_grpc_common_1.Status.UNKNOWN, 'Response stream closed without gRPC status. This may indicate a misconfigured CORS policy on the server: Access-Control-Expose-Headers must include "grpc-status" and "grpc-message".');
+      }
+    }
+  }
+});
+
+// node_modules/nice-grpc-web/lib/client/createBidiStreamingMethod.js
+var require_createBidiStreamingMethod = __commonJS({
+  "node_modules/nice-grpc-web/lib/client/createBidiStreamingMethod.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.createBidiStreamingMethod = createBidiStreamingMethod;
+    var isAsyncIterable_1 = require_isAsyncIterable();
+    var makeCall_1 = require_makeCall();
+    function createBidiStreamingMethod(definition, channel, middleware, defaultOptions) {
+      const methodDescriptor = {
+        path: definition.path,
+        requestStream: definition.requestStream,
+        responseStream: definition.responseStream,
+        options: definition.options
+      };
+      async function* bidiStreamingMethod(request, options) {
+        if (!(0, isAsyncIterable_1.isAsyncIterable)(request)) {
+          throw new Error("A middleware passed invalid request to next(): expected a single message for bidirectional streaming method");
+        }
+        const response = (0, makeCall_1.makeCall)(definition, channel, request, options);
+        yield* response;
+      }
+      const method = middleware == null ? bidiStreamingMethod : (request, options) => middleware({
+        method: methodDescriptor,
+        requestStream: true,
+        request,
+        responseStream: true,
+        next: bidiStreamingMethod
+      }, options);
+      return (request, options) => {
+        const iterable = method(request, {
+          ...defaultOptions,
+          ...options
+        });
+        const iterator = iterable[Symbol.asyncIterator]();
+        return {
+          [Symbol.asyncIterator]() {
+            return {
+              async next() {
+                const result = await iterator.next();
+                if (result.done && result.value != null) {
+                  return await iterator.throw(new Error("A middleware returned a message, but expected to return void for bidirectional streaming method"));
+                }
+                return result;
+              },
+              return() {
+                return iterator.return();
+              },
+              throw(err) {
+                return iterator.throw(err);
+              }
+            };
+          }
+        };
+      };
+    }
+  }
+});
+
+// node_modules/nice-grpc-web/lib/client/createClientStreamingMethod.js
+var require_createClientStreamingMethod = __commonJS({
+  "node_modules/nice-grpc-web/lib/client/createClientStreamingMethod.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.createClientStreamingMethod = createClientStreamingMethod;
+    var nice_grpc_common_1 = require_lib();
+    var isAsyncIterable_1 = require_isAsyncIterable();
+    var makeCall_1 = require_makeCall();
+    function createClientStreamingMethod(definition, channel, middleware, defaultOptions) {
+      const methodDescriptor = {
+        path: definition.path,
+        requestStream: definition.requestStream,
+        responseStream: definition.responseStream,
+        options: definition.options
+      };
+      async function* clientStreamingMethod(request, options) {
+        if (!(0, isAsyncIterable_1.isAsyncIterable)(request)) {
+          throw Error("A middleware passed invalid request to next(): expected a single message for client streaming method");
+        }
+        const response = (0, makeCall_1.makeCall)(definition, channel, request, options);
+        let unaryResponse;
+        for await (const message of response) {
+          if (unaryResponse != null) {
+            throw new nice_grpc_common_1.ClientError(definition.path, nice_grpc_common_1.Status.INTERNAL, "Received more than one message from server for client streaming method");
+          }
+          unaryResponse = message;
+        }
+        if (unaryResponse == null) {
+          throw new nice_grpc_common_1.ClientError(definition.path, nice_grpc_common_1.Status.INTERNAL, "Server did not return a response");
+        }
+        return unaryResponse;
+      }
+      const method = middleware == null ? clientStreamingMethod : (request, options) => middleware({
+        method: methodDescriptor,
+        requestStream: true,
+        request,
+        responseStream: false,
+        next: clientStreamingMethod
+      }, options);
+      return async (request, options) => {
+        const iterable = method(request, {
+          ...defaultOptions,
+          ...options
+        });
+        const iterator = iterable[Symbol.asyncIterator]();
+        let result = await iterator.next();
+        while (true) {
+          if (!result.done) {
+            result = await iterator.throw(new Error("A middleware yielded a message, but expected to only return a message for client streaming method"));
+            continue;
+          }
+          if (result.value == null) {
+            result = await iterator.throw(new Error("A middleware returned void, but expected to return a message for client streaming method"));
+            continue;
+          }
+          return result.value;
+        }
+      };
+    }
+  }
+});
+
+// node_modules/nice-grpc-web/lib/utils/asyncIterableOf.js
+var require_asyncIterableOf = __commonJS({
+  "node_modules/nice-grpc-web/lib/utils/asyncIterableOf.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.asyncIterableOf = asyncIterableOf;
+    async function* asyncIterableOf(item) {
+      yield item;
+    }
+  }
+});
+
+// node_modules/nice-grpc-web/lib/client/createServerStreamingMethod.js
+var require_createServerStreamingMethod = __commonJS({
+  "node_modules/nice-grpc-web/lib/client/createServerStreamingMethod.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.createServerStreamingMethod = createServerStreamingMethod;
+    var asyncIterableOf_1 = require_asyncIterableOf();
+    var isAsyncIterable_1 = require_isAsyncIterable();
+    var makeCall_1 = require_makeCall();
+    function createServerStreamingMethod(definition, channel, middleware, defaultOptions) {
+      const methodDescriptor = {
+        path: definition.path,
+        requestStream: definition.requestStream,
+        responseStream: definition.responseStream,
+        options: definition.options
+      };
+      async function* serverStreamingMethod(request, options) {
+        if ((0, isAsyncIterable_1.isAsyncIterable)(request)) {
+          throw new Error("A middleware passed invalid request to next(): expected a single message for server streaming method");
+        }
+        const response = (0, makeCall_1.makeCall)(definition, channel, (0, asyncIterableOf_1.asyncIterableOf)(request), options);
+        yield* response;
+      }
+      const method = middleware == null ? serverStreamingMethod : (request, options) => middleware({
+        method: methodDescriptor,
+        requestStream: false,
+        request,
+        responseStream: true,
+        next: serverStreamingMethod
+      }, options);
+      return (request, options) => {
+        const iterable = method(request, {
+          ...defaultOptions,
+          ...options
+        });
+        const iterator = iterable[Symbol.asyncIterator]();
+        return {
+          [Symbol.asyncIterator]() {
+            return {
+              async next() {
+                const result = await iterator.next();
+                if (result.done && result.value != null) {
+                  return await iterator.throw(new Error("A middleware returned a message, but expected to return void for server streaming method"));
+                }
+                return result;
+              },
+              return() {
+                return iterator.return();
+              },
+              throw(err) {
+                return iterator.throw(err);
+              }
+            };
+          }
+        };
+      };
+    }
+  }
+});
+
+// node_modules/nice-grpc-web/lib/client/createUnaryMethod.js
+var require_createUnaryMethod = __commonJS({
+  "node_modules/nice-grpc-web/lib/client/createUnaryMethod.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.createUnaryMethod = createUnaryMethod;
+    var nice_grpc_common_1 = require_lib();
+    var asyncIterableOf_1 = require_asyncIterableOf();
+    var isAsyncIterable_1 = require_isAsyncIterable();
+    var makeCall_1 = require_makeCall();
+    function createUnaryMethod(definition, channel, middleware, defaultOptions) {
+      const methodDescriptor = {
+        path: definition.path,
+        requestStream: definition.requestStream,
+        responseStream: definition.responseStream,
+        options: definition.options
+      };
+      async function* unaryMethod(request, options) {
+        if ((0, isAsyncIterable_1.isAsyncIterable)(request)) {
+          throw new Error("A middleware passed invalid request to next(): expected a single message for unary method");
+        }
+        const response = (0, makeCall_1.makeCall)(definition, channel, (0, asyncIterableOf_1.asyncIterableOf)(request), options);
+        let unaryResponse;
+        for await (const message of response) {
+          if (unaryResponse != null) {
+            throw new nice_grpc_common_1.ClientError(definition.path, nice_grpc_common_1.Status.INTERNAL, "Received more than one message from server for unary method");
+          }
+          unaryResponse = message;
+        }
+        if (unaryResponse == null) {
+          throw new nice_grpc_common_1.ClientError(definition.path, nice_grpc_common_1.Status.INTERNAL, "Server did not return a response");
+        }
+        return unaryResponse;
+      }
+      const method = middleware == null ? unaryMethod : (request, options) => middleware({
+        method: methodDescriptor,
+        requestStream: false,
+        request,
+        responseStream: false,
+        next: unaryMethod
+      }, options);
+      return async (request, options) => {
+        const iterable = method(request, {
+          ...defaultOptions,
+          ...options
+        });
+        const iterator = iterable[Symbol.asyncIterator]();
+        let result = await iterator.next();
+        while (true) {
+          if (!result.done) {
+            result = await iterator.throw(new Error("A middleware yielded a message, but expected to only return a message for unary method"));
+            continue;
+          }
+          if (result.value == null) {
+            result = await iterator.throw(new Error("A middleware returned void, but expected to return a message for unary method"));
+            continue;
+          }
+          return result.value;
+        }
+      };
+    }
+  }
+});
+
+// node_modules/nice-grpc-web/lib/client/ClientFactory.js
+var require_ClientFactory = __commonJS({
+  "node_modules/nice-grpc-web/lib/client/ClientFactory.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.createClientFactory = createClientFactory3;
+    exports.createClient = createClient;
+    var nice_grpc_common_1 = require_lib();
+    var service_definitions_1 = require_service_definitions();
+    var createBidiStreamingMethod_1 = require_createBidiStreamingMethod();
+    var createClientStreamingMethod_1 = require_createClientStreamingMethod();
+    var createServerStreamingMethod_1 = require_createServerStreamingMethod();
+    var createUnaryMethod_1 = require_createUnaryMethod();
+    function createClientFactory3() {
+      return createClientFactoryWithMiddleware();
+    }
+    function createClient(definition, channel, defaultCallOptions) {
+      return createClientFactory3().create(definition, channel, defaultCallOptions);
+    }
+    function createClientFactoryWithMiddleware(middleware) {
+      return {
+        use(newMiddleware) {
+          return createClientFactoryWithMiddleware(middleware == null ? newMiddleware : (0, nice_grpc_common_1.composeClientMiddleware)(middleware, newMiddleware));
+        },
+        create(definition, channel, defaultCallOptions = {}) {
+          const client = {};
+          const methodEntries = Object.entries((0, service_definitions_1.normalizeServiceDefinition)(definition));
+          for (const [methodName, methodDefinition] of methodEntries) {
+            const defaultOptions = {
+              ...defaultCallOptions["*"],
+              ...defaultCallOptions[methodName]
+            };
+            if (!methodDefinition.requestStream) {
+              if (!methodDefinition.responseStream) {
+                client[methodName] = (0, createUnaryMethod_1.createUnaryMethod)(methodDefinition, channel, middleware, defaultOptions);
+              } else {
+                client[methodName] = (0, createServerStreamingMethod_1.createServerStreamingMethod)(methodDefinition, channel, middleware, defaultOptions);
+              }
+            } else {
+              if (!methodDefinition.responseStream) {
+                client[methodName] = (0, createClientStreamingMethod_1.createClientStreamingMethod)(methodDefinition, channel, middleware, defaultOptions);
+              } else {
+                client[methodName] = (0, createBidiStreamingMethod_1.createBidiStreamingMethod)(methodDefinition, channel, middleware, defaultOptions);
+              }
+            }
+          }
+          return client;
+        }
+      };
+    }
+  }
+});
+
+// node_modules/nice-grpc-web/lib/client/Client.js
+var require_Client = __commonJS({
+  "node_modules/nice-grpc-web/lib/client/Client.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+  }
+});
+
+// node_modules/isomorphic-ws/browser.js
+var browser_exports = {};
+__export(browser_exports, {
+  default: () => browser_default
+});
+var ws, browser_default;
+var init_browser = __esm({
+  "node_modules/isomorphic-ws/browser.js"() {
+    ws = null;
+    if (typeof WebSocket !== "undefined") {
+      ws = WebSocket;
+    } else if (typeof MozWebSocket !== "undefined") {
+      ws = MozWebSocket;
+    } else if (typeof global !== "undefined") {
+      ws = global.WebSocket || global.MozWebSocket;
+    } else if (typeof window !== "undefined") {
+      ws = window.WebSocket || window.MozWebSocket;
+    } else if (typeof self !== "undefined") {
+      ws = self.WebSocket || self.MozWebSocket;
+    }
+    browser_default = ws;
+  }
+});
+
+// node_modules/nice-grpc-web/lib/utils/AsyncSink.js
+var require_AsyncSink = __commonJS({
+  "node_modules/nice-grpc-web/lib/utils/AsyncSink.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.AsyncSink = void 0;
+    var ARRAY_VALUE = "value";
+    var ARRAY_ERROR = "error";
+    var AsyncSink = class {
+      constructor() {
+        this._ended = false;
+        this._values = [];
+        this._resolvers = [];
+      }
+      [Symbol.asyncIterator]() {
+        return this;
+      }
+      write(value) {
+        this._push({ type: ARRAY_VALUE, value });
+      }
+      error(error) {
+        this._push({ type: ARRAY_ERROR, error });
+      }
+      _push(item) {
+        if (this._ended) {
+          return;
+        }
+        if (this._resolvers.length > 0) {
+          const { resolve, reject } = this._resolvers.shift();
+          if (item.type === ARRAY_ERROR) {
+            reject(item.error);
+          } else {
+            resolve({ done: false, value: item.value });
+          }
+        } else {
+          this._values.push(item);
+        }
+      }
+      next() {
+        if (this._values.length > 0) {
+          const { type, value, error } = this._values.shift();
+          if (type === ARRAY_ERROR) {
+            return Promise.reject(error);
+          } else {
+            return Promise.resolve({ done: false, value });
+          }
+        }
+        if (this._ended) {
+          return Promise.resolve({ done: true });
+        }
+        return new Promise((resolve, reject) => {
+          this._resolvers.push({ resolve, reject });
+        });
+      }
+      end() {
+        while (this._resolvers.length > 0) {
+          this._resolvers.shift().resolve({ done: true });
+        }
+        this._ended = true;
+      }
+    };
+    exports.AsyncSink = AsyncSink;
+  }
+});
+
+// node_modules/nice-grpc-web/lib/client/transports/websocket.js
+var require_websocket = __commonJS({
+  "node_modules/nice-grpc-web/lib/client/transports/websocket.js"(exports) {
+    "use strict";
+    var __importDefault = exports && exports.__importDefault || function(mod) {
+      return mod && mod.__esModule ? mod : { "default": mod };
+    };
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.WebsocketTransport = WebsocketTransport;
+    var abort_controller_x_1 = require_lib2();
+    var isomorphic_ws_1 = __importDefault((init_browser(), __toCommonJS(browser_exports)));
+    var js_base64_1 = require_base64();
+    var AsyncSink_1 = require_AsyncSink();
+    function WebsocketTransport() {
+      return async function* ({ url, body, metadata, signal }) {
+        if (signal.aborted) {
+          throw new abort_controller_x_1.AbortError();
+        }
+        const frames = new AsyncSink_1.AsyncSink();
+        signal.addEventListener("abort", () => {
+          frames.error(new abort_controller_x_1.AbortError());
+        });
+        const websocketUrl = new URL(url);
+        websocketUrl.protocol = websocketUrl.protocol.replace("http", "ws");
+        const webSocket = new isomorphic_ws_1.default(websocketUrl, ["grpc-websockets"]);
+        webSocket.binaryType = "arraybuffer";
+        webSocket.addEventListener("message", (event) => {
+          if (event.data instanceof ArrayBuffer) {
+            frames.write({
+              type: "data",
+              data: new Uint8Array(event.data)
+            });
+          } else {
+            frames.error(new Error(`Unexpected message type: ${typeof event.data}`));
+          }
+        });
+        webSocket.addEventListener("close", (event) => {
+          if (event.wasClean) {
+            frames.end();
+          } else {
+            frames.error(new Error(`WebSocket closed with code ${event.code}` + (event.reason && `: ${event.reason}`)));
+          }
+        });
+        const pipeAbortController = new AbortController();
+        pipeBody(pipeAbortController.signal, metadata, body, webSocket).catch((err) => {
+          if (!(0, abort_controller_x_1.isAbortError)(err)) {
+            frames.error(err);
+          }
+        });
+        try {
+          return yield* frames;
+        } finally {
+          pipeAbortController.abort();
+          webSocket.close();
+        }
+      };
+    }
+    async function pipeBody(signal, metadata, body, webSocket) {
+      if (webSocket.readyState == isomorphic_ws_1.default.CONNECTING) {
+        await (0, abort_controller_x_1.waitForEvent)(signal, webSocket, "open");
+      }
+      webSocket.send(encodeMetadata(metadata));
+      for await (const chunk of body) {
+        (0, abort_controller_x_1.throwIfAborted)(signal);
+        const data = new Uint8Array(chunk.length + 1);
+        data.set([0], 0);
+        data.set(chunk, 1);
+        webSocket.send(data);
+      }
+      webSocket.send(new Uint8Array([1]));
+    }
+    function encodeMetadata(metadata) {
+      let result = "";
+      for (const [key, values] of metadata) {
+        for (const value of values) {
+          const valueString = typeof value === "string" ? value : js_base64_1.Base64.fromUint8Array(value);
+          const pairString = `${key}: ${valueString}\r
+`;
+          for (let i = 0; i < pairString.length; i++) {
+            const charCode = pairString.charCodeAt(i);
+            if (!isValidCharCode(charCode)) {
+              throw new Error(`Metadata contains invalid characters: '${pairString}'`);
+            }
+          }
+          result += pairString;
+        }
+      }
+      return new TextEncoder().encode(result);
+    }
+    function isValidCharCode(val) {
+      return val === 9 || val === 10 || val === 13 || val >= 32 && val <= 126;
+    }
+  }
+});
+
+// node_modules/nice-grpc-web/lib/client/transports/nodeHttp/browser.js
+var require_browser = __commonJS({
+  "node_modules/nice-grpc-web/lib/client/transports/nodeHttp/browser.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.NodeHttpTransport = NodeHttpTransport;
+    function NodeHttpTransport() {
+      throw new Error("NodeHttpTransport is not supported in the browser");
+    }
+  }
+});
+
+// node_modules/nice-grpc-web/lib/index.js
+var require_lib3 = __commonJS({
+  "node_modules/nice-grpc-web/lib/index.js"(exports) {
+    "use strict";
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __exportStar = exports && exports.__exportStar || function(m, exports2) {
+      for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports2, p)) __createBinding(exports2, m, p);
+    };
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.NodeHttpTransport = exports.WebsocketTransport = exports.FetchTransport = exports.Status = exports.Metadata = exports.composeClientMiddleware = exports.ClientError = void 0;
+    var nice_grpc_common_1 = require_lib();
+    Object.defineProperty(exports, "ClientError", { enumerable: true, get: function() {
+      return nice_grpc_common_1.ClientError;
+    } });
+    Object.defineProperty(exports, "composeClientMiddleware", { enumerable: true, get: function() {
+      return nice_grpc_common_1.composeClientMiddleware;
+    } });
+    Object.defineProperty(exports, "Metadata", { enumerable: true, get: function() {
+      return nice_grpc_common_1.Metadata;
+    } });
+    Object.defineProperty(exports, "Status", { enumerable: true, get: function() {
+      return nice_grpc_common_1.Status;
+    } });
+    __exportStar(require_service_definitions(), exports);
+    __exportStar(require_channel(), exports);
+    __exportStar(require_ClientFactory(), exports);
+    __exportStar(require_Client(), exports);
+    var fetch_1 = require_fetch();
+    Object.defineProperty(exports, "FetchTransport", { enumerable: true, get: function() {
+      return fetch_1.FetchTransport;
+    } });
+    var websocket_1 = require_websocket();
+    Object.defineProperty(exports, "WebsocketTransport", { enumerable: true, get: function() {
+      return websocket_1.WebsocketTransport;
+    } });
+    var nodeHttp_1 = require_browser();
+    Object.defineProperty(exports, "NodeHttpTransport", { enumerable: true, get: function() {
+      return nodeHttp_1.NodeHttpTransport;
+    } });
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/Metadata.js
+var require_Metadata2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/Metadata.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Metadata = void 0;
+    exports.Metadata = function Metadata2(init) {
+      const data = /* @__PURE__ */ new Map();
+      const metadata = {
+        set(key, value) {
+          key = normalizeKey(key);
+          if (Array.isArray(value)) {
+            if (value.length === 0) {
+              data.delete(key);
+            } else {
+              for (const item of value) {
+                validate(key, item);
+              }
+              data.set(key, key.endsWith("-bin") ? value : [value.join(", ")]);
+            }
+          } else {
+            validate(key, value);
+            data.set(key, [value]);
+          }
+          return metadata;
+        },
+        append(key, value) {
+          key = normalizeKey(key);
+          validate(key, value);
+          let values = data.get(key);
+          if (values == null) {
+            values = [];
+            data.set(key, values);
+          }
+          values.push(value);
+          if (!key.endsWith("-bin")) {
+            data.set(key, [values.join(", ")]);
+          }
+          return metadata;
+        },
+        delete(key) {
+          key = normalizeKey(key);
+          data.delete(key);
+        },
+        get(key) {
+          var _a;
+          key = normalizeKey(key);
+          return (_a = data.get(key)) === null || _a === void 0 ? void 0 : _a[0];
+        },
+        getAll(key) {
+          var _a;
+          key = normalizeKey(key);
+          return (_a = data.get(key)) !== null && _a !== void 0 ? _a : [];
+        },
+        has(key) {
+          key = normalizeKey(key);
+          return data.has(key);
+        },
+        [Symbol.iterator]() {
+          return data[Symbol.iterator]();
+        }
+      };
+      if (init != null) {
+        const entries = isIterable(init) ? init : Object.entries(init);
+        for (const [key, value] of entries) {
+          metadata.set(key, value);
+        }
+      }
+      return metadata;
+    };
+    function normalizeKey(key) {
+      return key.toLowerCase();
+    }
+    function validate(key, value) {
+      if (!/^[0-9a-z_.-]+$/.test(key)) {
+        throw new Error(`Metadata key '${key}' contains illegal characters`);
+      }
+      if (key.endsWith("-bin")) {
+        if (!(value instanceof Uint8Array)) {
+          throw new Error(`Metadata key '${key}' ends with '-bin', thus it must have binary value`);
+        }
+      } else {
+        if (typeof value !== "string") {
+          throw new Error(`Metadata key '${key}' doesn't end with '-bin', thus it must have string value`);
+        }
+        if (!/^[ -~]*$/.test(value)) {
+          throw new Error(`Metadata value '${value}' of key '${key}' contains illegal characters`);
+        }
+      }
+    }
+    function isIterable(value) {
+      return Symbol.iterator in value;
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/Status.js
+var require_Status2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/Status.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Status = void 0;
+    var Status2;
+    (function(Status3) {
+      Status3[Status3["OK"] = 0] = "OK";
+      Status3[Status3["CANCELLED"] = 1] = "CANCELLED";
+      Status3[Status3["UNKNOWN"] = 2] = "UNKNOWN";
+      Status3[Status3["INVALID_ARGUMENT"] = 3] = "INVALID_ARGUMENT";
+      Status3[Status3["DEADLINE_EXCEEDED"] = 4] = "DEADLINE_EXCEEDED";
+      Status3[Status3["NOT_FOUND"] = 5] = "NOT_FOUND";
+      Status3[Status3["ALREADY_EXISTS"] = 6] = "ALREADY_EXISTS";
+      Status3[Status3["PERMISSION_DENIED"] = 7] = "PERMISSION_DENIED";
+      Status3[Status3["RESOURCE_EXHAUSTED"] = 8] = "RESOURCE_EXHAUSTED";
+      Status3[Status3["FAILED_PRECONDITION"] = 9] = "FAILED_PRECONDITION";
+      Status3[Status3["ABORTED"] = 10] = "ABORTED";
+      Status3[Status3["OUT_OF_RANGE"] = 11] = "OUT_OF_RANGE";
+      Status3[Status3["UNIMPLEMENTED"] = 12] = "UNIMPLEMENTED";
+      Status3[Status3["INTERNAL"] = 13] = "INTERNAL";
+      Status3[Status3["UNAVAILABLE"] = 14] = "UNAVAILABLE";
+      Status3[Status3["DATA_LOSS"] = 15] = "DATA_LOSS";
+      Status3[Status3["UNAUTHENTICATED"] = 16] = "UNAUTHENTICATED";
+    })(Status2 = exports.Status || (exports.Status = {}));
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/MethodDescriptor.js
+var require_MethodDescriptor2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/MethodDescriptor.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/client/CallOptions.js
+var require_CallOptions2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/client/CallOptions.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/client/ClientMiddleware.js
+var require_ClientMiddleware2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/client/ClientMiddleware.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/client/composeClientMiddleware.js
+var require_composeClientMiddleware2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/client/composeClientMiddleware.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.composeClientMiddleware = void 0;
+    function composeClientMiddleware(middleware1, middleware2) {
+      return (call, options) => {
+        return middleware2(Object.assign(Object.assign({}, call), { next: (request, options2) => {
+          return middleware1(Object.assign(Object.assign({}, call), { request }), options2);
+        } }), options);
+      };
+    }
+    exports.composeClientMiddleware = composeClientMiddleware;
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/ts-error/lib/helpers.js
+var require_helpers2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/ts-error/lib/helpers.js"(exports) {
+    "use strict";
+    exports.__esModule = void 0;
+    exports.__esModule = true;
+    var objectSetPrototypeOfIsDefined = typeof Object.setPrototypeOf === "function";
+    var objectGetPrototypeOfIsDefined = typeof Object.getPrototypeOf === "function";
+    var objectDefinePropertyIsDefined = typeof Object.defineProperty === "function";
+    var objectCreateIsDefined = typeof Object.create === "function";
+    var objectHasOwnPropertyIsDefined = typeof Object.prototype.hasOwnProperty === "function";
+    var setPrototypeOf = function setPrototypeOf2(target, prototype) {
+      if (objectSetPrototypeOfIsDefined) {
+        Object.setPrototypeOf(target, prototype);
+      } else {
+        target.__proto__ = prototype;
+      }
+    };
+    exports.setPrototypeOf = setPrototypeOf;
+    var getPrototypeOf = function getPrototypeOf2(target) {
+      if (objectGetPrototypeOfIsDefined) {
+        return Object.getPrototypeOf(target);
+      } else {
+        return target.__proto__ || target.prototype;
+      }
+    };
+    exports.getPrototypeOf = getPrototypeOf;
+    var ie8ObjectDefinePropertyBug = false;
+    var defineProperty = function defineProperty2(target, name, propertyDescriptor) {
+      if (objectDefinePropertyIsDefined && !ie8ObjectDefinePropertyBug) {
+        try {
+          Object.defineProperty(target, name, propertyDescriptor);
+        } catch (e) {
+          ie8ObjectDefinePropertyBug = true;
+          defineProperty2(target, name, propertyDescriptor);
+        }
+      } else {
+        target[name] = propertyDescriptor.value;
+      }
+    };
+    exports.defineProperty = defineProperty;
+    var hasOwnProperty = function hasOwnProperty2(target, name) {
+      if (objectHasOwnPropertyIsDefined) {
+        return target.hasOwnProperty(target, name);
+      } else {
+        return target[name] === void 0;
+      }
+    };
+    exports.hasOwnProperty = hasOwnProperty;
+    var objectCreate = function objectCreate2(prototype, propertyDescriptors) {
+      if (objectCreateIsDefined) {
+        return Object.create(prototype, propertyDescriptors);
+      } else {
+        var F = function F2() {
+        };
+        F.prototype = prototype;
+        var result = new F();
+        if (typeof propertyDescriptors === "undefined") {
+          return result;
+        }
+        if (typeof propertyDescriptors === "null") {
+          throw new Error("PropertyDescriptors must not be null.");
+        }
+        if (typeof propertyDescriptors === "object") {
+          for (var key in propertyDescriptors) {
+            if (hasOwnProperty(propertyDescriptors, key)) {
+              result[key] = propertyDescriptors[key].value;
+            }
+          }
+        }
+        return result;
+      }
+    };
+    exports.objectCreate = objectCreate;
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/ts-error/lib/cjs.js
+var require_cjs2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/ts-error/lib/cjs.js"(exports) {
+    "use strict";
+    exports.__esModule = void 0;
+    exports.__esModule = true;
+    var helpers = require_helpers2();
+    var setPrototypeOf = helpers.setPrototypeOf;
+    var getPrototypeOf = helpers.getPrototypeOf;
+    var defineProperty = helpers.defineProperty;
+    var objectCreate = helpers.objectCreate;
+    var uglyErrorPrinting = new Error().toString() === "[object Error]";
+    var extendableErrorName = "";
+    function ExtendableError(message) {
+      var originalConstructor = this.constructor;
+      var constructorName = originalConstructor.name || (function() {
+        var constructorNameMatch = originalConstructor.toString().match(/^function\s*([^\s(]+)/);
+        return constructorNameMatch === null ? extendableErrorName ? extendableErrorName : "Error" : constructorNameMatch[1];
+      })();
+      var constructorNameIsError = constructorName === "Error";
+      var name = constructorNameIsError ? extendableErrorName : constructorName;
+      var instance = Error.apply(this, arguments);
+      setPrototypeOf(instance, getPrototypeOf(this));
+      if (!(instance instanceof originalConstructor) || !(instance instanceof ExtendableError)) {
+        var instance = this;
+        Error.apply(this, arguments);
+        defineProperty(instance, "message", {
+          configurable: true,
+          enumerable: false,
+          value: message,
+          writable: true
+        });
+      }
+      defineProperty(instance, "name", {
+        configurable: true,
+        enumerable: false,
+        value: name,
+        writable: true
+      });
+      if (Error.captureStackTrace) {
+        Error.captureStackTrace(
+          instance,
+          constructorNameIsError ? ExtendableError : originalConstructor
+        );
+      }
+      if (instance.stack === void 0) {
+        var err = new Error(message);
+        err.name = instance.name;
+        instance.stack = err.stack;
+      }
+      if (uglyErrorPrinting) {
+        defineProperty(instance, "toString", {
+          configurable: true,
+          enumerable: false,
+          value: function toString2() {
+            return (this.name || "Error") + (typeof this.message === "undefined" ? "" : ": " + this.message);
+          },
+          writable: true
+        });
+      }
+      return instance;
+    }
+    extendableErrorName = ExtendableError.name || "ExtendableError";
+    ExtendableError.prototype = objectCreate(Error.prototype, {
+      constructor: {
+        value: Error,
+        enumerable: false,
+        writable: true,
+        configurable: true
+      }
+    });
+    exports.ExtendableError = ExtendableError;
+    exports["default"] = exports.ExtendableError;
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/client/ClientError.js
+var require_ClientError2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/client/ClientError.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.ClientError = void 0;
+    var ts_error_1 = require_cjs2();
+    var Status_1 = require_Status2();
+    var ClientError = class _ClientError extends ts_error_1.ExtendableError {
+      constructor(path, code, details) {
+        super(`${path} ${Status_1.Status[code]}: ${details}`);
+        this.path = path;
+        this.code = code;
+        this.details = details;
+        this.name = "ClientError";
+        Object.defineProperty(this, "@@nice-grpc", {
+          value: true
+        });
+        Object.defineProperty(this, "@@nice-grpc:ClientError", {
+          value: true
+        });
+      }
+      static [Symbol.hasInstance](instance) {
+        if (this !== _ClientError) {
+          return this.prototype.isPrototypeOf(instance);
+        }
+        return typeof instance === "object" && instance !== null && (instance.constructor === _ClientError || instance["@@nice-grpc:ClientError"] === true || instance.name === "ClientError" && instance["@@nice-grpc"] === true);
+      }
+    };
+    exports.ClientError = ClientError;
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/server/CallContext.js
+var require_CallContext2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/server/CallContext.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/server/ServerMiddleware.js
+var require_ServerMiddleware2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/server/ServerMiddleware.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/server/composeServerMiddleware.js
+var require_composeServerMiddleware2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/server/composeServerMiddleware.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.composeServerMiddleware = void 0;
+    function composeServerMiddleware(middleware1, middleware2) {
+      return (call, context) => {
+        return middleware1(Object.assign(Object.assign({}, call), { next: (request, context1) => {
+          return middleware2(Object.assign(Object.assign({}, call), { request }), context1);
+        } }), context);
+      };
+    }
+    exports.composeServerMiddleware = composeServerMiddleware;
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/server/ServerError.js
+var require_ServerError2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/server/ServerError.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.ServerError = void 0;
+    var ts_error_1 = require_cjs2();
+    var Status_1 = require_Status2();
+    var ServerError = class _ServerError extends ts_error_1.ExtendableError {
+      constructor(code, details) {
+        super(`${Status_1.Status[code]}: ${details}`);
+        this.code = code;
+        this.details = details;
+        this.name = "ServerError";
+        Object.defineProperty(this, "@@nice-grpc", {
+          value: true
+        });
+        Object.defineProperty(this, "@@nice-grpc:ServerError", {
+          value: true
+        });
+      }
+      static [Symbol.hasInstance](instance) {
+        if (this !== _ServerError) {
+          return this.prototype.isPrototypeOf(instance);
+        }
+        return typeof instance === "object" && instance !== null && (instance.constructor === _ServerError || instance["@@nice-grpc:ServerError"] === true || instance.name === "ServerError" && instance["@@nice-grpc"] === true);
+      }
+    };
+    exports.ServerError = ServerError;
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/index.js
+var require_lib4 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-common/lib/index.js"(exports) {
+    "use strict";
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __exportStar = exports && exports.__exportStar || function(m, exports2) {
+      for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports2, p)) __createBinding(exports2, m, p);
+    };
+    Object.defineProperty(exports, "__esModule", { value: true });
+    __exportStar(require_Metadata2(), exports);
+    __exportStar(require_Status2(), exports);
+    __exportStar(require_MethodDescriptor2(), exports);
+    __exportStar(require_CallOptions2(), exports);
+    __exportStar(require_ClientMiddleware2(), exports);
+    __exportStar(require_composeClientMiddleware2(), exports);
+    __exportStar(require_ClientError2(), exports);
+    __exportStar(require_CallContext2(), exports);
+    __exportStar(require_ServerMiddleware2(), exports);
+    __exportStar(require_composeServerMiddleware2(), exports);
+    __exportStar(require_ServerError2(), exports);
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/service-definitions/grpc-web.js
+var require_grpc_web2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/service-definitions/grpc-web.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.fromGrpcWebServiceDefinition = fromGrpcWebServiceDefinition;
+    exports.isGrpcWebServiceDefinition = isGrpcWebServiceDefinition;
+    function fromGrpcWebServiceDefinition(definition) {
+      const result = {};
+      for (const [key, value] of Object.entries(definition)) {
+        if (key === "serviceName") {
+          continue;
+        }
+        const method = value;
+        result[uncapitalize(key)] = {
+          path: `/${definition.serviceName}/${key}`,
+          requestStream: method.requestStream,
+          responseStream: method.responseStream,
+          requestDeserialize: method.requestType.deserializeBinary,
+          requestSerialize: (value2) => value2.serializeBinary(),
+          responseDeserialize: method.responseType.deserializeBinary,
+          responseSerialize: (value2) => value2.serializeBinary(),
+          options: {}
+        };
+      }
+      return result;
+    }
+    function isGrpcWebServiceDefinition(definition) {
+      return "prototype" in definition;
+    }
+    function uncapitalize(value) {
+      if (value.length === 0) {
+        return value;
+      }
+      return value[0].toLowerCase() + value.slice(1);
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/service-definitions/ts-proto.js
+var require_ts_proto2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/service-definitions/ts-proto.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.fromTsProtoServiceDefinition = fromTsProtoServiceDefinition;
+    exports.isTsProtoServiceDefinition = isTsProtoServiceDefinition;
+    function fromTsProtoServiceDefinition(definition) {
+      const result = {};
+      for (const [key, method] of Object.entries(definition.methods)) {
+        const requestEncode = method.requestType.encode;
+        const requestFromPartial = method.requestType.fromPartial;
+        const responseEncode = method.responseType.encode;
+        const responseFromPartial = method.responseType.fromPartial;
+        result[key] = {
+          path: `/${definition.fullName}/${method.name}`,
+          requestStream: method.requestStream,
+          responseStream: method.responseStream,
+          requestDeserialize: method.requestType.decode,
+          requestSerialize: requestFromPartial != null ? (value) => requestEncode(requestFromPartial(value)).finish() : (value) => requestEncode(value).finish(),
+          responseDeserialize: method.responseType.decode,
+          responseSerialize: responseFromPartial != null ? (value) => responseEncode(responseFromPartial(value)).finish() : (value) => responseEncode(value).finish(),
+          options: method.options
+        };
+      }
+      return result;
+    }
+    function isTsProtoServiceDefinition(definition) {
+      return "name" in definition && "fullName" in definition && "methods" in definition;
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/service-definitions/index.js
+var require_service_definitions2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/service-definitions/index.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.normalizeServiceDefinition = normalizeServiceDefinition;
+    var grpc_web_1 = require_grpc_web2();
+    var ts_proto_1 = require_ts_proto2();
+    function normalizeServiceDefinition(definition) {
+      if ((0, grpc_web_1.isGrpcWebServiceDefinition)(definition)) {
+        return (0, grpc_web_1.fromGrpcWebServiceDefinition)(definition);
+      } else if ((0, ts_proto_1.isTsProtoServiceDefinition)(definition)) {
+        return (0, ts_proto_1.fromTsProtoServiceDefinition)(definition);
+      } else {
+        return definition;
+      }
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/AbortError.js
+var require_AbortError2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/AbortError.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.catchAbortError = exports.rethrowAbortError = exports.throwIfAborted = exports.isAbortError = exports.AbortError = void 0;
+    var AbortError = class extends Error {
+      constructor() {
+        super("The operation has been aborted");
+        this.message = "The operation has been aborted";
+        this.name = "AbortError";
+        if (typeof Error.captureStackTrace === "function") {
+          Error.captureStackTrace(this, this.constructor);
+        }
+      }
+    };
+    exports.AbortError = AbortError;
+    function isAbortError(error) {
+      return typeof error === "object" && error !== null && error.name === "AbortError";
+    }
+    exports.isAbortError = isAbortError;
+    function throwIfAborted(signal) {
+      if (signal.aborted) {
+        throw new AbortError();
+      }
+    }
+    exports.throwIfAborted = throwIfAborted;
+    function rethrowAbortError(error) {
+      if (isAbortError(error)) {
+        throw error;
+      }
+      return;
+    }
+    exports.rethrowAbortError = rethrowAbortError;
+    function catchAbortError(error) {
+      if (isAbortError(error)) {
+        return;
+      }
+      throw error;
+    }
+    exports.catchAbortError = catchAbortError;
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/execute.js
+var require_execute2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/execute.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.execute = void 0;
+    var AbortError_1 = require_AbortError2();
+    function execute(signal, executor) {
+      return new Promise((resolve, reject) => {
+        if (signal.aborted) {
+          reject(new AbortError_1.AbortError());
+          return;
+        }
+        let removeAbortListener;
+        let finished = false;
+        function finish() {
+          if (!finished) {
+            finished = true;
+            if (removeAbortListener != null) {
+              removeAbortListener();
+            }
+          }
+        }
+        const callback = executor((value) => {
+          resolve(value);
+          finish();
+        }, (reason) => {
+          reject(reason);
+          finish();
+        });
+        if (!finished) {
+          const listener = () => {
+            const callbackResult = callback();
+            if (callbackResult == null) {
+              reject(new AbortError_1.AbortError());
+            } else {
+              callbackResult.then(() => {
+                reject(new AbortError_1.AbortError());
+              }, (reason) => {
+                reject(reason);
+              });
+            }
+            finish();
+          };
+          signal.addEventListener("abort", listener);
+          removeAbortListener = () => {
+            signal.removeEventListener("abort", listener);
+          };
+        }
+      });
+    }
+    exports.execute = execute;
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/abortable.js
+var require_abortable2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/abortable.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.abortable = void 0;
+    var execute_1 = require_execute2();
+    function abortable(signal, promise) {
+      if (signal.aborted) {
+        const noop = () => {
+        };
+        promise.then(noop, noop);
+      }
+      return (0, execute_1.execute)(signal, (resolve, reject) => {
+        promise.then(resolve, reject);
+        return () => {
+        };
+      });
+    }
+    exports.abortable = abortable;
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/delay.js
+var require_delay2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/delay.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.delay = void 0;
+    var execute_1 = require_execute2();
+    function delay(signal, dueTime) {
+      return (0, execute_1.execute)(signal, (resolve) => {
+        const ms = typeof dueTime === "number" ? dueTime : dueTime.getTime() - Date.now();
+        const timer = setTimeout(resolve, ms);
+        return () => {
+          clearTimeout(timer);
+        };
+      });
+    }
+    exports.delay = delay;
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/forever.js
+var require_forever2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/forever.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.forever = void 0;
+    var execute_1 = require_execute2();
+    function forever(signal) {
+      return (0, execute_1.execute)(signal, () => () => {
+      });
+    }
+    exports.forever = forever;
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/waitForEvent.js
+var require_waitForEvent2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/waitForEvent.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.waitForEvent = void 0;
+    var execute_1 = require_execute2();
+    function waitForEvent(signal, target, eventName, options) {
+      return (0, execute_1.execute)(signal, (resolve) => {
+        let unlisten;
+        let finished = false;
+        const handler = (...args) => {
+          resolve(args.length > 1 ? args : args[0]);
+          finished = true;
+          if (unlisten != null) {
+            unlisten();
+          }
+        };
+        unlisten = listen(target, eventName, handler, options);
+        if (finished) {
+          unlisten();
+        }
+        return () => {
+          finished = true;
+          if (unlisten != null) {
+            unlisten();
+          }
+        };
+      });
+    }
+    exports.waitForEvent = waitForEvent;
+    function listen(target, eventName, handler, options) {
+      if (isEventTarget(target)) {
+        target.addEventListener(eventName, handler, options);
+        return () => target.removeEventListener(eventName, handler, options);
+      }
+      if (isJQueryStyleEventEmitter(target)) {
+        target.on(eventName, handler);
+        return () => target.off(eventName, handler);
+      }
+      if (isNodeStyleEventEmitter(target)) {
+        target.addListener(eventName, handler);
+        return () => target.removeListener(eventName, handler);
+      }
+      throw new Error("Invalid event target");
+    }
+    function isNodeStyleEventEmitter(sourceObj) {
+      return isFunction(sourceObj.addListener) && isFunction(sourceObj.removeListener);
+    }
+    function isJQueryStyleEventEmitter(sourceObj) {
+      return isFunction(sourceObj.on) && isFunction(sourceObj.off);
+    }
+    function isEventTarget(sourceObj) {
+      return isFunction(sourceObj.addEventListener) && isFunction(sourceObj.removeEventListener);
+    }
+    var isFunction = (obj) => typeof obj === "function";
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/all.js
+var require_all2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/all.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.all = void 0;
+    var AbortError_1 = require_AbortError2();
+    function all(signal, executor) {
+      return new Promise((resolve, reject) => {
+        if (signal.aborted) {
+          reject(new AbortError_1.AbortError());
+          return;
+        }
+        const innerAbortController = new AbortController();
+        const promises = executor(innerAbortController.signal);
+        if (promises.length === 0) {
+          resolve([]);
+          return;
+        }
+        const abortListener = () => {
+          innerAbortController.abort();
+        };
+        signal.addEventListener("abort", abortListener);
+        let rejection;
+        const results = new Array(promises.length);
+        let settledCount = 0;
+        function settled() {
+          settledCount += 1;
+          if (settledCount === promises.length) {
+            signal.removeEventListener("abort", abortListener);
+            if (rejection != null) {
+              reject(rejection.reason);
+            } else {
+              resolve(results);
+            }
+          }
+        }
+        for (const [i, promise] of promises.entries()) {
+          promise.then((value) => {
+            results[i] = value;
+            settled();
+          }, (reason) => {
+            innerAbortController.abort();
+            if (rejection == null || !(0, AbortError_1.isAbortError)(reason) && (0, AbortError_1.isAbortError)(rejection.reason)) {
+              rejection = { reason };
+            }
+            settled();
+          });
+        }
+      });
+    }
+    exports.all = all;
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/race.js
+var require_race2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/race.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.race = void 0;
+    var AbortError_1 = require_AbortError2();
+    function race(signal, executor) {
+      return new Promise((resolve, reject) => {
+        if (signal.aborted) {
+          reject(new AbortError_1.AbortError());
+          return;
+        }
+        const innerAbortController = new AbortController();
+        const promises = executor(innerAbortController.signal);
+        const abortListener = () => {
+          innerAbortController.abort();
+        };
+        signal.addEventListener("abort", abortListener);
+        let settledCount = 0;
+        function settled(result2) {
+          innerAbortController.abort();
+          settledCount += 1;
+          if (settledCount === promises.length) {
+            signal.removeEventListener("abort", abortListener);
+            if (result2.status === "fulfilled") {
+              resolve(result2.value);
+            } else {
+              reject(result2.reason);
+            }
+          }
+        }
+        let result;
+        for (const promise of promises) {
+          promise.then((value) => {
+            if (result == null) {
+              result = { status: "fulfilled", value };
+            }
+            settled(result);
+          }, (reason) => {
+            if (result == null || !(0, AbortError_1.isAbortError)(reason) && (result.status === "fulfilled" || (0, AbortError_1.isAbortError)(result.reason))) {
+              result = { status: "rejected", reason };
+            }
+            settled(result);
+          });
+        }
+      });
+    }
+    exports.race = race;
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/retry.js
+var require_retry2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/retry.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.retry = void 0;
+    var delay_1 = require_delay2();
+    var AbortError_1 = require_AbortError2();
+    async function retry(signal, fn, options = {}) {
+      const { baseMs = 1e3, maxDelayMs = 3e4, onError, maxAttempts = Infinity } = options;
+      let attempt = 0;
+      const reset = () => {
+        attempt = -1;
+      };
+      while (true) {
+        try {
+          return await fn(signal, attempt, reset);
+        } catch (error) {
+          (0, AbortError_1.rethrowAbortError)(error);
+          if (attempt >= maxAttempts) {
+            throw error;
+          }
+          let delayMs;
+          if (attempt === -1) {
+            delayMs = 0;
+          } else {
+            const backoff = Math.min(maxDelayMs, Math.pow(2, attempt) * baseMs);
+            delayMs = Math.round(backoff * (1 + Math.random()) / 2);
+          }
+          if (onError) {
+            onError(error, attempt, delayMs);
+          }
+          if (delayMs !== 0) {
+            await (0, delay_1.delay)(signal, delayMs);
+          }
+          attempt += 1;
+        }
+      }
+    }
+    exports.retry = retry;
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/spawn.js
+var require_spawn2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/spawn.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.spawn = void 0;
+    var AbortError_1 = require_AbortError2();
+    function spawn(signal, fn) {
+      if (signal.aborted) {
+        return Promise.reject(new AbortError_1.AbortError());
+      }
+      const deferredFunctions = [];
+      const spawnAbortController = new AbortController();
+      const spawnSignal = spawnAbortController.signal;
+      const abortSpawn = () => {
+        spawnAbortController.abort();
+      };
+      signal.addEventListener("abort", abortSpawn);
+      const removeAbortListener = () => {
+        signal.removeEventListener("abort", abortSpawn);
+      };
+      const tasks = /* @__PURE__ */ new Set();
+      const abortTasks = () => {
+        for (const task of tasks) {
+          task.abort();
+        }
+      };
+      spawnSignal.addEventListener("abort", abortTasks);
+      const removeSpawnAbortListener = () => {
+        spawnSignal.removeEventListener("abort", abortTasks);
+      };
+      let promise = new Promise((resolve, reject) => {
+        let result;
+        let failure;
+        fork((signal2) => fn(signal2, {
+          defer(fn2) {
+            deferredFunctions.push(fn2);
+          },
+          fork
+        })).join().then((value) => {
+          spawnAbortController.abort();
+          result = { value };
+        }, (error) => {
+          spawnAbortController.abort();
+          if (!(0, AbortError_1.isAbortError)(error) || failure == null) {
+            failure = { error };
+          }
+        });
+        function fork(forkFn) {
+          if (spawnSignal.aborted) {
+            return {
+              abort() {
+              },
+              async join() {
+                throw new AbortError_1.AbortError();
+              }
+            };
+          }
+          const taskAbortController = new AbortController();
+          const taskSignal = taskAbortController.signal;
+          const taskPromise = forkFn(taskSignal);
+          const task = {
+            abort() {
+              taskAbortController.abort();
+            },
+            join: () => taskPromise
+          };
+          tasks.add(task);
+          taskPromise.catch(AbortError_1.catchAbortError).catch((error) => {
+            failure = { error };
+            spawnAbortController.abort();
+          }).finally(() => {
+            tasks.delete(task);
+            if (tasks.size === 0) {
+              if (failure != null) {
+                reject(failure.error);
+              } else {
+                resolve(result.value);
+              }
+            }
+          });
+          return task;
+        }
+      });
+      promise = promise.finally(() => {
+        removeAbortListener();
+        removeSpawnAbortListener();
+        let deferPromise = Promise.resolve();
+        for (let i = deferredFunctions.length - 1; i >= 0; i--) {
+          deferPromise = deferPromise.finally(deferredFunctions[i]);
+        }
+        return deferPromise;
+      });
+      return promise;
+    }
+    exports.spawn = spawn;
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/run.js
+var require_run2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/run.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.run = void 0;
+    var AbortError_1 = require_AbortError2();
+    function run(fn) {
+      const abortController = new AbortController();
+      const promise = fn(abortController.signal).catch(AbortError_1.catchAbortError);
+      return () => {
+        abortController.abort();
+        return promise;
+      };
+    }
+    exports.run = run;
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/proactiveRetry.js
+var require_proactiveRetry2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/proactiveRetry.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.proactiveRetry = void 0;
+    var AbortError_1 = require_AbortError2();
+    var delay_1 = require_delay2();
+    var execute_1 = require_execute2();
+    function proactiveRetry(signal, fn, options = {}) {
+      const { baseMs = 1e3, onError, maxAttempts = Infinity } = options;
+      return (0, execute_1.execute)(signal, (resolve, reject) => {
+        const innerAbortController = new AbortController();
+        let attemptsExhausted = false;
+        const promises = /* @__PURE__ */ new Map();
+        function handleFulfilled(value) {
+          innerAbortController.abort();
+          promises.clear();
+          resolve(value);
+        }
+        function handleRejected(err, attempt) {
+          promises.delete(attempt);
+          if (attemptsExhausted && promises.size === 0) {
+            reject(err);
+            return;
+          }
+          if ((0, AbortError_1.isAbortError)(err)) {
+            return;
+          }
+          if (onError) {
+            try {
+              onError(err, attempt);
+            } catch (err2) {
+              innerAbortController.abort();
+              promises.clear();
+              reject(err2);
+            }
+          }
+        }
+        async function makeAttempts(signal2) {
+          for (let attempt = 0; ; attempt++) {
+            const promise = fn(signal2, attempt);
+            promises.set(attempt, promise);
+            promise.then(handleFulfilled, (err) => handleRejected(err, attempt));
+            if (attempt + 1 >= maxAttempts) {
+              break;
+            }
+            const backoff = Math.pow(2, attempt) * baseMs;
+            const delayMs = Math.round(backoff * (1 + Math.random()) / 2);
+            await (0, delay_1.delay)(signal2, delayMs);
+          }
+          attemptsExhausted = true;
+        }
+        makeAttempts(innerAbortController.signal).catch(AbortError_1.catchAbortError);
+        return () => {
+          innerAbortController.abort();
+        };
+      });
+    }
+    exports.proactiveRetry = proactiveRetry;
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/index.js
+var require_lib5 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/abort-controller-x/lib/index.js"(exports) {
+    "use strict";
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __exportStar = exports && exports.__exportStar || function(m, exports2) {
+      for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports2, p)) __createBinding(exports2, m, p);
+    };
+    Object.defineProperty(exports, "__esModule", { value: true });
+    __exportStar(require_abortable2(), exports);
+    __exportStar(require_AbortError2(), exports);
+    __exportStar(require_delay2(), exports);
+    __exportStar(require_execute2(), exports);
+    __exportStar(require_forever2(), exports);
+    __exportStar(require_waitForEvent2(), exports);
+    __exportStar(require_all2(), exports);
+    __exportStar(require_race2(), exports);
+    __exportStar(require_retry2(), exports);
+    __exportStar(require_spawn2(), exports);
+    __exportStar(require_run2(), exports);
+    __exportStar(require_proactiveRetry2(), exports);
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/js-base64/base64.js
+var require_base642 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/js-base64/base64.js"(exports, module) {
+    (function(global2, factory) {
+      typeof exports === "object" && typeof module !== "undefined" ? module.exports = factory() : typeof define === "function" && define.amd ? define(factory) : (
+        // cf. https://github.com/dankogai/js-base64/issues/119
+        (function() {
+          var _Base64 = global2.Base64;
+          var gBase64 = factory();
+          gBase64.noConflict = function() {
+            global2.Base64 = _Base64;
+            return gBase64;
+          };
+          if (global2.Meteor) {
+            Base64 = gBase64;
+          }
+          global2.Base64 = gBase64;
+        })()
+      );
+    })(typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : exports, function() {
+      "use strict";
+      var version = "3.7.8";
+      var VERSION = version;
+      var _hasBuffer = typeof Buffer === "function";
+      var _TD = typeof TextDecoder === "function" ? new TextDecoder() : void 0;
+      var _TE = typeof TextEncoder === "function" ? new TextEncoder() : void 0;
+      var b64ch = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+      var b64chs = Array.prototype.slice.call(b64ch);
+      var b64tab = (function(a) {
+        var tab = {};
+        a.forEach(function(c, i) {
+          return tab[c] = i;
+        });
+        return tab;
+      })(b64chs);
+      var b64re = /^(?:[A-Za-z\d+\/]{4})*?(?:[A-Za-z\d+\/]{2}(?:==)?|[A-Za-z\d+\/]{3}=?)?$/;
+      var _fromCC = String.fromCharCode.bind(String);
+      var _U8Afrom = typeof Uint8Array.from === "function" ? Uint8Array.from.bind(Uint8Array) : function(it) {
+        return new Uint8Array(Array.prototype.slice.call(it, 0));
+      };
+      var _mkUriSafe = function(src) {
+        return src.replace(/=/g, "").replace(/[+\/]/g, function(m0) {
+          return m0 == "+" ? "-" : "_";
+        });
+      };
+      var _tidyB64 = function(s) {
+        return s.replace(/[^A-Za-z0-9\+\/]/g, "");
+      };
+      var btoaPolyfill = function(bin) {
+        var u32, c0, c1, c2, asc = "";
+        var pad = bin.length % 3;
+        for (var i = 0; i < bin.length; ) {
+          if ((c0 = bin.charCodeAt(i++)) > 255 || (c1 = bin.charCodeAt(i++)) > 255 || (c2 = bin.charCodeAt(i++)) > 255)
+            throw new TypeError("invalid character found");
+          u32 = c0 << 16 | c1 << 8 | c2;
+          asc += b64chs[u32 >> 18 & 63] + b64chs[u32 >> 12 & 63] + b64chs[u32 >> 6 & 63] + b64chs[u32 & 63];
+        }
+        return pad ? asc.slice(0, pad - 3) + "===".substring(pad) : asc;
+      };
+      var _btoa = typeof btoa === "function" ? function(bin) {
+        return btoa(bin);
+      } : _hasBuffer ? function(bin) {
+        return Buffer.from(bin, "binary").toString("base64");
+      } : btoaPolyfill;
+      var _fromUint8Array = _hasBuffer ? function(u8a) {
+        return Buffer.from(u8a).toString("base64");
+      } : function(u8a) {
+        var maxargs = 4096;
+        var strs = [];
+        for (var i = 0, l = u8a.length; i < l; i += maxargs) {
+          strs.push(_fromCC.apply(null, u8a.subarray(i, i + maxargs)));
+        }
+        return _btoa(strs.join(""));
+      };
+      var fromUint8Array = function(u8a, urlsafe) {
+        if (urlsafe === void 0) {
+          urlsafe = false;
+        }
+        return urlsafe ? _mkUriSafe(_fromUint8Array(u8a)) : _fromUint8Array(u8a);
+      };
+      var cb_utob = function(c) {
+        if (c.length < 2) {
+          var cc = c.charCodeAt(0);
+          return cc < 128 ? c : cc < 2048 ? _fromCC(192 | cc >>> 6) + _fromCC(128 | cc & 63) : _fromCC(224 | cc >>> 12 & 15) + _fromCC(128 | cc >>> 6 & 63) + _fromCC(128 | cc & 63);
+        } else {
+          var cc = 65536 + (c.charCodeAt(0) - 55296) * 1024 + (c.charCodeAt(1) - 56320);
+          return _fromCC(240 | cc >>> 18 & 7) + _fromCC(128 | cc >>> 12 & 63) + _fromCC(128 | cc >>> 6 & 63) + _fromCC(128 | cc & 63);
+        }
+      };
+      var re_utob = /[\uD800-\uDBFF][\uDC00-\uDFFFF]|[^\x00-\x7F]/g;
+      var utob = function(u) {
+        return u.replace(re_utob, cb_utob);
+      };
+      var _encode = _hasBuffer ? function(s) {
+        return Buffer.from(s, "utf8").toString("base64");
+      } : _TE ? function(s) {
+        return _fromUint8Array(_TE.encode(s));
+      } : function(s) {
+        return _btoa(utob(s));
+      };
+      var encode = function(src, urlsafe) {
+        if (urlsafe === void 0) {
+          urlsafe = false;
+        }
+        return urlsafe ? _mkUriSafe(_encode(src)) : _encode(src);
+      };
+      var encodeURI = function(src) {
+        return encode(src, true);
+      };
+      var re_btou = /[\xC0-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF7][\x80-\xBF]{3}/g;
+      var cb_btou = function(cccc) {
+        switch (cccc.length) {
+          case 4:
+            var cp = (7 & cccc.charCodeAt(0)) << 18 | (63 & cccc.charCodeAt(1)) << 12 | (63 & cccc.charCodeAt(2)) << 6 | 63 & cccc.charCodeAt(3), offset = cp - 65536;
+            return _fromCC((offset >>> 10) + 55296) + _fromCC((offset & 1023) + 56320);
+          case 3:
+            return _fromCC((15 & cccc.charCodeAt(0)) << 12 | (63 & cccc.charCodeAt(1)) << 6 | 63 & cccc.charCodeAt(2));
+          default:
+            return _fromCC((31 & cccc.charCodeAt(0)) << 6 | 63 & cccc.charCodeAt(1));
+        }
+      };
+      var btou = function(b) {
+        return b.replace(re_btou, cb_btou);
+      };
+      var atobPolyfill = function(asc) {
+        asc = asc.replace(/\s+/g, "");
+        if (!b64re.test(asc))
+          throw new TypeError("malformed base64.");
+        asc += "==".slice(2 - (asc.length & 3));
+        var u24, r1, r2;
+        var binArray = [];
+        for (var i = 0; i < asc.length; ) {
+          u24 = b64tab[asc.charAt(i++)] << 18 | b64tab[asc.charAt(i++)] << 12 | (r1 = b64tab[asc.charAt(i++)]) << 6 | (r2 = b64tab[asc.charAt(i++)]);
+          if (r1 === 64) {
+            binArray.push(_fromCC(u24 >> 16 & 255));
+          } else if (r2 === 64) {
+            binArray.push(_fromCC(u24 >> 16 & 255, u24 >> 8 & 255));
+          } else {
+            binArray.push(_fromCC(u24 >> 16 & 255, u24 >> 8 & 255, u24 & 255));
+          }
+        }
+        return binArray.join("");
+      };
+      var _atob = typeof atob === "function" ? function(asc) {
+        return atob(_tidyB64(asc));
+      } : _hasBuffer ? function(asc) {
+        return Buffer.from(asc, "base64").toString("binary");
+      } : atobPolyfill;
+      var _toUint8Array = _hasBuffer ? function(a) {
+        return _U8Afrom(Buffer.from(a, "base64"));
+      } : function(a) {
+        return _U8Afrom(_atob(a).split("").map(function(c) {
+          return c.charCodeAt(0);
+        }));
+      };
+      var toUint8Array = function(a) {
+        return _toUint8Array(_unURI(a));
+      };
+      var _decode = _hasBuffer ? function(a) {
+        return Buffer.from(a, "base64").toString("utf8");
+      } : _TD ? function(a) {
+        return _TD.decode(_toUint8Array(a));
+      } : function(a) {
+        return btou(_atob(a));
+      };
+      var _unURI = function(a) {
+        return _tidyB64(a.replace(/[-_]/g, function(m0) {
+          return m0 == "-" ? "+" : "/";
+        }));
+      };
+      var decode = function(src) {
+        return _decode(_unURI(src));
+      };
+      var isValid = function(src) {
+        if (typeof src !== "string")
+          return false;
+        var s = src.replace(/\s+/g, "").replace(/={0,2}$/, "");
+        return !/[^\s0-9a-zA-Z\+/]/.test(s) || !/[^\s0-9a-zA-Z\-_]/.test(s);
+      };
+      var _noEnum = function(v) {
+        return {
+          value: v,
+          enumerable: false,
+          writable: true,
+          configurable: true
+        };
+      };
+      var extendString = function() {
+        var _add = function(name, body) {
+          return Object.defineProperty(String.prototype, name, _noEnum(body));
+        };
+        _add("fromBase64", function() {
+          return decode(this);
+        });
+        _add("toBase64", function(urlsafe) {
+          return encode(this, urlsafe);
+        });
+        _add("toBase64URI", function() {
+          return encode(this, true);
+        });
+        _add("toBase64URL", function() {
+          return encode(this, true);
+        });
+        _add("toUint8Array", function() {
+          return toUint8Array(this);
+        });
+      };
+      var extendUint8Array = function() {
+        var _add = function(name, body) {
+          return Object.defineProperty(Uint8Array.prototype, name, _noEnum(body));
+        };
+        _add("toBase64", function(urlsafe) {
+          return fromUint8Array(this, urlsafe);
+        });
+        _add("toBase64URI", function() {
+          return fromUint8Array(this, true);
+        });
+        _add("toBase64URL", function() {
+          return fromUint8Array(this, true);
+        });
+      };
+      var extendBuiltins = function() {
+        extendString();
+        extendUint8Array();
+      };
+      var gBase64 = {
+        version,
+        VERSION,
+        atob: _atob,
+        atobPolyfill,
+        btoa: _btoa,
+        btoaPolyfill,
+        fromBase64: decode,
+        toBase64: encode,
+        encode,
+        encodeURI,
+        encodeURL: encodeURI,
+        utob,
+        btou,
+        decode,
+        isValid,
+        fromUint8Array,
+        toUint8Array,
+        extendString,
+        extendUint8Array,
+        extendBuiltins
+      };
+      gBase64.Base64 = {};
+      Object.keys(gBase64).forEach(function(k) {
+        return gBase64.Base64[k] = gBase64[k];
+      });
+      return gBase64;
+    });
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/transports/fetch.js
+var require_fetch2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/transports/fetch.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.FetchTransport = FetchTransport;
+    var abort_controller_x_1 = require_lib5();
+    var js_base64_1 = require_base642();
+    var nice_grpc_common_1 = require_lib4();
+    function FetchTransport(config) {
+      return async function* fetchTransport({ url, body, metadata, signal, method }) {
+        let requestBody;
+        if (!method.requestStream) {
+          let bodyBuffer;
+          for await (const chunk of body) {
+            bodyBuffer = chunk;
+            break;
+          }
+          requestBody = bodyBuffer;
+        } else {
+          let iterator;
+          requestBody = new ReadableStream({
+            type: "bytes",
+            start() {
+              iterator = body[Symbol.asyncIterator]();
+            },
+            async pull(controller) {
+              const { done, value } = await iterator.next();
+              if (done) {
+                controller.close();
+              } else {
+                controller.enqueue(value);
+              }
+            },
+            async cancel() {
+              var _a, _b;
+              await ((_b = (_a = iterator).return) === null || _b === void 0 ? void 0 : _b.call(_a));
+            }
+          });
+        }
+        const response = await fetch(url, {
+          method: "POST",
+          body: requestBody,
+          headers: metadataToHeaders(metadata),
+          signal,
+          cache: config === null || config === void 0 ? void 0 : config.cache,
+          ["duplex"]: "half",
+          credentials: config === null || config === void 0 ? void 0 : config.credentials
+        });
+        yield {
+          type: "header",
+          header: headersToMetadata(response.headers)
+        };
+        if (!response.ok) {
+          const responseText = await response.text();
+          throw new nice_grpc_common_1.ClientError(method.path, getStatusFromHttpCode(response.status), getErrorDetailsFromHttpResponse(response.status, responseText));
+        }
+        (0, abort_controller_x_1.throwIfAborted)(signal);
+        const reader = response.body.getReader();
+        const abortListener = () => {
+          reader.cancel().catch(() => {
+          });
+        };
+        signal.addEventListener("abort", abortListener);
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (value != null) {
+              yield {
+                type: "data",
+                data: value
+              };
+            }
+            if (done) {
+              break;
+            }
+          }
+        } finally {
+          signal.removeEventListener("abort", abortListener);
+          (0, abort_controller_x_1.throwIfAborted)(signal);
+        }
+      };
+    }
+    function metadataToHeaders(metadata) {
+      const headers = new Headers();
+      for (const [key, values] of metadata) {
+        for (const value of values) {
+          headers.append(key, typeof value === "string" ? value : js_base64_1.Base64.fromUint8Array(value));
+        }
+      }
+      return headers;
+    }
+    function headersToMetadata(headers) {
+      const metadata = new nice_grpc_common_1.Metadata();
+      for (const [key, value] of headers) {
+        if (key.endsWith("-bin")) {
+          for (const item of value.split(/,\s?/)) {
+            metadata.append(key, js_base64_1.Base64.toUint8Array(item));
+          }
+        } else {
+          metadata.set(key, value);
+        }
+      }
+      return metadata;
+    }
+    function getStatusFromHttpCode(statusCode) {
+      switch (statusCode) {
+        case 400:
+          return nice_grpc_common_1.Status.INTERNAL;
+        case 401:
+          return nice_grpc_common_1.Status.UNAUTHENTICATED;
+        case 403:
+          return nice_grpc_common_1.Status.PERMISSION_DENIED;
+        case 404:
+          return nice_grpc_common_1.Status.UNIMPLEMENTED;
+        case 429:
+        case 502:
+        case 503:
+        case 504:
+          return nice_grpc_common_1.Status.UNAVAILABLE;
+        default:
+          return nice_grpc_common_1.Status.UNKNOWN;
+      }
+    }
+    function getErrorDetailsFromHttpResponse(statusCode, responseText) {
+      return `Received HTTP ${statusCode} response: ` + (responseText.length > 1e3 ? responseText.slice(0, 1e3) + "... (truncated)" : responseText);
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/channel.js
+var require_channel2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/channel.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.createChannel = createChannel3;
+    var fetch_1 = require_fetch2();
+    function createChannel3(address, transport = (0, fetch_1.FetchTransport)()) {
+      return { address, transport };
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/utils/isAsyncIterable.js
+var require_isAsyncIterable2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/utils/isAsyncIterable.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.isAsyncIterable = isAsyncIterable;
+    function isAsyncIterable(value) {
+      return value != null && Symbol.asyncIterator in value;
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/utils/concatBuffers.js
+var require_concatBuffers2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/utils/concatBuffers.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.concatBuffers = concatBuffers;
+    function concatBuffers(buffers, totalLength) {
+      if (buffers.length === 1) {
+        return buffers[0];
+      }
+      const result = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const buffer of buffers) {
+        result.set(buffer, offset);
+        offset += buffer.length;
+      }
+      return result;
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/decodeMetadata.js
+var require_decodeMetadata2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/decodeMetadata.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.decodeMetadata = decodeMetadata;
+    var nice_grpc_common_1 = require_lib4();
+    var js_base64_1 = require_base642();
+    function decodeMetadata(data) {
+      const metadata = (0, nice_grpc_common_1.Metadata)();
+      const text = new TextDecoder().decode(data);
+      for (const line of text.split("\r\n")) {
+        if (!line) {
+          continue;
+        }
+        const splitIndex = line.indexOf(":");
+        if (splitIndex === -1) {
+          throw new Error(`Invalid metadata line: ${line}`);
+        }
+        const key = line.slice(0, splitIndex).trim().toLowerCase();
+        const value = line.slice(splitIndex + 1).trim();
+        if (key.endsWith("-bin")) {
+          for (const item of value.split(/,\s?/)) {
+            metadata.append(key, js_base64_1.Base64.toUint8Array(item));
+          }
+        } else {
+          metadata.append(key, value);
+        }
+      }
+      return metadata;
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/framing.js
+var require_framing2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/framing.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.LPM_HEADER_LENGTH = void 0;
+    exports.parseLpmHeader = parseLpmHeader;
+    exports.encodeFrame = encodeFrame;
+    exports.LPM_HEADER_LENGTH = 5;
+    function parseLpmHeader(data) {
+      if (data.length !== exports.LPM_HEADER_LENGTH) {
+        throw new Error(`Invalid LPM header length: ${data.length}`);
+      }
+      const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+      const compressed = (view.getUint8(0) & 1) !== 0;
+      const isMetadata = (view.getUint8(0) & 128) !== 0;
+      const length = view.getUint32(1);
+      return {
+        compressed,
+        isMetadata,
+        length
+      };
+    }
+    function encodeFrame(data) {
+      const messageBytes = new Uint8Array(exports.LPM_HEADER_LENGTH + data.length);
+      new DataView(messageBytes.buffer, 1, 4).setUint32(0, data.length, false);
+      messageBytes.set(data, exports.LPM_HEADER_LENGTH);
+      return messageBytes;
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/decodeResponse.js
+var require_decodeResponse2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/decodeResponse.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.decodeResponse = decodeResponse;
+    var concatBuffers_1 = require_concatBuffers2();
+    var decodeMetadata_1 = require_decodeMetadata2();
+    var framing_1 = require_framing2();
+    async function* decodeResponse({ response, decode, onHeader, onTrailer }) {
+      let receivedHeader = false;
+      let receivedTrailer = false;
+      let receivedData = false;
+      let buffer = createChunkBuffer(framing_1.LPM_HEADER_LENGTH);
+      let lpmHeader;
+      for await (const frame of response) {
+        if (frame.type === "header") {
+          handleHeader(frame.header);
+        } else if (frame.type === "trailer") {
+          handleTrailer(frame.trailer);
+        } else if (frame.type === "data") {
+          if (receivedTrailer) {
+            throw new Error("Received data after trailer");
+          }
+          let { data } = frame;
+          while (data.length > 0 || (lpmHeader === null || lpmHeader === void 0 ? void 0 : lpmHeader.length) === 0) {
+            const position = Math.min(data.length, buffer.targetLength - buffer.totalLength);
+            const chunk = data.subarray(0, position);
+            data = data.subarray(position);
+            buffer.chunks.push(chunk);
+            buffer.totalLength += chunk.length;
+            if (buffer.totalLength === buffer.targetLength) {
+              const messageBytes = (0, concatBuffers_1.concatBuffers)(buffer.chunks, buffer.totalLength);
+              if (lpmHeader == null) {
+                lpmHeader = (0, framing_1.parseLpmHeader)(messageBytes);
+                buffer = createChunkBuffer(lpmHeader.length);
+              } else {
+                if (lpmHeader.compressed) {
+                  throw new Error("Compressed messages not supported");
+                }
+                if (lpmHeader.isMetadata) {
+                  if (!receivedHeader) {
+                    handleHeader((0, decodeMetadata_1.decodeMetadata)(messageBytes));
+                  } else {
+                    handleTrailer((0, decodeMetadata_1.decodeMetadata)(messageBytes));
+                  }
+                } else {
+                  if (!receivedHeader) {
+                    throw new Error("Received data before header");
+                  }
+                  yield decode(messageBytes);
+                  receivedData = true;
+                }
+                lpmHeader = void 0;
+                buffer = createChunkBuffer(framing_1.LPM_HEADER_LENGTH);
+              }
+            }
+          }
+        }
+      }
+      function handleHeader(header) {
+        if (receivedHeader) {
+          throw new Error("Received multiple headers");
+        }
+        if (receivedData) {
+          throw new Error("Received header after data");
+        }
+        if (receivedTrailer) {
+          throw new Error("Received header after trailer");
+        }
+        receivedHeader = true;
+        onHeader(header);
+      }
+      function handleTrailer(trailer) {
+        if (receivedTrailer) {
+          throw new Error("Received multiple trailers");
+        }
+        receivedTrailer = true;
+        onTrailer(trailer);
+      }
+      function createChunkBuffer(targetLength) {
+        return {
+          chunks: [],
+          totalLength: 0,
+          targetLength
+        };
+      }
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/encodeRequest.js
+var require_encodeRequest2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/encodeRequest.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.encodeRequest = encodeRequest;
+    var framing_1 = require_framing2();
+    async function* encodeRequest({ request, encode }) {
+      for await (const data of request) {
+        const bytes = encode(data);
+        yield (0, framing_1.encodeFrame)(bytes);
+      }
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/makeInternalErrorMessage.js
+var require_makeInternalErrorMessage2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/makeInternalErrorMessage.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.makeInternalErrorMessage = makeInternalErrorMessage;
+    function makeInternalErrorMessage(err) {
+      if (err == null || typeof err !== "object") {
+        return String(err);
+      } else if (typeof err.message === "string") {
+        return err.message;
+      } else {
+        return JSON.stringify(err);
+      }
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/parseTrailer.js
+var require_parseTrailer2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/parseTrailer.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.parseTrailer = parseTrailer;
+    var nice_grpc_common_1 = require_lib4();
+    function parseTrailer(trailer) {
+      let status;
+      const statusValue = trailer.get("grpc-status");
+      if (statusValue != null) {
+        const statusNum = +statusValue;
+        if (statusNum in nice_grpc_common_1.Status) {
+          status = statusNum;
+        } else {
+          throw new Error(`Received invalid status code from server: ${statusValue}`);
+        }
+      } else {
+        throw new Error("Received no status code from server");
+      }
+      let message = trailer.get("grpc-message");
+      if (message != null) {
+        try {
+          message = decodeURIComponent(message);
+        } catch (_a) {
+        }
+      }
+      const trailerCopy = (0, nice_grpc_common_1.Metadata)(trailer);
+      trailerCopy.delete("grpc-status");
+      trailerCopy.delete("grpc-message");
+      return {
+        status,
+        message,
+        trailer: trailerCopy
+      };
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/makeCall.js
+var require_makeCall2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/makeCall.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.makeCall = makeCall;
+    var abort_controller_x_1 = require_lib5();
+    var nice_grpc_common_1 = require_lib4();
+    var decodeResponse_1 = require_decodeResponse2();
+    var encodeRequest_1 = require_encodeRequest2();
+    var makeInternalErrorMessage_1 = require_makeInternalErrorMessage2();
+    var parseTrailer_1 = require_parseTrailer2();
+    async function* makeCall(definition, channel, request, options) {
+      const { metadata, signal = new AbortController().signal, onHeader, onTrailer } = options;
+      (0, abort_controller_x_1.throwIfAborted)(signal);
+      let receivedTrailersOnly = false;
+      let status;
+      let message;
+      function handleTrailer(trailer) {
+        if (receivedTrailersOnly) {
+          if (new Map(trailer).size > 0) {
+            throw new nice_grpc_common_1.ClientError(definition.path, nice_grpc_common_1.Status.INTERNAL, "Received non-empty trailer after trailers-only response");
+          } else {
+            return;
+          }
+        }
+        const parsedTrailer = (0, parseTrailer_1.parseTrailer)(trailer);
+        ({ status, message } = parsedTrailer);
+        onTrailer === null || onTrailer === void 0 ? void 0 : onTrailer(parsedTrailer.trailer);
+      }
+      const finalMetadata = (0, nice_grpc_common_1.Metadata)(metadata);
+      finalMetadata.set("content-type", "application/grpc-web+proto");
+      finalMetadata.set("x-grpc-web", "1");
+      const innerAbortController = new AbortController();
+      const abortListener = () => {
+        innerAbortController.abort();
+      };
+      signal.addEventListener("abort", abortListener);
+      let finished = false;
+      let requestError;
+      async function* interceptRequestError() {
+        try {
+          for await (const item of request) {
+            if (finished) {
+              throw new Error("Request finished");
+            }
+            yield item;
+          }
+        } catch (err) {
+          requestError = { err };
+          innerAbortController.abort();
+          throw err;
+        }
+      }
+      async function* handleTransportErrors() {
+        try {
+          return yield* channel.transport({
+            url: channel.address + definition.path,
+            metadata: finalMetadata,
+            body: (0, encodeRequest_1.encodeRequest)({
+              request: interceptRequestError(),
+              encode: definition.requestSerialize
+            }),
+            signal: innerAbortController.signal,
+            method: definition
+          });
+        } catch (err) {
+          (0, abort_controller_x_1.rethrowAbortError)(err);
+          throw new nice_grpc_common_1.ClientError(definition.path, nice_grpc_common_1.Status.UNKNOWN, `Transport error: ${(0, makeInternalErrorMessage_1.makeInternalErrorMessage)(err)}`);
+        }
+      }
+      const response = (0, decodeResponse_1.decodeResponse)({
+        response: handleTransportErrors(),
+        decode: definition.responseDeserialize,
+        onHeader(header) {
+          const isTrailersOnly = header.has("grpc-status");
+          if (isTrailersOnly) {
+            handleTrailer(header);
+            receivedTrailersOnly = true;
+          } else {
+            onHeader === null || onHeader === void 0 ? void 0 : onHeader(header);
+          }
+        },
+        onTrailer(trailer) {
+          handleTrailer(trailer);
+        }
+      });
+      try {
+        yield* response;
+      } catch (err) {
+        if (requestError !== void 0) {
+          throw requestError.err;
+        } else if (err instanceof nice_grpc_common_1.ClientError || (0, abort_controller_x_1.isAbortError)(err)) {
+          throw err;
+        } else {
+          throw new nice_grpc_common_1.ClientError(definition.path, nice_grpc_common_1.Status.INTERNAL, (0, makeInternalErrorMessage_1.makeInternalErrorMessage)(err));
+        }
+      } finally {
+        finished = true;
+        signal.removeEventListener("abort", abortListener);
+        if (status != null && status !== nice_grpc_common_1.Status.OK) {
+          throw new nice_grpc_common_1.ClientError(definition.path, status, message !== null && message !== void 0 ? message : "");
+        }
+      }
+      if (status == null) {
+        throw new nice_grpc_common_1.ClientError(definition.path, nice_grpc_common_1.Status.UNKNOWN, 'Response stream closed without gRPC status. This may indicate a misconfigured CORS policy on the server: Access-Control-Expose-Headers must include "grpc-status" and "grpc-message".');
+      }
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/createBidiStreamingMethod.js
+var require_createBidiStreamingMethod2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/createBidiStreamingMethod.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.createBidiStreamingMethod = createBidiStreamingMethod;
+    var isAsyncIterable_1 = require_isAsyncIterable2();
+    var makeCall_1 = require_makeCall2();
+    function createBidiStreamingMethod(definition, channel, middleware, defaultOptions) {
+      const methodDescriptor = {
+        path: definition.path,
+        requestStream: definition.requestStream,
+        responseStream: definition.responseStream,
+        options: definition.options
+      };
+      async function* bidiStreamingMethod(request, options) {
+        if (!(0, isAsyncIterable_1.isAsyncIterable)(request)) {
+          throw new Error("A middleware passed invalid request to next(): expected a single message for bidirectional streaming method");
+        }
+        const response = (0, makeCall_1.makeCall)(definition, channel, request, options);
+        yield* response;
+      }
+      const method = middleware == null ? bidiStreamingMethod : (request, options) => middleware({
+        method: methodDescriptor,
+        requestStream: true,
+        request,
+        responseStream: true,
+        next: bidiStreamingMethod
+      }, options);
+      return (request, options) => {
+        const iterable = method(request, {
+          ...defaultOptions,
+          ...options
+        });
+        const iterator = iterable[Symbol.asyncIterator]();
+        return {
+          [Symbol.asyncIterator]() {
+            return {
+              async next() {
+                const result = await iterator.next();
+                if (result.done && result.value != null) {
+                  return await iterator.throw(new Error("A middleware returned a message, but expected to return void for bidirectional streaming method"));
+                }
+                return result;
+              },
+              return() {
+                return iterator.return();
+              },
+              throw(err) {
+                return iterator.throw(err);
+              }
+            };
+          }
+        };
+      };
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/createClientStreamingMethod.js
+var require_createClientStreamingMethod2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/createClientStreamingMethod.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.createClientStreamingMethod = createClientStreamingMethod;
+    var nice_grpc_common_1 = require_lib4();
+    var isAsyncIterable_1 = require_isAsyncIterable2();
+    var makeCall_1 = require_makeCall2();
+    function createClientStreamingMethod(definition, channel, middleware, defaultOptions) {
+      const methodDescriptor = {
+        path: definition.path,
+        requestStream: definition.requestStream,
+        responseStream: definition.responseStream,
+        options: definition.options
+      };
+      async function* clientStreamingMethod(request, options) {
+        if (!(0, isAsyncIterable_1.isAsyncIterable)(request)) {
+          throw Error("A middleware passed invalid request to next(): expected a single message for client streaming method");
+        }
+        const response = (0, makeCall_1.makeCall)(definition, channel, request, options);
+        let unaryResponse;
+        for await (const message of response) {
+          if (unaryResponse != null) {
+            throw new nice_grpc_common_1.ClientError(definition.path, nice_grpc_common_1.Status.INTERNAL, "Received more than one message from server for client streaming method");
+          }
+          unaryResponse = message;
+        }
+        if (unaryResponse == null) {
+          throw new nice_grpc_common_1.ClientError(definition.path, nice_grpc_common_1.Status.INTERNAL, "Server did not return a response");
+        }
+        return unaryResponse;
+      }
+      const method = middleware == null ? clientStreamingMethod : (request, options) => middleware({
+        method: methodDescriptor,
+        requestStream: true,
+        request,
+        responseStream: false,
+        next: clientStreamingMethod
+      }, options);
+      return async (request, options) => {
+        const iterable = method(request, {
+          ...defaultOptions,
+          ...options
+        });
+        const iterator = iterable[Symbol.asyncIterator]();
+        let result = await iterator.next();
+        while (true) {
+          if (!result.done) {
+            result = await iterator.throw(new Error("A middleware yielded a message, but expected to only return a message for client streaming method"));
+            continue;
+          }
+          if (result.value == null) {
+            result = await iterator.throw(new Error("A middleware returned void, but expected to return a message for client streaming method"));
+            continue;
+          }
+          return result.value;
+        }
+      };
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/utils/asyncIterableOf.js
+var require_asyncIterableOf2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/utils/asyncIterableOf.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.asyncIterableOf = asyncIterableOf;
+    async function* asyncIterableOf(item) {
+      yield item;
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/createServerStreamingMethod.js
+var require_createServerStreamingMethod2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/createServerStreamingMethod.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.createServerStreamingMethod = createServerStreamingMethod;
+    var asyncIterableOf_1 = require_asyncIterableOf2();
+    var isAsyncIterable_1 = require_isAsyncIterable2();
+    var makeCall_1 = require_makeCall2();
+    function createServerStreamingMethod(definition, channel, middleware, defaultOptions) {
+      const methodDescriptor = {
+        path: definition.path,
+        requestStream: definition.requestStream,
+        responseStream: definition.responseStream,
+        options: definition.options
+      };
+      async function* serverStreamingMethod(request, options) {
+        if ((0, isAsyncIterable_1.isAsyncIterable)(request)) {
+          throw new Error("A middleware passed invalid request to next(): expected a single message for server streaming method");
+        }
+        const response = (0, makeCall_1.makeCall)(definition, channel, (0, asyncIterableOf_1.asyncIterableOf)(request), options);
+        yield* response;
+      }
+      const method = middleware == null ? serverStreamingMethod : (request, options) => middleware({
+        method: methodDescriptor,
+        requestStream: false,
+        request,
+        responseStream: true,
+        next: serverStreamingMethod
+      }, options);
+      return (request, options) => {
+        const iterable = method(request, {
+          ...defaultOptions,
+          ...options
+        });
+        const iterator = iterable[Symbol.asyncIterator]();
+        return {
+          [Symbol.asyncIterator]() {
+            return {
+              async next() {
+                const result = await iterator.next();
+                if (result.done && result.value != null) {
+                  return await iterator.throw(new Error("A middleware returned a message, but expected to return void for server streaming method"));
+                }
+                return result;
+              },
+              return() {
+                return iterator.return();
+              },
+              throw(err) {
+                return iterator.throw(err);
+              }
+            };
+          }
+        };
+      };
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/createUnaryMethod.js
+var require_createUnaryMethod2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/createUnaryMethod.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.createUnaryMethod = createUnaryMethod;
+    var nice_grpc_common_1 = require_lib4();
+    var asyncIterableOf_1 = require_asyncIterableOf2();
+    var isAsyncIterable_1 = require_isAsyncIterable2();
+    var makeCall_1 = require_makeCall2();
+    function createUnaryMethod(definition, channel, middleware, defaultOptions) {
+      const methodDescriptor = {
+        path: definition.path,
+        requestStream: definition.requestStream,
+        responseStream: definition.responseStream,
+        options: definition.options
+      };
+      async function* unaryMethod(request, options) {
+        if ((0, isAsyncIterable_1.isAsyncIterable)(request)) {
+          throw new Error("A middleware passed invalid request to next(): expected a single message for unary method");
+        }
+        const response = (0, makeCall_1.makeCall)(definition, channel, (0, asyncIterableOf_1.asyncIterableOf)(request), options);
+        let unaryResponse;
+        for await (const message of response) {
+          if (unaryResponse != null) {
+            throw new nice_grpc_common_1.ClientError(definition.path, nice_grpc_common_1.Status.INTERNAL, "Received more than one message from server for unary method");
+          }
+          unaryResponse = message;
+        }
+        if (unaryResponse == null) {
+          throw new nice_grpc_common_1.ClientError(definition.path, nice_grpc_common_1.Status.INTERNAL, "Server did not return a response");
+        }
+        return unaryResponse;
+      }
+      const method = middleware == null ? unaryMethod : (request, options) => middleware({
+        method: methodDescriptor,
+        requestStream: false,
+        request,
+        responseStream: false,
+        next: unaryMethod
+      }, options);
+      return async (request, options) => {
+        const iterable = method(request, {
+          ...defaultOptions,
+          ...options
+        });
+        const iterator = iterable[Symbol.asyncIterator]();
+        let result = await iterator.next();
+        while (true) {
+          if (!result.done) {
+            result = await iterator.throw(new Error("A middleware yielded a message, but expected to only return a message for unary method"));
+            continue;
+          }
+          if (result.value == null) {
+            result = await iterator.throw(new Error("A middleware returned void, but expected to return a message for unary method"));
+            continue;
+          }
+          return result.value;
+        }
+      };
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/ClientFactory.js
+var require_ClientFactory2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/ClientFactory.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.createClientFactory = createClientFactory3;
+    exports.createClient = createClient;
+    var nice_grpc_common_1 = require_lib4();
+    var service_definitions_1 = require_service_definitions2();
+    var createBidiStreamingMethod_1 = require_createBidiStreamingMethod2();
+    var createClientStreamingMethod_1 = require_createClientStreamingMethod2();
+    var createServerStreamingMethod_1 = require_createServerStreamingMethod2();
+    var createUnaryMethod_1 = require_createUnaryMethod2();
+    function createClientFactory3() {
+      return createClientFactoryWithMiddleware();
+    }
+    function createClient(definition, channel, defaultCallOptions) {
+      return createClientFactory3().create(definition, channel, defaultCallOptions);
+    }
+    function createClientFactoryWithMiddleware(middleware) {
+      return {
+        use(newMiddleware) {
+          return createClientFactoryWithMiddleware(middleware == null ? newMiddleware : (0, nice_grpc_common_1.composeClientMiddleware)(middleware, newMiddleware));
+        },
+        create(definition, channel, defaultCallOptions = {}) {
+          const client = {};
+          const methodEntries = Object.entries((0, service_definitions_1.normalizeServiceDefinition)(definition));
+          for (const [methodName, methodDefinition] of methodEntries) {
+            const defaultOptions = {
+              ...defaultCallOptions["*"],
+              ...defaultCallOptions[methodName]
+            };
+            if (!methodDefinition.requestStream) {
+              if (!methodDefinition.responseStream) {
+                client[methodName] = (0, createUnaryMethod_1.createUnaryMethod)(methodDefinition, channel, middleware, defaultOptions);
+              } else {
+                client[methodName] = (0, createServerStreamingMethod_1.createServerStreamingMethod)(methodDefinition, channel, middleware, defaultOptions);
+              }
+            } else {
+              if (!methodDefinition.responseStream) {
+                client[methodName] = (0, createClientStreamingMethod_1.createClientStreamingMethod)(methodDefinition, channel, middleware, defaultOptions);
+              } else {
+                client[methodName] = (0, createBidiStreamingMethod_1.createBidiStreamingMethod)(methodDefinition, channel, middleware, defaultOptions);
+              }
+            }
+          }
+          return client;
+        }
+      };
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/Client.js
+var require_Client2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/Client.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/isomorphic-ws/browser.js
+var browser_exports2 = {};
+__export(browser_exports2, {
+  default: () => browser_default2
+});
+var ws2, browser_default2;
+var init_browser2 = __esm({
+  "../../daisi-sdk-typescript/node_modules/isomorphic-ws/browser.js"() {
+    ws2 = null;
+    if (typeof WebSocket !== "undefined") {
+      ws2 = WebSocket;
+    } else if (typeof MozWebSocket !== "undefined") {
+      ws2 = MozWebSocket;
+    } else if (typeof global !== "undefined") {
+      ws2 = global.WebSocket || global.MozWebSocket;
+    } else if (typeof window !== "undefined") {
+      ws2 = window.WebSocket || window.MozWebSocket;
+    } else if (typeof self !== "undefined") {
+      ws2 = self.WebSocket || self.MozWebSocket;
+    }
+    browser_default2 = ws2;
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/utils/AsyncSink.js
+var require_AsyncSink2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/utils/AsyncSink.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.AsyncSink = void 0;
+    var ARRAY_VALUE = "value";
+    var ARRAY_ERROR = "error";
+    var AsyncSink = class {
+      constructor() {
+        this._ended = false;
+        this._values = [];
+        this._resolvers = [];
+      }
+      [Symbol.asyncIterator]() {
+        return this;
+      }
+      write(value) {
+        this._push({ type: ARRAY_VALUE, value });
+      }
+      error(error) {
+        this._push({ type: ARRAY_ERROR, error });
+      }
+      _push(item) {
+        if (this._ended) {
+          return;
+        }
+        if (this._resolvers.length > 0) {
+          const { resolve, reject } = this._resolvers.shift();
+          if (item.type === ARRAY_ERROR) {
+            reject(item.error);
+          } else {
+            resolve({ done: false, value: item.value });
+          }
+        } else {
+          this._values.push(item);
+        }
+      }
+      next() {
+        if (this._values.length > 0) {
+          const { type, value, error } = this._values.shift();
+          if (type === ARRAY_ERROR) {
+            return Promise.reject(error);
+          } else {
+            return Promise.resolve({ done: false, value });
+          }
+        }
+        if (this._ended) {
+          return Promise.resolve({ done: true });
+        }
+        return new Promise((resolve, reject) => {
+          this._resolvers.push({ resolve, reject });
+        });
+      }
+      end() {
+        while (this._resolvers.length > 0) {
+          this._resolvers.shift().resolve({ done: true });
+        }
+        this._ended = true;
+      }
+    };
+    exports.AsyncSink = AsyncSink;
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/transports/websocket.js
+var require_websocket2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/transports/websocket.js"(exports) {
+    "use strict";
+    var __importDefault = exports && exports.__importDefault || function(mod) {
+      return mod && mod.__esModule ? mod : { "default": mod };
+    };
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.WebsocketTransport = WebsocketTransport;
+    var abort_controller_x_1 = require_lib5();
+    var isomorphic_ws_1 = __importDefault((init_browser2(), __toCommonJS(browser_exports2)));
+    var js_base64_1 = require_base642();
+    var AsyncSink_1 = require_AsyncSink2();
+    function WebsocketTransport() {
+      return async function* ({ url, body, metadata, signal }) {
+        if (signal.aborted) {
+          throw new abort_controller_x_1.AbortError();
+        }
+        const frames = new AsyncSink_1.AsyncSink();
+        signal.addEventListener("abort", () => {
+          frames.error(new abort_controller_x_1.AbortError());
+        });
+        const websocketUrl = new URL(url);
+        websocketUrl.protocol = websocketUrl.protocol.replace("http", "ws");
+        const webSocket = new isomorphic_ws_1.default(websocketUrl, ["grpc-websockets"]);
+        webSocket.binaryType = "arraybuffer";
+        webSocket.addEventListener("message", (event) => {
+          if (event.data instanceof ArrayBuffer) {
+            frames.write({
+              type: "data",
+              data: new Uint8Array(event.data)
+            });
+          } else {
+            frames.error(new Error(`Unexpected message type: ${typeof event.data}`));
+          }
+        });
+        webSocket.addEventListener("close", (event) => {
+          if (event.wasClean) {
+            frames.end();
+          } else {
+            frames.error(new Error(`WebSocket closed with code ${event.code}` + (event.reason && `: ${event.reason}`)));
+          }
+        });
+        const pipeAbortController = new AbortController();
+        pipeBody(pipeAbortController.signal, metadata, body, webSocket).catch((err) => {
+          if (!(0, abort_controller_x_1.isAbortError)(err)) {
+            frames.error(err);
+          }
+        });
+        try {
+          return yield* frames;
+        } finally {
+          pipeAbortController.abort();
+          webSocket.close();
+        }
+      };
+    }
+    async function pipeBody(signal, metadata, body, webSocket) {
+      if (webSocket.readyState == isomorphic_ws_1.default.CONNECTING) {
+        await (0, abort_controller_x_1.waitForEvent)(signal, webSocket, "open");
+      }
+      webSocket.send(encodeMetadata(metadata));
+      for await (const chunk of body) {
+        (0, abort_controller_x_1.throwIfAborted)(signal);
+        const data = new Uint8Array(chunk.length + 1);
+        data.set([0], 0);
+        data.set(chunk, 1);
+        webSocket.send(data);
+      }
+      webSocket.send(new Uint8Array([1]));
+    }
+    function encodeMetadata(metadata) {
+      let result = "";
+      for (const [key, values] of metadata) {
+        for (const value of values) {
+          const valueString = typeof value === "string" ? value : js_base64_1.Base64.fromUint8Array(value);
+          const pairString = `${key}: ${valueString}\r
+`;
+          for (let i = 0; i < pairString.length; i++) {
+            const charCode = pairString.charCodeAt(i);
+            if (!isValidCharCode(charCode)) {
+              throw new Error(`Metadata contains invalid characters: '${pairString}'`);
+            }
+          }
+          result += pairString;
+        }
+      }
+      return new TextEncoder().encode(result);
+    }
+    function isValidCharCode(val) {
+      return val === 9 || val === 10 || val === 13 || val >= 32 && val <= 126;
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/transports/nodeHttp/browser.js
+var require_browser2 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/transports/nodeHttp/browser.js"(exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.NodeHttpTransport = NodeHttpTransport;
+    function NodeHttpTransport() {
+      throw new Error("NodeHttpTransport is not supported in the browser");
+    }
+  }
+});
+
+// ../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/index.js
+var require_lib6 = __commonJS({
+  "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/index.js"(exports) {
+    "use strict";
+    var __createBinding = exports && exports.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __exportStar = exports && exports.__exportStar || function(m, exports2) {
+      for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports2, p)) __createBinding(exports2, m, p);
+    };
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.NodeHttpTransport = exports.WebsocketTransport = exports.FetchTransport = exports.Status = exports.Metadata = exports.composeClientMiddleware = exports.ClientError = void 0;
+    var nice_grpc_common_1 = require_lib4();
+    Object.defineProperty(exports, "ClientError", { enumerable: true, get: function() {
+      return nice_grpc_common_1.ClientError;
+    } });
+    Object.defineProperty(exports, "composeClientMiddleware", { enumerable: true, get: function() {
+      return nice_grpc_common_1.composeClientMiddleware;
+    } });
+    Object.defineProperty(exports, "Metadata", { enumerable: true, get: function() {
+      return nice_grpc_common_1.Metadata;
+    } });
+    Object.defineProperty(exports, "Status", { enumerable: true, get: function() {
+      return nice_grpc_common_1.Status;
+    } });
+    __exportStar(require_service_definitions2(), exports);
+    __exportStar(require_channel2(), exports);
+    __exportStar(require_ClientFactory2(), exports);
+    __exportStar(require_Client2(), exports);
+    var fetch_1 = require_fetch2();
+    Object.defineProperty(exports, "FetchTransport", { enumerable: true, get: function() {
+      return fetch_1.FetchTransport;
+    } });
+    var websocket_1 = require_websocket2();
+    Object.defineProperty(exports, "WebsocketTransport", { enumerable: true, get: function() {
+      return websocket_1.WebsocketTransport;
+    } });
+    var nodeHttp_1 = require_browser2();
+    Object.defineProperty(exports, "NodeHttpTransport", { enumerable: true, get: function() {
+      return nodeHttp_1.NodeHttpTransport;
+    } });
+  }
+});
+
 // ../../daisi-llogos/src/Daisi.Llogos.WebGpu/dist/index.js
 function isWebGpuAvailable() {
   return typeof navigator !== "undefined" && "gpu" in navigator;
@@ -983,8 +5955,8 @@ var BpeTokenizer = class {
       const symbols = this.useByteEncoding ? byteEncodeChunk(chunk) : this.directEncodeChunk(chunk);
       if (symbols.length === 0) continue;
       this.applyMerges(symbols);
-      for (const symbol of symbols) {
-        const id = this.tokenToId.get(symbol);
+      for (const symbol2 of symbols) {
+        const id = this.tokenToId.get(symbol2);
         if (id !== void 0) result.push(id);
       }
     }
@@ -1889,44 +6861,5012 @@ ${userMessage}<|im_end|>
   }
 };
 
+// src/orc-connection.ts
+var import_nice_grpc_web2 = __toESM(require_lib3(), 1);
+
+// ../../daisi-sdk-typescript/dist/web.js
+var import_nice_grpc_web = __toESM(require_lib6(), 1);
+var import_nice_grpc_common = __toESM(require_lib4(), 1);
+var import_nice_grpc_common2 = __toESM(require_lib4(), 1);
+
+// ../../daisi-sdk-typescript/node_modules/@bufbuild/protobuf/dist/esm/wire/varint.js
+function varint64read() {
+  let lowBits = 0;
+  let highBits = 0;
+  for (let shift = 0; shift < 28; shift += 7) {
+    let b = this.buf[this.pos++];
+    lowBits |= (b & 127) << shift;
+    if ((b & 128) == 0) {
+      this.assertBounds();
+      return [lowBits, highBits];
+    }
+  }
+  let middleByte = this.buf[this.pos++];
+  lowBits |= (middleByte & 15) << 28;
+  highBits = (middleByte & 112) >> 4;
+  if ((middleByte & 128) == 0) {
+    this.assertBounds();
+    return [lowBits, highBits];
+  }
+  for (let shift = 3; shift <= 31; shift += 7) {
+    let b = this.buf[this.pos++];
+    highBits |= (b & 127) << shift;
+    if ((b & 128) == 0) {
+      this.assertBounds();
+      return [lowBits, highBits];
+    }
+  }
+  throw new Error("invalid varint");
+}
+function varint64write(lo, hi, bytes) {
+  for (let i = 0; i < 28; i = i + 7) {
+    const shift = lo >>> i;
+    const hasNext = !(shift >>> 7 == 0 && hi == 0);
+    const byte = (hasNext ? shift | 128 : shift) & 255;
+    bytes.push(byte);
+    if (!hasNext) {
+      return;
+    }
+  }
+  const splitBits = lo >>> 28 & 15 | (hi & 7) << 4;
+  const hasMoreBits = !(hi >> 3 == 0);
+  bytes.push((hasMoreBits ? splitBits | 128 : splitBits) & 255);
+  if (!hasMoreBits) {
+    return;
+  }
+  for (let i = 3; i < 31; i = i + 7) {
+    const shift = hi >>> i;
+    const hasNext = !(shift >>> 7 == 0);
+    const byte = (hasNext ? shift | 128 : shift) & 255;
+    bytes.push(byte);
+    if (!hasNext) {
+      return;
+    }
+  }
+  bytes.push(hi >>> 31 & 1);
+}
+var TWO_PWR_32_DBL = 4294967296;
+function int64FromString(dec) {
+  const minus = dec[0] === "-";
+  if (minus) {
+    dec = dec.slice(1);
+  }
+  const base = 1e6;
+  let lowBits = 0;
+  let highBits = 0;
+  function add1e6digit(begin, end) {
+    const digit1e6 = Number(dec.slice(begin, end));
+    highBits *= base;
+    lowBits = lowBits * base + digit1e6;
+    if (lowBits >= TWO_PWR_32_DBL) {
+      highBits = highBits + (lowBits / TWO_PWR_32_DBL | 0);
+      lowBits = lowBits % TWO_PWR_32_DBL;
+    }
+  }
+  add1e6digit(-24, -18);
+  add1e6digit(-18, -12);
+  add1e6digit(-12, -6);
+  add1e6digit(-6);
+  return minus ? negate(lowBits, highBits) : newBits(lowBits, highBits);
+}
+function int64ToString(lo, hi) {
+  let bits = newBits(lo, hi);
+  const negative = bits.hi & 2147483648;
+  if (negative) {
+    bits = negate(bits.lo, bits.hi);
+  }
+  const result = uInt64ToString(bits.lo, bits.hi);
+  return negative ? "-" + result : result;
+}
+function uInt64ToString(lo, hi) {
+  ({ lo, hi } = toUnsigned(lo, hi));
+  if (hi <= 2097151) {
+    return String(TWO_PWR_32_DBL * hi + lo);
+  }
+  const low = lo & 16777215;
+  const mid = (lo >>> 24 | hi << 8) & 16777215;
+  const high = hi >> 16 & 65535;
+  let digitA = low + mid * 6777216 + high * 6710656;
+  let digitB = mid + high * 8147497;
+  let digitC = high * 2;
+  const base = 1e7;
+  if (digitA >= base) {
+    digitB += Math.floor(digitA / base);
+    digitA %= base;
+  }
+  if (digitB >= base) {
+    digitC += Math.floor(digitB / base);
+    digitB %= base;
+  }
+  return digitC.toString() + decimalFrom1e7WithLeadingZeros(digitB) + decimalFrom1e7WithLeadingZeros(digitA);
+}
+function toUnsigned(lo, hi) {
+  return { lo: lo >>> 0, hi: hi >>> 0 };
+}
+function newBits(lo, hi) {
+  return { lo: lo | 0, hi: hi | 0 };
+}
+function negate(lowBits, highBits) {
+  highBits = ~highBits;
+  if (lowBits) {
+    lowBits = ~lowBits + 1;
+  } else {
+    highBits += 1;
+  }
+  return newBits(lowBits, highBits);
+}
+var decimalFrom1e7WithLeadingZeros = (digit1e7) => {
+  const partial = String(digit1e7);
+  return "0000000".slice(partial.length) + partial;
+};
+function varint32write(value, bytes) {
+  if (value >= 0) {
+    while (value > 127) {
+      bytes.push(value & 127 | 128);
+      value = value >>> 7;
+    }
+    bytes.push(value);
+  } else {
+    for (let i = 0; i < 9; i++) {
+      bytes.push(value & 127 | 128);
+      value = value >> 7;
+    }
+    bytes.push(1);
+  }
+}
+function varint32read() {
+  let b = this.buf[this.pos++];
+  let result = b & 127;
+  if ((b & 128) == 0) {
+    this.assertBounds();
+    return result;
+  }
+  b = this.buf[this.pos++];
+  result |= (b & 127) << 7;
+  if ((b & 128) == 0) {
+    this.assertBounds();
+    return result;
+  }
+  b = this.buf[this.pos++];
+  result |= (b & 127) << 14;
+  if ((b & 128) == 0) {
+    this.assertBounds();
+    return result;
+  }
+  b = this.buf[this.pos++];
+  result |= (b & 127) << 21;
+  if ((b & 128) == 0) {
+    this.assertBounds();
+    return result;
+  }
+  b = this.buf[this.pos++];
+  result |= (b & 15) << 28;
+  for (let readBytes = 5; (b & 128) !== 0 && readBytes < 10; readBytes++)
+    b = this.buf[this.pos++];
+  if ((b & 128) != 0)
+    throw new Error("invalid varint");
+  this.assertBounds();
+  return result >>> 0;
+}
+
+// ../../daisi-sdk-typescript/node_modules/@bufbuild/protobuf/dist/esm/proto-int64.js
+var protoInt64 = /* @__PURE__ */ makeInt64Support();
+function makeInt64Support() {
+  const dv = new DataView(new ArrayBuffer(8));
+  const ok = typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (!!globalThis.Deno || typeof process != "object" || typeof process.env != "object" || process.env.BUF_BIGINT_DISABLE !== "1");
+  if (ok) {
+    const MIN = BigInt("-9223372036854775808");
+    const MAX = BigInt("9223372036854775807");
+    const UMIN = BigInt("0");
+    const UMAX = BigInt("18446744073709551615");
+    return {
+      zero: BigInt(0),
+      supported: true,
+      parse(value) {
+        const bi = typeof value == "bigint" ? value : BigInt(value);
+        if (bi > MAX || bi < MIN) {
+          throw new Error(`invalid int64: ${value}`);
+        }
+        return bi;
+      },
+      uParse(value) {
+        const bi = typeof value == "bigint" ? value : BigInt(value);
+        if (bi > UMAX || bi < UMIN) {
+          throw new Error(`invalid uint64: ${value}`);
+        }
+        return bi;
+      },
+      enc(value) {
+        dv.setBigInt64(0, this.parse(value), true);
+        return {
+          lo: dv.getInt32(0, true),
+          hi: dv.getInt32(4, true)
+        };
+      },
+      uEnc(value) {
+        dv.setBigInt64(0, this.uParse(value), true);
+        return {
+          lo: dv.getInt32(0, true),
+          hi: dv.getInt32(4, true)
+        };
+      },
+      dec(lo, hi) {
+        dv.setInt32(0, lo, true);
+        dv.setInt32(4, hi, true);
+        return dv.getBigInt64(0, true);
+      },
+      uDec(lo, hi) {
+        dv.setInt32(0, lo, true);
+        dv.setInt32(4, hi, true);
+        return dv.getBigUint64(0, true);
+      }
+    };
+  }
+  return {
+    zero: "0",
+    supported: false,
+    parse(value) {
+      if (typeof value != "string") {
+        value = value.toString();
+      }
+      assertInt64String(value);
+      return value;
+    },
+    uParse(value) {
+      if (typeof value != "string") {
+        value = value.toString();
+      }
+      assertUInt64String(value);
+      return value;
+    },
+    enc(value) {
+      if (typeof value != "string") {
+        value = value.toString();
+      }
+      assertInt64String(value);
+      return int64FromString(value);
+    },
+    uEnc(value) {
+      if (typeof value != "string") {
+        value = value.toString();
+      }
+      assertUInt64String(value);
+      return int64FromString(value);
+    },
+    dec(lo, hi) {
+      return int64ToString(lo, hi);
+    },
+    uDec(lo, hi) {
+      return uInt64ToString(lo, hi);
+    }
+  };
+}
+function assertInt64String(value) {
+  if (!/^-?[0-9]+$/.test(value)) {
+    throw new Error("invalid int64: " + value);
+  }
+}
+function assertUInt64String(value) {
+  if (!/^[0-9]+$/.test(value)) {
+    throw new Error("invalid uint64: " + value);
+  }
+}
+
+// ../../daisi-sdk-typescript/node_modules/@bufbuild/protobuf/dist/esm/wire/text-encoding.js
+var symbol = Symbol.for("@bufbuild/protobuf/text-encoding");
+function getTextEncoding() {
+  if (globalThis[symbol] == void 0) {
+    const te = new globalThis.TextEncoder();
+    const td = new globalThis.TextDecoder();
+    globalThis[symbol] = {
+      encodeUtf8(text) {
+        return te.encode(text);
+      },
+      decodeUtf8(bytes) {
+        return td.decode(bytes);
+      },
+      checkUtf8(text) {
+        try {
+          encodeURIComponent(text);
+          return true;
+        } catch (_) {
+          return false;
+        }
+      }
+    };
+  }
+  return globalThis[symbol];
+}
+
+// ../../daisi-sdk-typescript/node_modules/@bufbuild/protobuf/dist/esm/wire/binary-encoding.js
+var WireType;
+(function(WireType2) {
+  WireType2[WireType2["Varint"] = 0] = "Varint";
+  WireType2[WireType2["Bit64"] = 1] = "Bit64";
+  WireType2[WireType2["LengthDelimited"] = 2] = "LengthDelimited";
+  WireType2[WireType2["StartGroup"] = 3] = "StartGroup";
+  WireType2[WireType2["EndGroup"] = 4] = "EndGroup";
+  WireType2[WireType2["Bit32"] = 5] = "Bit32";
+})(WireType || (WireType = {}));
+var FLOAT32_MAX = 34028234663852886e22;
+var FLOAT32_MIN = -34028234663852886e22;
+var UINT32_MAX = 4294967295;
+var INT32_MAX = 2147483647;
+var INT32_MIN = -2147483648;
+var BinaryWriter = class {
+  constructor(encodeUtf8 = getTextEncoding().encodeUtf8) {
+    this.encodeUtf8 = encodeUtf8;
+    this.stack = [];
+    this.chunks = [];
+    this.buf = [];
+  }
+  /**
+   * Return all bytes written and reset this writer.
+   */
+  finish() {
+    if (this.buf.length) {
+      this.chunks.push(new Uint8Array(this.buf));
+      this.buf = [];
+    }
+    let len = 0;
+    for (let i = 0; i < this.chunks.length; i++)
+      len += this.chunks[i].length;
+    let bytes = new Uint8Array(len);
+    let offset = 0;
+    for (let i = 0; i < this.chunks.length; i++) {
+      bytes.set(this.chunks[i], offset);
+      offset += this.chunks[i].length;
+    }
+    this.chunks = [];
+    return bytes;
+  }
+  /**
+   * Start a new fork for length-delimited data like a message
+   * or a packed repeated field.
+   *
+   * Must be joined later with `join()`.
+   */
+  fork() {
+    this.stack.push({ chunks: this.chunks, buf: this.buf });
+    this.chunks = [];
+    this.buf = [];
+    return this;
+  }
+  /**
+   * Join the last fork. Write its length and bytes, then
+   * return to the previous state.
+   */
+  join() {
+    let chunk = this.finish();
+    let prev = this.stack.pop();
+    if (!prev)
+      throw new Error("invalid state, fork stack empty");
+    this.chunks = prev.chunks;
+    this.buf = prev.buf;
+    this.uint32(chunk.byteLength);
+    return this.raw(chunk);
+  }
+  /**
+   * Writes a tag (field number and wire type).
+   *
+   * Equivalent to `uint32( (fieldNo << 3 | type) >>> 0 )`.
+   *
+   * Generated code should compute the tag ahead of time and call `uint32()`.
+   */
+  tag(fieldNo, type) {
+    return this.uint32((fieldNo << 3 | type) >>> 0);
+  }
+  /**
+   * Write a chunk of raw bytes.
+   */
+  raw(chunk) {
+    if (this.buf.length) {
+      this.chunks.push(new Uint8Array(this.buf));
+      this.buf = [];
+    }
+    this.chunks.push(chunk);
+    return this;
+  }
+  /**
+   * Write a `uint32` value, an unsigned 32 bit varint.
+   */
+  uint32(value) {
+    assertUInt32(value);
+    while (value > 127) {
+      this.buf.push(value & 127 | 128);
+      value = value >>> 7;
+    }
+    this.buf.push(value);
+    return this;
+  }
+  /**
+   * Write a `int32` value, a signed 32 bit varint.
+   */
+  int32(value) {
+    assertInt32(value);
+    varint32write(value, this.buf);
+    return this;
+  }
+  /**
+   * Write a `bool` value, a variant.
+   */
+  bool(value) {
+    this.buf.push(value ? 1 : 0);
+    return this;
+  }
+  /**
+   * Write a `bytes` value, length-delimited arbitrary data.
+   */
+  bytes(value) {
+    this.uint32(value.byteLength);
+    return this.raw(value);
+  }
+  /**
+   * Write a `string` value, length-delimited data converted to UTF-8 text.
+   */
+  string(value) {
+    let chunk = this.encodeUtf8(value);
+    this.uint32(chunk.byteLength);
+    return this.raw(chunk);
+  }
+  /**
+   * Write a `float` value, 32-bit floating point number.
+   */
+  float(value) {
+    assertFloat32(value);
+    let chunk = new Uint8Array(4);
+    new DataView(chunk.buffer).setFloat32(0, value, true);
+    return this.raw(chunk);
+  }
+  /**
+   * Write a `double` value, a 64-bit floating point number.
+   */
+  double(value) {
+    let chunk = new Uint8Array(8);
+    new DataView(chunk.buffer).setFloat64(0, value, true);
+    return this.raw(chunk);
+  }
+  /**
+   * Write a `fixed32` value, an unsigned, fixed-length 32-bit integer.
+   */
+  fixed32(value) {
+    assertUInt32(value);
+    let chunk = new Uint8Array(4);
+    new DataView(chunk.buffer).setUint32(0, value, true);
+    return this.raw(chunk);
+  }
+  /**
+   * Write a `sfixed32` value, a signed, fixed-length 32-bit integer.
+   */
+  sfixed32(value) {
+    assertInt32(value);
+    let chunk = new Uint8Array(4);
+    new DataView(chunk.buffer).setInt32(0, value, true);
+    return this.raw(chunk);
+  }
+  /**
+   * Write a `sint32` value, a signed, zigzag-encoded 32-bit varint.
+   */
+  sint32(value) {
+    assertInt32(value);
+    value = (value << 1 ^ value >> 31) >>> 0;
+    varint32write(value, this.buf);
+    return this;
+  }
+  /**
+   * Write a `fixed64` value, a signed, fixed-length 64-bit integer.
+   */
+  sfixed64(value) {
+    let chunk = new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.enc(value);
+    view.setInt32(0, tc.lo, true);
+    view.setInt32(4, tc.hi, true);
+    return this.raw(chunk);
+  }
+  /**
+   * Write a `fixed64` value, an unsigned, fixed-length 64 bit integer.
+   */
+  fixed64(value) {
+    let chunk = new Uint8Array(8), view = new DataView(chunk.buffer), tc = protoInt64.uEnc(value);
+    view.setInt32(0, tc.lo, true);
+    view.setInt32(4, tc.hi, true);
+    return this.raw(chunk);
+  }
+  /**
+   * Write a `int64` value, a signed 64-bit varint.
+   */
+  int64(value) {
+    let tc = protoInt64.enc(value);
+    varint64write(tc.lo, tc.hi, this.buf);
+    return this;
+  }
+  /**
+   * Write a `sint64` value, a signed, zig-zag-encoded 64-bit varint.
+   */
+  sint64(value) {
+    const tc = protoInt64.enc(value), sign = tc.hi >> 31, lo = tc.lo << 1 ^ sign, hi = (tc.hi << 1 | tc.lo >>> 31) ^ sign;
+    varint64write(lo, hi, this.buf);
+    return this;
+  }
+  /**
+   * Write a `uint64` value, an unsigned 64-bit varint.
+   */
+  uint64(value) {
+    const tc = protoInt64.uEnc(value);
+    varint64write(tc.lo, tc.hi, this.buf);
+    return this;
+  }
+};
+var BinaryReader2 = class {
+  constructor(buf, decodeUtf8 = getTextEncoding().decodeUtf8) {
+    this.decodeUtf8 = decodeUtf8;
+    this.varint64 = varint64read;
+    this.uint32 = varint32read;
+    this.buf = buf;
+    this.len = buf.length;
+    this.pos = 0;
+    this.view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  }
+  /**
+   * Reads a tag - field number and wire type.
+   */
+  tag() {
+    let tag = this.uint32(), fieldNo = tag >>> 3, wireType = tag & 7;
+    if (fieldNo <= 0 || wireType < 0 || wireType > 5)
+      throw new Error("illegal tag: field no " + fieldNo + " wire type " + wireType);
+    return [fieldNo, wireType];
+  }
+  /**
+   * Skip one element and return the skipped data.
+   *
+   * When skipping StartGroup, provide the tags field number to check for
+   * matching field number in the EndGroup tag.
+   */
+  skip(wireType, fieldNo) {
+    let start = this.pos;
+    switch (wireType) {
+      case WireType.Varint:
+        while (this.buf[this.pos++] & 128) {
+        }
+        break;
+      // @ts-ignore TS7029: Fallthrough case in switch -- ignore instead of expect-error for compiler settings without noFallthroughCasesInSwitch: true
+      case WireType.Bit64:
+        this.pos += 4;
+      case WireType.Bit32:
+        this.pos += 4;
+        break;
+      case WireType.LengthDelimited:
+        let len = this.uint32();
+        this.pos += len;
+        break;
+      case WireType.StartGroup:
+        for (; ; ) {
+          const [fn, wt] = this.tag();
+          if (wt === WireType.EndGroup) {
+            if (fieldNo !== void 0 && fn !== fieldNo) {
+              throw new Error("invalid end group tag");
+            }
+            break;
+          }
+          this.skip(wt, fn);
+        }
+        break;
+      default:
+        throw new Error("cant skip wire type " + wireType);
+    }
+    this.assertBounds();
+    return this.buf.subarray(start, this.pos);
+  }
+  /**
+   * Throws error if position in byte array is out of range.
+   */
+  assertBounds() {
+    if (this.pos > this.len)
+      throw new RangeError("premature EOF");
+  }
+  /**
+   * Read a `int32` field, a signed 32 bit varint.
+   */
+  int32() {
+    return this.uint32() | 0;
+  }
+  /**
+   * Read a `sint32` field, a signed, zigzag-encoded 32-bit varint.
+   */
+  sint32() {
+    let zze = this.uint32();
+    return zze >>> 1 ^ -(zze & 1);
+  }
+  /**
+   * Read a `int64` field, a signed 64-bit varint.
+   */
+  int64() {
+    return protoInt64.dec(...this.varint64());
+  }
+  /**
+   * Read a `uint64` field, an unsigned 64-bit varint.
+   */
+  uint64() {
+    return protoInt64.uDec(...this.varint64());
+  }
+  /**
+   * Read a `sint64` field, a signed, zig-zag-encoded 64-bit varint.
+   */
+  sint64() {
+    let [lo, hi] = this.varint64();
+    let s = -(lo & 1);
+    lo = (lo >>> 1 | (hi & 1) << 31) ^ s;
+    hi = hi >>> 1 ^ s;
+    return protoInt64.dec(lo, hi);
+  }
+  /**
+   * Read a `bool` field, a variant.
+   */
+  bool() {
+    let [lo, hi] = this.varint64();
+    return lo !== 0 || hi !== 0;
+  }
+  /**
+   * Read a `fixed32` field, an unsigned, fixed-length 32-bit integer.
+   */
+  fixed32() {
+    return this.view.getUint32((this.pos += 4) - 4, true);
+  }
+  /**
+   * Read a `sfixed32` field, a signed, fixed-length 32-bit integer.
+   */
+  sfixed32() {
+    return this.view.getInt32((this.pos += 4) - 4, true);
+  }
+  /**
+   * Read a `fixed64` field, an unsigned, fixed-length 64 bit integer.
+   */
+  fixed64() {
+    return protoInt64.uDec(this.sfixed32(), this.sfixed32());
+  }
+  /**
+   * Read a `fixed64` field, a signed, fixed-length 64-bit integer.
+   */
+  sfixed64() {
+    return protoInt64.dec(this.sfixed32(), this.sfixed32());
+  }
+  /**
+   * Read a `float` field, 32-bit floating point number.
+   */
+  float() {
+    return this.view.getFloat32((this.pos += 4) - 4, true);
+  }
+  /**
+   * Read a `double` field, a 64-bit floating point number.
+   */
+  double() {
+    return this.view.getFloat64((this.pos += 8) - 8, true);
+  }
+  /**
+   * Read a `bytes` field, length-delimited arbitrary data.
+   */
+  bytes() {
+    let len = this.uint32(), start = this.pos;
+    this.pos += len;
+    this.assertBounds();
+    return this.buf.subarray(start, start + len);
+  }
+  /**
+   * Read a `string` field, length-delimited data converted to UTF-8 text.
+   */
+  string() {
+    return this.decodeUtf8(this.bytes());
+  }
+};
+function assertInt32(arg) {
+  if (typeof arg == "string") {
+    arg = Number(arg);
+  } else if (typeof arg != "number") {
+    throw new Error("invalid int32: " + typeof arg);
+  }
+  if (!Number.isInteger(arg) || arg > INT32_MAX || arg < INT32_MIN)
+    throw new Error("invalid int32: " + arg);
+}
+function assertUInt32(arg) {
+  if (typeof arg == "string") {
+    arg = Number(arg);
+  } else if (typeof arg != "number") {
+    throw new Error("invalid uint32: " + typeof arg);
+  }
+  if (!Number.isInteger(arg) || arg > UINT32_MAX || arg < 0)
+    throw new Error("invalid uint32: " + arg);
+}
+function assertFloat32(arg) {
+  if (typeof arg == "string") {
+    const o = arg;
+    arg = Number(arg);
+    if (Number.isNaN(arg) && o !== "NaN") {
+      throw new Error("invalid float32: " + o);
+    }
+  } else if (typeof arg != "number") {
+    throw new Error("invalid float32: " + typeof arg);
+  }
+  if (Number.isFinite(arg) && (arg > FLOAT32_MAX || arg < FLOAT32_MIN))
+    throw new Error("invalid float32: " + arg);
+}
+
+// ../../daisi-sdk-typescript/node_modules/long/index.js
+var wasm = null;
+try {
+  wasm = new WebAssembly.Instance(
+    new WebAssembly.Module(
+      new Uint8Array([
+        // \0asm
+        0,
+        97,
+        115,
+        109,
+        // version 1
+        1,
+        0,
+        0,
+        0,
+        // section "type"
+        1,
+        13,
+        2,
+        // 0, () => i32
+        96,
+        0,
+        1,
+        127,
+        // 1, (i32, i32, i32, i32) => i32
+        96,
+        4,
+        127,
+        127,
+        127,
+        127,
+        1,
+        127,
+        // section "function"
+        3,
+        7,
+        6,
+        // 0, type 0
+        0,
+        // 1, type 1
+        1,
+        // 2, type 1
+        1,
+        // 3, type 1
+        1,
+        // 4, type 1
+        1,
+        // 5, type 1
+        1,
+        // section "global"
+        6,
+        6,
+        1,
+        // 0, "high", mutable i32
+        127,
+        1,
+        65,
+        0,
+        11,
+        // section "export"
+        7,
+        50,
+        6,
+        // 0, "mul"
+        3,
+        109,
+        117,
+        108,
+        0,
+        1,
+        // 1, "div_s"
+        5,
+        100,
+        105,
+        118,
+        95,
+        115,
+        0,
+        2,
+        // 2, "div_u"
+        5,
+        100,
+        105,
+        118,
+        95,
+        117,
+        0,
+        3,
+        // 3, "rem_s"
+        5,
+        114,
+        101,
+        109,
+        95,
+        115,
+        0,
+        4,
+        // 4, "rem_u"
+        5,
+        114,
+        101,
+        109,
+        95,
+        117,
+        0,
+        5,
+        // 5, "get_high"
+        8,
+        103,
+        101,
+        116,
+        95,
+        104,
+        105,
+        103,
+        104,
+        0,
+        0,
+        // section "code"
+        10,
+        191,
+        1,
+        6,
+        // 0, "get_high"
+        4,
+        0,
+        35,
+        0,
+        11,
+        // 1, "mul"
+        36,
+        1,
+        1,
+        126,
+        32,
+        0,
+        173,
+        32,
+        1,
+        173,
+        66,
+        32,
+        134,
+        132,
+        32,
+        2,
+        173,
+        32,
+        3,
+        173,
+        66,
+        32,
+        134,
+        132,
+        126,
+        34,
+        4,
+        66,
+        32,
+        135,
+        167,
+        36,
+        0,
+        32,
+        4,
+        167,
+        11,
+        // 2, "div_s"
+        36,
+        1,
+        1,
+        126,
+        32,
+        0,
+        173,
+        32,
+        1,
+        173,
+        66,
+        32,
+        134,
+        132,
+        32,
+        2,
+        173,
+        32,
+        3,
+        173,
+        66,
+        32,
+        134,
+        132,
+        127,
+        34,
+        4,
+        66,
+        32,
+        135,
+        167,
+        36,
+        0,
+        32,
+        4,
+        167,
+        11,
+        // 3, "div_u"
+        36,
+        1,
+        1,
+        126,
+        32,
+        0,
+        173,
+        32,
+        1,
+        173,
+        66,
+        32,
+        134,
+        132,
+        32,
+        2,
+        173,
+        32,
+        3,
+        173,
+        66,
+        32,
+        134,
+        132,
+        128,
+        34,
+        4,
+        66,
+        32,
+        135,
+        167,
+        36,
+        0,
+        32,
+        4,
+        167,
+        11,
+        // 4, "rem_s"
+        36,
+        1,
+        1,
+        126,
+        32,
+        0,
+        173,
+        32,
+        1,
+        173,
+        66,
+        32,
+        134,
+        132,
+        32,
+        2,
+        173,
+        32,
+        3,
+        173,
+        66,
+        32,
+        134,
+        132,
+        129,
+        34,
+        4,
+        66,
+        32,
+        135,
+        167,
+        36,
+        0,
+        32,
+        4,
+        167,
+        11,
+        // 5, "rem_u"
+        36,
+        1,
+        1,
+        126,
+        32,
+        0,
+        173,
+        32,
+        1,
+        173,
+        66,
+        32,
+        134,
+        132,
+        32,
+        2,
+        173,
+        32,
+        3,
+        173,
+        66,
+        32,
+        134,
+        132,
+        130,
+        34,
+        4,
+        66,
+        32,
+        135,
+        167,
+        36,
+        0,
+        32,
+        4,
+        167,
+        11
+      ])
+    ),
+    {}
+  ).exports;
+} catch {
+}
+function Long(low, high, unsigned) {
+  this.low = low | 0;
+  this.high = high | 0;
+  this.unsigned = !!unsigned;
+}
+Long.prototype.__isLong__;
+Object.defineProperty(Long.prototype, "__isLong__", { value: true });
+function isLong(obj) {
+  return (obj && obj["__isLong__"]) === true;
+}
+function ctz32(value) {
+  var c = Math.clz32(value & -value);
+  return value ? 31 - c : c;
+}
+Long.isLong = isLong;
+var INT_CACHE = {};
+var UINT_CACHE = {};
+function fromInt(value, unsigned) {
+  var obj, cachedObj, cache;
+  if (unsigned) {
+    value >>>= 0;
+    if (cache = 0 <= value && value < 256) {
+      cachedObj = UINT_CACHE[value];
+      if (cachedObj) return cachedObj;
+    }
+    obj = fromBits(value, 0, true);
+    if (cache) UINT_CACHE[value] = obj;
+    return obj;
+  } else {
+    value |= 0;
+    if (cache = -128 <= value && value < 128) {
+      cachedObj = INT_CACHE[value];
+      if (cachedObj) return cachedObj;
+    }
+    obj = fromBits(value, value < 0 ? -1 : 0, false);
+    if (cache) INT_CACHE[value] = obj;
+    return obj;
+  }
+}
+Long.fromInt = fromInt;
+function fromNumber(value, unsigned) {
+  if (isNaN(value)) return unsigned ? UZERO : ZERO;
+  if (unsigned) {
+    if (value < 0) return UZERO;
+    if (value >= TWO_PWR_64_DBL) return MAX_UNSIGNED_VALUE;
+  } else {
+    if (value <= -TWO_PWR_63_DBL) return MIN_VALUE;
+    if (value + 1 >= TWO_PWR_63_DBL) return MAX_VALUE;
+  }
+  if (value < 0) return fromNumber(-value, unsigned).neg();
+  return fromBits(
+    value % TWO_PWR_32_DBL2 | 0,
+    value / TWO_PWR_32_DBL2 | 0,
+    unsigned
+  );
+}
+Long.fromNumber = fromNumber;
+function fromBits(lowBits, highBits, unsigned) {
+  return new Long(lowBits, highBits, unsigned);
+}
+Long.fromBits = fromBits;
+var pow_dbl = Math.pow;
+function fromString(str, unsigned, radix) {
+  if (str.length === 0) throw Error("empty string");
+  if (typeof unsigned === "number") {
+    radix = unsigned;
+    unsigned = false;
+  } else {
+    unsigned = !!unsigned;
+  }
+  if (str === "NaN" || str === "Infinity" || str === "+Infinity" || str === "-Infinity")
+    return unsigned ? UZERO : ZERO;
+  radix = radix || 10;
+  if (radix < 2 || 36 < radix) throw RangeError("radix");
+  var p;
+  if ((p = str.indexOf("-")) > 0) throw Error("interior hyphen");
+  else if (p === 0) {
+    return fromString(str.substring(1), unsigned, radix).neg();
+  }
+  var radixToPower = fromNumber(pow_dbl(radix, 8));
+  var result = ZERO;
+  for (var i = 0; i < str.length; i += 8) {
+    var size = Math.min(8, str.length - i), value = parseInt(str.substring(i, i + size), radix);
+    if (size < 8) {
+      var power = fromNumber(pow_dbl(radix, size));
+      result = result.mul(power).add(fromNumber(value));
+    } else {
+      result = result.mul(radixToPower);
+      result = result.add(fromNumber(value));
+    }
+  }
+  result.unsigned = unsigned;
+  return result;
+}
+Long.fromString = fromString;
+function fromValue(val, unsigned) {
+  if (typeof val === "number") return fromNumber(val, unsigned);
+  if (typeof val === "string") return fromString(val, unsigned);
+  return fromBits(
+    val.low,
+    val.high,
+    typeof unsigned === "boolean" ? unsigned : val.unsigned
+  );
+}
+Long.fromValue = fromValue;
+var TWO_PWR_16_DBL = 1 << 16;
+var TWO_PWR_24_DBL = 1 << 24;
+var TWO_PWR_32_DBL2 = TWO_PWR_16_DBL * TWO_PWR_16_DBL;
+var TWO_PWR_64_DBL = TWO_PWR_32_DBL2 * TWO_PWR_32_DBL2;
+var TWO_PWR_63_DBL = TWO_PWR_64_DBL / 2;
+var TWO_PWR_24 = fromInt(TWO_PWR_24_DBL);
+var ZERO = fromInt(0);
+Long.ZERO = ZERO;
+var UZERO = fromInt(0, true);
+Long.UZERO = UZERO;
+var ONE = fromInt(1);
+Long.ONE = ONE;
+var UONE = fromInt(1, true);
+Long.UONE = UONE;
+var NEG_ONE = fromInt(-1);
+Long.NEG_ONE = NEG_ONE;
+var MAX_VALUE = fromBits(4294967295 | 0, 2147483647 | 0, false);
+Long.MAX_VALUE = MAX_VALUE;
+var MAX_UNSIGNED_VALUE = fromBits(4294967295 | 0, 4294967295 | 0, true);
+Long.MAX_UNSIGNED_VALUE = MAX_UNSIGNED_VALUE;
+var MIN_VALUE = fromBits(0, 2147483648 | 0, false);
+Long.MIN_VALUE = MIN_VALUE;
+var LongPrototype = Long.prototype;
+LongPrototype.toInt = function toInt() {
+  return this.unsigned ? this.low >>> 0 : this.low;
+};
+LongPrototype.toNumber = function toNumber() {
+  if (this.unsigned)
+    return (this.high >>> 0) * TWO_PWR_32_DBL2 + (this.low >>> 0);
+  return this.high * TWO_PWR_32_DBL2 + (this.low >>> 0);
+};
+LongPrototype.toString = function toString(radix) {
+  radix = radix || 10;
+  if (radix < 2 || 36 < radix) throw RangeError("radix");
+  if (this.isZero()) return "0";
+  if (this.isNegative()) {
+    if (this.eq(MIN_VALUE)) {
+      var radixLong = fromNumber(radix), div = this.div(radixLong), rem1 = div.mul(radixLong).sub(this);
+      return div.toString(radix) + rem1.toInt().toString(radix);
+    } else return "-" + this.neg().toString(radix);
+  }
+  var radixToPower = fromNumber(pow_dbl(radix, 6), this.unsigned), rem = this;
+  var result = "";
+  while (true) {
+    var remDiv = rem.div(radixToPower), intval = rem.sub(remDiv.mul(radixToPower)).toInt() >>> 0, digits = intval.toString(radix);
+    rem = remDiv;
+    if (rem.isZero()) return digits + result;
+    else {
+      while (digits.length < 6) digits = "0" + digits;
+      result = "" + digits + result;
+    }
+  }
+};
+LongPrototype.getHighBits = function getHighBits() {
+  return this.high;
+};
+LongPrototype.getHighBitsUnsigned = function getHighBitsUnsigned() {
+  return this.high >>> 0;
+};
+LongPrototype.getLowBits = function getLowBits() {
+  return this.low;
+};
+LongPrototype.getLowBitsUnsigned = function getLowBitsUnsigned() {
+  return this.low >>> 0;
+};
+LongPrototype.getNumBitsAbs = function getNumBitsAbs() {
+  if (this.isNegative())
+    return this.eq(MIN_VALUE) ? 64 : this.neg().getNumBitsAbs();
+  var val = this.high != 0 ? this.high : this.low;
+  for (var bit = 31; bit > 0; bit--) if ((val & 1 << bit) != 0) break;
+  return this.high != 0 ? bit + 33 : bit + 1;
+};
+LongPrototype.isSafeInteger = function isSafeInteger() {
+  var top11Bits = this.high >> 21;
+  if (!top11Bits) return true;
+  if (this.unsigned) return false;
+  return top11Bits === -1 && !(this.low === 0 && this.high === -2097152);
+};
+LongPrototype.isZero = function isZero() {
+  return this.high === 0 && this.low === 0;
+};
+LongPrototype.eqz = LongPrototype.isZero;
+LongPrototype.isNegative = function isNegative() {
+  return !this.unsigned && this.high < 0;
+};
+LongPrototype.isPositive = function isPositive() {
+  return this.unsigned || this.high >= 0;
+};
+LongPrototype.isOdd = function isOdd() {
+  return (this.low & 1) === 1;
+};
+LongPrototype.isEven = function isEven() {
+  return (this.low & 1) === 0;
+};
+LongPrototype.equals = function equals(other) {
+  if (!isLong(other)) other = fromValue(other);
+  if (this.unsigned !== other.unsigned && this.high >>> 31 === 1 && other.high >>> 31 === 1)
+    return false;
+  return this.high === other.high && this.low === other.low;
+};
+LongPrototype.eq = LongPrototype.equals;
+LongPrototype.notEquals = function notEquals(other) {
+  return !this.eq(
+    /* validates */
+    other
+  );
+};
+LongPrototype.neq = LongPrototype.notEquals;
+LongPrototype.ne = LongPrototype.notEquals;
+LongPrototype.lessThan = function lessThan(other) {
+  return this.comp(
+    /* validates */
+    other
+  ) < 0;
+};
+LongPrototype.lt = LongPrototype.lessThan;
+LongPrototype.lessThanOrEqual = function lessThanOrEqual(other) {
+  return this.comp(
+    /* validates */
+    other
+  ) <= 0;
+};
+LongPrototype.lte = LongPrototype.lessThanOrEqual;
+LongPrototype.le = LongPrototype.lessThanOrEqual;
+LongPrototype.greaterThan = function greaterThan(other) {
+  return this.comp(
+    /* validates */
+    other
+  ) > 0;
+};
+LongPrototype.gt = LongPrototype.greaterThan;
+LongPrototype.greaterThanOrEqual = function greaterThanOrEqual(other) {
+  return this.comp(
+    /* validates */
+    other
+  ) >= 0;
+};
+LongPrototype.gte = LongPrototype.greaterThanOrEqual;
+LongPrototype.ge = LongPrototype.greaterThanOrEqual;
+LongPrototype.compare = function compare(other) {
+  if (!isLong(other)) other = fromValue(other);
+  if (this.eq(other)) return 0;
+  var thisNeg = this.isNegative(), otherNeg = other.isNegative();
+  if (thisNeg && !otherNeg) return -1;
+  if (!thisNeg && otherNeg) return 1;
+  if (!this.unsigned) return this.sub(other).isNegative() ? -1 : 1;
+  return other.high >>> 0 > this.high >>> 0 || other.high === this.high && other.low >>> 0 > this.low >>> 0 ? -1 : 1;
+};
+LongPrototype.comp = LongPrototype.compare;
+LongPrototype.negate = function negate2() {
+  if (!this.unsigned && this.eq(MIN_VALUE)) return MIN_VALUE;
+  return this.not().add(ONE);
+};
+LongPrototype.neg = LongPrototype.negate;
+LongPrototype.add = function add(addend) {
+  if (!isLong(addend)) addend = fromValue(addend);
+  var a48 = this.high >>> 16;
+  var a32 = this.high & 65535;
+  var a16 = this.low >>> 16;
+  var a00 = this.low & 65535;
+  var b48 = addend.high >>> 16;
+  var b32 = addend.high & 65535;
+  var b16 = addend.low >>> 16;
+  var b00 = addend.low & 65535;
+  var c48 = 0, c32 = 0, c16 = 0, c00 = 0;
+  c00 += a00 + b00;
+  c16 += c00 >>> 16;
+  c00 &= 65535;
+  c16 += a16 + b16;
+  c32 += c16 >>> 16;
+  c16 &= 65535;
+  c32 += a32 + b32;
+  c48 += c32 >>> 16;
+  c32 &= 65535;
+  c48 += a48 + b48;
+  c48 &= 65535;
+  return fromBits(c16 << 16 | c00, c48 << 16 | c32, this.unsigned);
+};
+LongPrototype.subtract = function subtract(subtrahend) {
+  if (!isLong(subtrahend)) subtrahend = fromValue(subtrahend);
+  return this.add(subtrahend.neg());
+};
+LongPrototype.sub = LongPrototype.subtract;
+LongPrototype.multiply = function multiply(multiplier) {
+  if (this.isZero()) return this;
+  if (!isLong(multiplier)) multiplier = fromValue(multiplier);
+  if (wasm) {
+    var low = wasm["mul"](this.low, this.high, multiplier.low, multiplier.high);
+    return fromBits(low, wasm["get_high"](), this.unsigned);
+  }
+  if (multiplier.isZero()) return this.unsigned ? UZERO : ZERO;
+  if (this.eq(MIN_VALUE)) return multiplier.isOdd() ? MIN_VALUE : ZERO;
+  if (multiplier.eq(MIN_VALUE)) return this.isOdd() ? MIN_VALUE : ZERO;
+  if (this.isNegative()) {
+    if (multiplier.isNegative()) return this.neg().mul(multiplier.neg());
+    else return this.neg().mul(multiplier).neg();
+  } else if (multiplier.isNegative()) return this.mul(multiplier.neg()).neg();
+  if (this.lt(TWO_PWR_24) && multiplier.lt(TWO_PWR_24))
+    return fromNumber(this.toNumber() * multiplier.toNumber(), this.unsigned);
+  var a48 = this.high >>> 16;
+  var a32 = this.high & 65535;
+  var a16 = this.low >>> 16;
+  var a00 = this.low & 65535;
+  var b48 = multiplier.high >>> 16;
+  var b32 = multiplier.high & 65535;
+  var b16 = multiplier.low >>> 16;
+  var b00 = multiplier.low & 65535;
+  var c48 = 0, c32 = 0, c16 = 0, c00 = 0;
+  c00 += a00 * b00;
+  c16 += c00 >>> 16;
+  c00 &= 65535;
+  c16 += a16 * b00;
+  c32 += c16 >>> 16;
+  c16 &= 65535;
+  c16 += a00 * b16;
+  c32 += c16 >>> 16;
+  c16 &= 65535;
+  c32 += a32 * b00;
+  c48 += c32 >>> 16;
+  c32 &= 65535;
+  c32 += a16 * b16;
+  c48 += c32 >>> 16;
+  c32 &= 65535;
+  c32 += a00 * b32;
+  c48 += c32 >>> 16;
+  c32 &= 65535;
+  c48 += a48 * b00 + a32 * b16 + a16 * b32 + a00 * b48;
+  c48 &= 65535;
+  return fromBits(c16 << 16 | c00, c48 << 16 | c32, this.unsigned);
+};
+LongPrototype.mul = LongPrototype.multiply;
+LongPrototype.divide = function divide(divisor) {
+  if (!isLong(divisor)) divisor = fromValue(divisor);
+  if (divisor.isZero()) throw Error("division by zero");
+  if (wasm) {
+    if (!this.unsigned && this.high === -2147483648 && divisor.low === -1 && divisor.high === -1) {
+      return this;
+    }
+    var low = (this.unsigned ? wasm["div_u"] : wasm["div_s"])(
+      this.low,
+      this.high,
+      divisor.low,
+      divisor.high
+    );
+    return fromBits(low, wasm["get_high"](), this.unsigned);
+  }
+  if (this.isZero()) return this.unsigned ? UZERO : ZERO;
+  var approx, rem, res;
+  if (!this.unsigned) {
+    if (this.eq(MIN_VALUE)) {
+      if (divisor.eq(ONE) || divisor.eq(NEG_ONE))
+        return MIN_VALUE;
+      else if (divisor.eq(MIN_VALUE)) return ONE;
+      else {
+        var halfThis = this.shr(1);
+        approx = halfThis.div(divisor).shl(1);
+        if (approx.eq(ZERO)) {
+          return divisor.isNegative() ? ONE : NEG_ONE;
+        } else {
+          rem = this.sub(divisor.mul(approx));
+          res = approx.add(rem.div(divisor));
+          return res;
+        }
+      }
+    } else if (divisor.eq(MIN_VALUE)) return this.unsigned ? UZERO : ZERO;
+    if (this.isNegative()) {
+      if (divisor.isNegative()) return this.neg().div(divisor.neg());
+      return this.neg().div(divisor).neg();
+    } else if (divisor.isNegative()) return this.div(divisor.neg()).neg();
+    res = ZERO;
+  } else {
+    if (!divisor.unsigned) divisor = divisor.toUnsigned();
+    if (divisor.gt(this)) return UZERO;
+    if (divisor.gt(this.shru(1)))
+      return UONE;
+    res = UZERO;
+  }
+  rem = this;
+  while (rem.gte(divisor)) {
+    approx = Math.max(1, Math.floor(rem.toNumber() / divisor.toNumber()));
+    var log2 = Math.ceil(Math.log(approx) / Math.LN2), delta = log2 <= 48 ? 1 : pow_dbl(2, log2 - 48), approxRes = fromNumber(approx), approxRem = approxRes.mul(divisor);
+    while (approxRem.isNegative() || approxRem.gt(rem)) {
+      approx -= delta;
+      approxRes = fromNumber(approx, this.unsigned);
+      approxRem = approxRes.mul(divisor);
+    }
+    if (approxRes.isZero()) approxRes = ONE;
+    res = res.add(approxRes);
+    rem = rem.sub(approxRem);
+  }
+  return res;
+};
+LongPrototype.div = LongPrototype.divide;
+LongPrototype.modulo = function modulo(divisor) {
+  if (!isLong(divisor)) divisor = fromValue(divisor);
+  if (wasm) {
+    var low = (this.unsigned ? wasm["rem_u"] : wasm["rem_s"])(
+      this.low,
+      this.high,
+      divisor.low,
+      divisor.high
+    );
+    return fromBits(low, wasm["get_high"](), this.unsigned);
+  }
+  return this.sub(this.div(divisor).mul(divisor));
+};
+LongPrototype.mod = LongPrototype.modulo;
+LongPrototype.rem = LongPrototype.modulo;
+LongPrototype.not = function not() {
+  return fromBits(~this.low, ~this.high, this.unsigned);
+};
+LongPrototype.countLeadingZeros = function countLeadingZeros() {
+  return this.high ? Math.clz32(this.high) : Math.clz32(this.low) + 32;
+};
+LongPrototype.clz = LongPrototype.countLeadingZeros;
+LongPrototype.countTrailingZeros = function countTrailingZeros() {
+  return this.low ? ctz32(this.low) : ctz32(this.high) + 32;
+};
+LongPrototype.ctz = LongPrototype.countTrailingZeros;
+LongPrototype.and = function and(other) {
+  if (!isLong(other)) other = fromValue(other);
+  return fromBits(this.low & other.low, this.high & other.high, this.unsigned);
+};
+LongPrototype.or = function or(other) {
+  if (!isLong(other)) other = fromValue(other);
+  return fromBits(this.low | other.low, this.high | other.high, this.unsigned);
+};
+LongPrototype.xor = function xor(other) {
+  if (!isLong(other)) other = fromValue(other);
+  return fromBits(this.low ^ other.low, this.high ^ other.high, this.unsigned);
+};
+LongPrototype.shiftLeft = function shiftLeft(numBits) {
+  if (isLong(numBits)) numBits = numBits.toInt();
+  if ((numBits &= 63) === 0) return this;
+  else if (numBits < 32)
+    return fromBits(
+      this.low << numBits,
+      this.high << numBits | this.low >>> 32 - numBits,
+      this.unsigned
+    );
+  else return fromBits(0, this.low << numBits - 32, this.unsigned);
+};
+LongPrototype.shl = LongPrototype.shiftLeft;
+LongPrototype.shiftRight = function shiftRight(numBits) {
+  if (isLong(numBits)) numBits = numBits.toInt();
+  if ((numBits &= 63) === 0) return this;
+  else if (numBits < 32)
+    return fromBits(
+      this.low >>> numBits | this.high << 32 - numBits,
+      this.high >> numBits,
+      this.unsigned
+    );
+  else
+    return fromBits(
+      this.high >> numBits - 32,
+      this.high >= 0 ? 0 : -1,
+      this.unsigned
+    );
+};
+LongPrototype.shr = LongPrototype.shiftRight;
+LongPrototype.shiftRightUnsigned = function shiftRightUnsigned(numBits) {
+  if (isLong(numBits)) numBits = numBits.toInt();
+  if ((numBits &= 63) === 0) return this;
+  if (numBits < 32)
+    return fromBits(
+      this.low >>> numBits | this.high << 32 - numBits,
+      this.high >>> numBits,
+      this.unsigned
+    );
+  if (numBits === 32) return fromBits(this.high, 0, this.unsigned);
+  return fromBits(this.high >>> numBits - 32, 0, this.unsigned);
+};
+LongPrototype.shru = LongPrototype.shiftRightUnsigned;
+LongPrototype.shr_u = LongPrototype.shiftRightUnsigned;
+LongPrototype.rotateLeft = function rotateLeft(numBits) {
+  var b;
+  if (isLong(numBits)) numBits = numBits.toInt();
+  if ((numBits &= 63) === 0) return this;
+  if (numBits === 32) return fromBits(this.high, this.low, this.unsigned);
+  if (numBits < 32) {
+    b = 32 - numBits;
+    return fromBits(
+      this.low << numBits | this.high >>> b,
+      this.high << numBits | this.low >>> b,
+      this.unsigned
+    );
+  }
+  numBits -= 32;
+  b = 32 - numBits;
+  return fromBits(
+    this.high << numBits | this.low >>> b,
+    this.low << numBits | this.high >>> b,
+    this.unsigned
+  );
+};
+LongPrototype.rotl = LongPrototype.rotateLeft;
+LongPrototype.rotateRight = function rotateRight(numBits) {
+  var b;
+  if (isLong(numBits)) numBits = numBits.toInt();
+  if ((numBits &= 63) === 0) return this;
+  if (numBits === 32) return fromBits(this.high, this.low, this.unsigned);
+  if (numBits < 32) {
+    b = 32 - numBits;
+    return fromBits(
+      this.high << b | this.low >>> numBits,
+      this.low << b | this.high >>> numBits,
+      this.unsigned
+    );
+  }
+  numBits -= 32;
+  b = 32 - numBits;
+  return fromBits(
+    this.low << b | this.high >>> numBits,
+    this.high << b | this.low >>> numBits,
+    this.unsigned
+  );
+};
+LongPrototype.rotr = LongPrototype.rotateRight;
+LongPrototype.toSigned = function toSigned() {
+  if (!this.unsigned) return this;
+  return fromBits(this.low, this.high, false);
+};
+LongPrototype.toUnsigned = function toUnsigned2() {
+  if (this.unsigned) return this;
+  return fromBits(this.low, this.high, true);
+};
+LongPrototype.toBytes = function toBytes(le) {
+  return le ? this.toBytesLE() : this.toBytesBE();
+};
+LongPrototype.toBytesLE = function toBytesLE() {
+  var hi = this.high, lo = this.low;
+  return [
+    lo & 255,
+    lo >>> 8 & 255,
+    lo >>> 16 & 255,
+    lo >>> 24,
+    hi & 255,
+    hi >>> 8 & 255,
+    hi >>> 16 & 255,
+    hi >>> 24
+  ];
+};
+LongPrototype.toBytesBE = function toBytesBE() {
+  var hi = this.high, lo = this.low;
+  return [
+    hi >>> 24,
+    hi >>> 16 & 255,
+    hi >>> 8 & 255,
+    hi & 255,
+    lo >>> 24,
+    lo >>> 16 & 255,
+    lo >>> 8 & 255,
+    lo & 255
+  ];
+};
+Long.fromBytes = function fromBytes(bytes, unsigned, le) {
+  return le ? Long.fromBytesLE(bytes, unsigned) : Long.fromBytesBE(bytes, unsigned);
+};
+Long.fromBytesLE = function fromBytesLE(bytes, unsigned) {
+  return new Long(
+    bytes[0] | bytes[1] << 8 | bytes[2] << 16 | bytes[3] << 24,
+    bytes[4] | bytes[5] << 8 | bytes[6] << 16 | bytes[7] << 24,
+    unsigned
+  );
+};
+Long.fromBytesBE = function fromBytesBE(bytes, unsigned) {
+  return new Long(
+    bytes[4] << 24 | bytes[5] << 16 | bytes[6] << 8 | bytes[7],
+    bytes[0] << 24 | bytes[1] << 16 | bytes[2] << 8 | bytes[3],
+    unsigned
+  );
+};
+if (typeof BigInt === "function") {
+  Long.fromBigInt = function fromBigInt(value, unsigned) {
+    var lowBits = Number(BigInt.asIntN(32, value));
+    var highBits = Number(BigInt.asIntN(32, value >> BigInt(32)));
+    return fromBits(lowBits, highBits, unsigned);
+  };
+  Long.fromValue = function fromValueWithBigInt(value, unsigned) {
+    if (typeof value === "bigint") return Long.fromBigInt(value, unsigned);
+    return fromValue(value, unsigned);
+  };
+  LongPrototype.toBigInt = function toBigInt() {
+    var lowBigInt = BigInt(this.low >>> 0);
+    var highBigInt = BigInt(this.unsigned ? this.high >>> 0 : this.high);
+    return highBigInt << BigInt(32) | lowBigInt;
+  };
+}
+var long_default = Long;
+
+// ../../daisi-sdk-typescript/dist/web.js
+var CLIENT_KEY_HEADER = "x-daisi-client-key";
+function isDriveIdentityProvider(provider) {
+  return "getAccountId" in provider && "getUserId" in provider && "getUserName" in provider && "getUserRole" in provider;
+}
+function createAuthMiddleware(provider) {
+  return async function* authMiddleware(call, options) {
+    const metadata = (0, import_nice_grpc_common2.Metadata)(options.metadata);
+    metadata.set(CLIENT_KEY_HEADER, provider.getClientKey());
+    if (isDriveIdentityProvider(provider)) {
+      metadata.set("x-daisi-account-id", provider.getAccountId());
+      metadata.set("x-daisi-user-id", provider.getUserId());
+      metadata.set("x-daisi-user-name", provider.getUserName());
+      metadata.set("x-daisi-user-role", provider.getUserRole());
+    }
+    return yield* call.next(call.request, {
+      ...options,
+      metadata
+    });
+  };
+}
+
+// ../../daisi-sdk-typescript/src/generated/google/protobuf/any.ts
+function createBaseAny() {
+  return { typeUrl: "", value: new Uint8Array(0) };
+}
+var Any = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.typeUrl !== "") {
+      writer.uint32(10).string(message.typeUrl);
+    }
+    if (message.value.length !== 0) {
+      writer.uint32(18).bytes(message.value);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseAny();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.typeUrl = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+          message.value = reader.bytes();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      typeUrl: isSet(object.typeUrl) ? globalThis.String(object.typeUrl) : isSet(object.type_url) ? globalThis.String(object.type_url) : "",
+      value: isSet(object.value) ? bytesFromBase64(object.value) : new Uint8Array(0)
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.typeUrl !== "") {
+      obj.typeUrl = message.typeUrl;
+    }
+    if (message.value.length !== 0) {
+      obj.value = base64FromBytes(message.value);
+    }
+    return obj;
+  },
+  create(base) {
+    return Any.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseAny();
+    message.typeUrl = object.typeUrl ?? "";
+    message.value = object.value ?? new Uint8Array(0);
+    return message;
+  }
+};
+function bytesFromBase64(b64) {
+  if (globalThis.Buffer) {
+    return Uint8Array.from(globalThis.Buffer.from(b64, "base64"));
+  } else {
+    const bin = globalThis.atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; ++i) {
+      arr[i] = bin.charCodeAt(i);
+    }
+    return arr;
+  }
+}
+function base64FromBytes(arr) {
+  if (globalThis.Buffer) {
+    return globalThis.Buffer.from(arr).toString("base64");
+  } else {
+    const bin = [];
+    arr.forEach((byte) => {
+      bin.push(globalThis.String.fromCharCode(byte));
+    });
+    return globalThis.btoa(bin.join(""));
+  }
+}
+function isSet(value) {
+  return value !== null && value !== void 0;
+}
+
+// ../../daisi-sdk-typescript/src/generated/google/protobuf/wrappers.ts
+function createBaseInt32Value() {
+  return { value: 0 };
+}
+var Int32Value = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.value !== 0) {
+      writer.uint32(8).int32(message.value);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseInt32Value();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+          message.value = reader.int32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return { value: isSet2(object.value) ? globalThis.Number(object.value) : 0 };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.value !== 0) {
+      obj.value = Math.round(message.value);
+    }
+    return obj;
+  },
+  create(base) {
+    return Int32Value.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseInt32Value();
+    message.value = object.value ?? 0;
+    return message;
+  }
+};
+function createBaseStringValue() {
+  return { value: "" };
+}
+var StringValue = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.value !== "") {
+      writer.uint32(10).string(message.value);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseStringValue();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.value = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return { value: isSet2(object.value) ? globalThis.String(object.value) : "" };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.value !== "") {
+      obj.value = message.value;
+    }
+    return obj;
+  },
+  create(base) {
+    return StringValue.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseStringValue();
+    message.value = object.value ?? "";
+    return message;
+  }
+};
+function isSet2(value) {
+  return value !== null && value !== void 0;
+}
+
+// ../../daisi-sdk-typescript/src/generated/Protos/V1/Models/HostModels.ts
+function createBaseDriveSettings() {
+  return { DrivePath: "", MaxDriveStorageBytes: long_default.ZERO, VectorDbEnabled: false, MaxVectorDbAccounts: 0 };
+}
+var DriveSettings = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.DrivePath !== "") {
+      writer.uint32(10).string(message.DrivePath);
+    }
+    if (!message.MaxDriveStorageBytes.equals(long_default.ZERO)) {
+      writer.uint32(16).int64(message.MaxDriveStorageBytes.toString());
+    }
+    if (message.VectorDbEnabled !== false) {
+      writer.uint32(24).bool(message.VectorDbEnabled);
+    }
+    if (message.MaxVectorDbAccounts !== 0) {
+      writer.uint32(32).int32(message.MaxVectorDbAccounts);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseDriveSettings();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.DrivePath = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+          message.MaxDriveStorageBytes = long_default.fromString(reader.int64().toString());
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+          message.VectorDbEnabled = reader.bool();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+          message.MaxVectorDbAccounts = reader.int32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      DrivePath: isSet3(object.DrivePath) ? globalThis.String(object.DrivePath) : "",
+      MaxDriveStorageBytes: isSet3(object.MaxDriveStorageBytes) ? long_default.fromValue(object.MaxDriveStorageBytes) : long_default.ZERO,
+      VectorDbEnabled: isSet3(object.VectorDbEnabled) ? globalThis.Boolean(object.VectorDbEnabled) : false,
+      MaxVectorDbAccounts: isSet3(object.MaxVectorDbAccounts) ? globalThis.Number(object.MaxVectorDbAccounts) : 0
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.DrivePath !== "") {
+      obj.DrivePath = message.DrivePath;
+    }
+    if (!message.MaxDriveStorageBytes.equals(long_default.ZERO)) {
+      obj.MaxDriveStorageBytes = (message.MaxDriveStorageBytes || long_default.ZERO).toString();
+    }
+    if (message.VectorDbEnabled !== false) {
+      obj.VectorDbEnabled = message.VectorDbEnabled;
+    }
+    if (message.MaxVectorDbAccounts !== 0) {
+      obj.MaxVectorDbAccounts = Math.round(message.MaxVectorDbAccounts);
+    }
+    return obj;
+  },
+  create(base) {
+    return DriveSettings.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseDriveSettings();
+    message.DrivePath = object.DrivePath ?? "";
+    message.MaxDriveStorageBytes = object.MaxDriveStorageBytes !== void 0 && object.MaxDriveStorageBytes !== null ? long_default.fromValue(object.MaxDriveStorageBytes) : long_default.ZERO;
+    message.VectorDbEnabled = object.VectorDbEnabled ?? false;
+    message.MaxVectorDbAccounts = object.MaxVectorDbAccounts ?? 0;
+    return message;
+  }
+};
+function isSet3(value) {
+  return value !== null && value !== void 0;
+}
+
+// ../../daisi-sdk-typescript/src/generated/Protos/V1/Models/InferenceModels.ts
+function inferenceCloseReasonsFromJSON(object) {
+  switch (object) {
+    case 0:
+    case "CloseTimeout":
+      return 0 /* CloseTimeout */;
+    case 1:
+    case "CloseHostClosing":
+      return 1 /* CloseHostClosing */;
+    case 2:
+    case "CloseError":
+      return 2 /* CloseError */;
+    case 3:
+    case "CloseRequestedByClient":
+      return 3 /* CloseRequestedByClient */;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return -1 /* UNRECOGNIZED */;
+  }
+}
+function inferenceCloseReasonsToJSON(object) {
+  switch (object) {
+    case 0 /* CloseTimeout */:
+      return "CloseTimeout";
+    case 1 /* CloseHostClosing */:
+      return "CloseHostClosing";
+    case 2 /* CloseError */:
+      return "CloseError";
+    case 3 /* CloseRequestedByClient */:
+      return "CloseRequestedByClient";
+    case -1 /* UNRECOGNIZED */:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+function thinkLevelsFromJSON(object) {
+  switch (object) {
+    case 0:
+    case "ThinkLevelsBasic":
+      return 0 /* ThinkLevelsBasic */;
+    case 1:
+    case "ThinkLevelsBasicWithTools":
+      return 1 /* ThinkLevelsBasicWithTools */;
+    case 2:
+    case "ThinkLevelsSkilled":
+      return 2 /* ThinkLevelsSkilled */;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return -1 /* UNRECOGNIZED */;
+  }
+}
+function thinkLevelsToJSON(object) {
+  switch (object) {
+    case 0 /* ThinkLevelsBasic */:
+      return "ThinkLevelsBasic";
+    case 1 /* ThinkLevelsBasicWithTools */:
+      return "ThinkLevelsBasicWithTools";
+    case 2 /* ThinkLevelsSkilled */:
+      return "ThinkLevelsSkilled";
+    case -1 /* UNRECOGNIZED */:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+function inferenceResponseTypesFromJSON(object) {
+  switch (object) {
+    case 0:
+    case "InferenceResponseTypesError":
+      return 0 /* InferenceResponseTypesError */;
+    case 1:
+    case "InferenceResponseTypesThinking":
+      return 1 /* InferenceResponseTypesThinking */;
+    case 2:
+    case "InferenceResponseTypesTooling":
+      return 2 /* InferenceResponseTypesTooling */;
+    case 3:
+    case "InferenceResponseTypesToolContent":
+      return 3 /* InferenceResponseTypesToolContent */;
+    case 4:
+    case "InferenceResponseTypesText":
+      return 4 /* InferenceResponseTypesText */;
+    case 5:
+    case "InferenceResponseTypesImage":
+      return 5 /* InferenceResponseTypesImage */;
+    case 6:
+    case "InferenceResponseTypesAudio":
+      return 6 /* InferenceResponseTypesAudio */;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return -1 /* UNRECOGNIZED */;
+  }
+}
+function inferenceResponseTypesToJSON(object) {
+  switch (object) {
+    case 0 /* InferenceResponseTypesError */:
+      return "InferenceResponseTypesError";
+    case 1 /* InferenceResponseTypesThinking */:
+      return "InferenceResponseTypesThinking";
+    case 2 /* InferenceResponseTypesTooling */:
+      return "InferenceResponseTypesTooling";
+    case 3 /* InferenceResponseTypesToolContent */:
+      return "InferenceResponseTypesToolContent";
+    case 4 /* InferenceResponseTypesText */:
+      return "InferenceResponseTypesText";
+    case 5 /* InferenceResponseTypesImage */:
+      return "InferenceResponseTypesImage";
+    case 6 /* InferenceResponseTypesAudio */:
+      return "InferenceResponseTypesAudio";
+    case -1 /* UNRECOGNIZED */:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+function inferenceOutputFormatsFromJSON(object) {
+  switch (object) {
+    case 0:
+    case "InferenceOutputFormatsPlainText":
+      return 0 /* InferenceOutputFormatsPlainText */;
+    case 1:
+    case "InferenceOutputFormatsJson":
+      return 1 /* InferenceOutputFormatsJson */;
+    case 2:
+    case "InferenceOutputFormatsMarkdown":
+      return 2 /* InferenceOutputFormatsMarkdown */;
+    case 3:
+    case "InferenceOutputFormatsBase64":
+      return 3 /* InferenceOutputFormatsBase64 */;
+    case 4:
+    case "InferenceOutputFormatsHtml":
+      return 4 /* InferenceOutputFormatsHtml */;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return -1 /* UNRECOGNIZED */;
+  }
+}
+function inferenceOutputFormatsToJSON(object) {
+  switch (object) {
+    case 0 /* InferenceOutputFormatsPlainText */:
+      return "InferenceOutputFormatsPlainText";
+    case 1 /* InferenceOutputFormatsJson */:
+      return "InferenceOutputFormatsJson";
+    case 2 /* InferenceOutputFormatsMarkdown */:
+      return "InferenceOutputFormatsMarkdown";
+    case 3 /* InferenceOutputFormatsBase64 */:
+      return "InferenceOutputFormatsBase64";
+    case 4 /* InferenceOutputFormatsHtml */:
+      return "InferenceOutputFormatsHtml";
+    case -1 /* UNRECOGNIZED */:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+function inferenceToolGroupsFromJSON(object) {
+  switch (object) {
+    case 0:
+    case "InferenceToolGroupsInformationTools":
+      return 0 /* InferenceToolGroupsInformationTools */;
+    case 1:
+    case "InferenceToolGroupsFileTools":
+      return 1 /* InferenceToolGroupsFileTools */;
+    case 2:
+    case "InferenceToolGroupsMathTools":
+      return 2 /* InferenceToolGroupsMathTools */;
+    case 3:
+    case "InferenceToolGroupsCommunicationTools":
+      return 3 /* InferenceToolGroupsCommunicationTools */;
+    case 4:
+    case "InferenceToolGroupsCodingTools":
+      return 4 /* InferenceToolGroupsCodingTools */;
+    case 5:
+    case "InferenceToolGroupsMediaTools":
+      return 5 /* InferenceToolGroupsMediaTools */;
+    case 6:
+    case "InferenceToolGroupsIntegrationTools":
+      return 6 /* InferenceToolGroupsIntegrationTools */;
+    case 7:
+    case "InferenceToolGroupsSocialTools":
+      return 7 /* InferenceToolGroupsSocialTools */;
+    case 8:
+    case "InferenceToolGroupsShellTools":
+      return 8 /* InferenceToolGroupsShellTools */;
+    case 9:
+    case "InferenceToolGroupsScreenTools":
+      return 9 /* InferenceToolGroupsScreenTools */;
+    case 10:
+    case "InferenceToolGroupsInputTools":
+      return 10 /* InferenceToolGroupsInputTools */;
+    case 11:
+    case "InferenceToolGroupsClipboardTools":
+      return 11 /* InferenceToolGroupsClipboardTools */;
+    case 12:
+    case "InferenceToolGroupsBrowserTools":
+      return 12 /* InferenceToolGroupsBrowserTools */;
+    case 13:
+    case "InferenceToolGroupsWindowTools":
+      return 13 /* InferenceToolGroupsWindowTools */;
+    case 14:
+    case "InferenceToolGroupsSystemTools":
+      return 14 /* InferenceToolGroupsSystemTools */;
+    case 15:
+    case "InferenceToolGroupsGitTools":
+      return 15 /* InferenceToolGroupsGitTools */;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return -1 /* UNRECOGNIZED */;
+  }
+}
+function inferenceToolGroupsToJSON(object) {
+  switch (object) {
+    case 0 /* InferenceToolGroupsInformationTools */:
+      return "InferenceToolGroupsInformationTools";
+    case 1 /* InferenceToolGroupsFileTools */:
+      return "InferenceToolGroupsFileTools";
+    case 2 /* InferenceToolGroupsMathTools */:
+      return "InferenceToolGroupsMathTools";
+    case 3 /* InferenceToolGroupsCommunicationTools */:
+      return "InferenceToolGroupsCommunicationTools";
+    case 4 /* InferenceToolGroupsCodingTools */:
+      return "InferenceToolGroupsCodingTools";
+    case 5 /* InferenceToolGroupsMediaTools */:
+      return "InferenceToolGroupsMediaTools";
+    case 6 /* InferenceToolGroupsIntegrationTools */:
+      return "InferenceToolGroupsIntegrationTools";
+    case 7 /* InferenceToolGroupsSocialTools */:
+      return "InferenceToolGroupsSocialTools";
+    case 8 /* InferenceToolGroupsShellTools */:
+      return "InferenceToolGroupsShellTools";
+    case 9 /* InferenceToolGroupsScreenTools */:
+      return "InferenceToolGroupsScreenTools";
+    case 10 /* InferenceToolGroupsInputTools */:
+      return "InferenceToolGroupsInputTools";
+    case 11 /* InferenceToolGroupsClipboardTools */:
+      return "InferenceToolGroupsClipboardTools";
+    case 12 /* InferenceToolGroupsBrowserTools */:
+      return "InferenceToolGroupsBrowserTools";
+    case 13 /* InferenceToolGroupsWindowTools */:
+      return "InferenceToolGroupsWindowTools";
+    case 14 /* InferenceToolGroupsSystemTools */:
+      return "InferenceToolGroupsSystemTools";
+    case 15 /* InferenceToolGroupsGitTools */:
+      return "InferenceToolGroupsGitTools";
+    case -1 /* UNRECOGNIZED */:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+function createBaseSendInferenceRequest() {
+  return {
+    SessionId: "",
+    InferenceId: "",
+    Text: "",
+    ToolGroup: void 0,
+    ToolName: void 0,
+    AntiPrompts: [],
+    TokensKeep: void 0,
+    MaxTokens: void 0,
+    DecodeSpecialTokens: void 0,
+    Temperature: void 0,
+    TopP: void 0,
+    TopK: void 0,
+    RepeatPenalty: void 0,
+    Seed: void 0,
+    FrequencyPenalty: void 0,
+    PresencePenalty: void 0,
+    MinKeep: void 0,
+    MinP: void 0,
+    PenalizeNewline: void 0,
+    PenaltyCount: void 0,
+    PreventEOS: void 0,
+    TypicalP: void 0,
+    ThinkLevel: void 0,
+    OutputFormat: void 0,
+    ExampleOutput: void 0
+  };
+}
+var SendInferenceRequest = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.SessionId !== "") {
+      writer.uint32(10).string(message.SessionId);
+    }
+    if (message.InferenceId !== "") {
+      writer.uint32(18).string(message.InferenceId);
+    }
+    if (message.Text !== "") {
+      writer.uint32(26).string(message.Text);
+    }
+    if (message.ToolGroup !== void 0) {
+      writer.uint32(32).int32(message.ToolGroup);
+    }
+    if (message.ToolName !== void 0) {
+      writer.uint32(42).string(message.ToolName);
+    }
+    for (const v of message.AntiPrompts) {
+      writer.uint32(50).string(v);
+    }
+    if (message.TokensKeep !== void 0) {
+      writer.uint32(56).int32(message.TokensKeep);
+    }
+    if (message.MaxTokens !== void 0) {
+      writer.uint32(64).int32(message.MaxTokens);
+    }
+    if (message.DecodeSpecialTokens !== void 0) {
+      writer.uint32(72).bool(message.DecodeSpecialTokens);
+    }
+    if (message.Temperature !== void 0) {
+      writer.uint32(85).float(message.Temperature);
+    }
+    if (message.TopP !== void 0) {
+      writer.uint32(93).float(message.TopP);
+    }
+    if (message.TopK !== void 0) {
+      writer.uint32(96).int32(message.TopK);
+    }
+    if (message.RepeatPenalty !== void 0) {
+      writer.uint32(109).float(message.RepeatPenalty);
+    }
+    if (message.Seed !== void 0) {
+      writer.uint32(112).int32(message.Seed);
+    }
+    if (message.FrequencyPenalty !== void 0) {
+      writer.uint32(125).float(message.FrequencyPenalty);
+    }
+    if (message.PresencePenalty !== void 0) {
+      writer.uint32(133).float(message.PresencePenalty);
+    }
+    if (message.MinKeep !== void 0) {
+      writer.uint32(136).int32(message.MinKeep);
+    }
+    if (message.MinP !== void 0) {
+      writer.uint32(149).float(message.MinP);
+    }
+    if (message.PenalizeNewline !== void 0) {
+      writer.uint32(152).bool(message.PenalizeNewline);
+    }
+    if (message.PenaltyCount !== void 0) {
+      writer.uint32(160).int32(message.PenaltyCount);
+    }
+    if (message.PreventEOS !== void 0) {
+      writer.uint32(168).bool(message.PreventEOS);
+    }
+    if (message.TypicalP !== void 0) {
+      writer.uint32(181).float(message.TypicalP);
+    }
+    if (message.ThinkLevel !== void 0) {
+      writer.uint32(184).int32(message.ThinkLevel);
+    }
+    if (message.OutputFormat !== void 0) {
+      writer.uint32(192).int32(message.OutputFormat);
+    }
+    if (message.ExampleOutput !== void 0) {
+      writer.uint32(202).string(message.ExampleOutput);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseSendInferenceRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.SessionId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+          message.InferenceId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+          message.Text = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+          message.ToolGroup = reader.int32();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+          message.ToolName = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+          message.AntiPrompts.push(reader.string());
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+          message.TokensKeep = reader.int32();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+          message.MaxTokens = reader.int32();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+          message.DecodeSpecialTokens = reader.bool();
+          continue;
+        }
+        case 10: {
+          if (tag !== 85) {
+            break;
+          }
+          message.Temperature = reader.float();
+          continue;
+        }
+        case 11: {
+          if (tag !== 93) {
+            break;
+          }
+          message.TopP = reader.float();
+          continue;
+        }
+        case 12: {
+          if (tag !== 96) {
+            break;
+          }
+          message.TopK = reader.int32();
+          continue;
+        }
+        case 13: {
+          if (tag !== 109) {
+            break;
+          }
+          message.RepeatPenalty = reader.float();
+          continue;
+        }
+        case 14: {
+          if (tag !== 112) {
+            break;
+          }
+          message.Seed = reader.int32();
+          continue;
+        }
+        case 15: {
+          if (tag !== 125) {
+            break;
+          }
+          message.FrequencyPenalty = reader.float();
+          continue;
+        }
+        case 16: {
+          if (tag !== 133) {
+            break;
+          }
+          message.PresencePenalty = reader.float();
+          continue;
+        }
+        case 17: {
+          if (tag !== 136) {
+            break;
+          }
+          message.MinKeep = reader.int32();
+          continue;
+        }
+        case 18: {
+          if (tag !== 149) {
+            break;
+          }
+          message.MinP = reader.float();
+          continue;
+        }
+        case 19: {
+          if (tag !== 152) {
+            break;
+          }
+          message.PenalizeNewline = reader.bool();
+          continue;
+        }
+        case 20: {
+          if (tag !== 160) {
+            break;
+          }
+          message.PenaltyCount = reader.int32();
+          continue;
+        }
+        case 21: {
+          if (tag !== 168) {
+            break;
+          }
+          message.PreventEOS = reader.bool();
+          continue;
+        }
+        case 22: {
+          if (tag !== 181) {
+            break;
+          }
+          message.TypicalP = reader.float();
+          continue;
+        }
+        case 23: {
+          if (tag !== 184) {
+            break;
+          }
+          message.ThinkLevel = reader.int32();
+          continue;
+        }
+        case 24: {
+          if (tag !== 192) {
+            break;
+          }
+          message.OutputFormat = reader.int32();
+          continue;
+        }
+        case 25: {
+          if (tag !== 202) {
+            break;
+          }
+          message.ExampleOutput = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      SessionId: isSet4(object.SessionId) ? globalThis.String(object.SessionId) : "",
+      InferenceId: isSet4(object.InferenceId) ? globalThis.String(object.InferenceId) : "",
+      Text: isSet4(object.Text) ? globalThis.String(object.Text) : "",
+      ToolGroup: isSet4(object.ToolGroup) ? inferenceToolGroupsFromJSON(object.ToolGroup) : void 0,
+      ToolName: isSet4(object.ToolName) ? globalThis.String(object.ToolName) : void 0,
+      AntiPrompts: globalThis.Array.isArray(object?.AntiPrompts) ? object.AntiPrompts.map((e) => globalThis.String(e)) : [],
+      TokensKeep: isSet4(object.TokensKeep) ? globalThis.Number(object.TokensKeep) : void 0,
+      MaxTokens: isSet4(object.MaxTokens) ? globalThis.Number(object.MaxTokens) : void 0,
+      DecodeSpecialTokens: isSet4(object.DecodeSpecialTokens) ? globalThis.Boolean(object.DecodeSpecialTokens) : void 0,
+      Temperature: isSet4(object.Temperature) ? globalThis.Number(object.Temperature) : void 0,
+      TopP: isSet4(object.TopP) ? globalThis.Number(object.TopP) : void 0,
+      TopK: isSet4(object.TopK) ? globalThis.Number(object.TopK) : void 0,
+      RepeatPenalty: isSet4(object.RepeatPenalty) ? globalThis.Number(object.RepeatPenalty) : void 0,
+      Seed: isSet4(object.Seed) ? globalThis.Number(object.Seed) : void 0,
+      FrequencyPenalty: isSet4(object.FrequencyPenalty) ? globalThis.Number(object.FrequencyPenalty) : void 0,
+      PresencePenalty: isSet4(object.PresencePenalty) ? globalThis.Number(object.PresencePenalty) : void 0,
+      MinKeep: isSet4(object.MinKeep) ? globalThis.Number(object.MinKeep) : void 0,
+      MinP: isSet4(object.MinP) ? globalThis.Number(object.MinP) : void 0,
+      PenalizeNewline: isSet4(object.PenalizeNewline) ? globalThis.Boolean(object.PenalizeNewline) : void 0,
+      PenaltyCount: isSet4(object.PenaltyCount) ? globalThis.Number(object.PenaltyCount) : void 0,
+      PreventEOS: isSet4(object.PreventEOS) ? globalThis.Boolean(object.PreventEOS) : void 0,
+      TypicalP: isSet4(object.TypicalP) ? globalThis.Number(object.TypicalP) : void 0,
+      ThinkLevel: isSet4(object.ThinkLevel) ? thinkLevelsFromJSON(object.ThinkLevel) : void 0,
+      OutputFormat: isSet4(object.OutputFormat) ? inferenceOutputFormatsFromJSON(object.OutputFormat) : void 0,
+      ExampleOutput: isSet4(object.ExampleOutput) ? globalThis.String(object.ExampleOutput) : void 0
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.SessionId !== "") {
+      obj.SessionId = message.SessionId;
+    }
+    if (message.InferenceId !== "") {
+      obj.InferenceId = message.InferenceId;
+    }
+    if (message.Text !== "") {
+      obj.Text = message.Text;
+    }
+    if (message.ToolGroup !== void 0) {
+      obj.ToolGroup = inferenceToolGroupsToJSON(message.ToolGroup);
+    }
+    if (message.ToolName !== void 0) {
+      obj.ToolName = message.ToolName;
+    }
+    if (message.AntiPrompts?.length) {
+      obj.AntiPrompts = message.AntiPrompts;
+    }
+    if (message.TokensKeep !== void 0) {
+      obj.TokensKeep = Math.round(message.TokensKeep);
+    }
+    if (message.MaxTokens !== void 0) {
+      obj.MaxTokens = Math.round(message.MaxTokens);
+    }
+    if (message.DecodeSpecialTokens !== void 0) {
+      obj.DecodeSpecialTokens = message.DecodeSpecialTokens;
+    }
+    if (message.Temperature !== void 0) {
+      obj.Temperature = message.Temperature;
+    }
+    if (message.TopP !== void 0) {
+      obj.TopP = message.TopP;
+    }
+    if (message.TopK !== void 0) {
+      obj.TopK = Math.round(message.TopK);
+    }
+    if (message.RepeatPenalty !== void 0) {
+      obj.RepeatPenalty = message.RepeatPenalty;
+    }
+    if (message.Seed !== void 0) {
+      obj.Seed = Math.round(message.Seed);
+    }
+    if (message.FrequencyPenalty !== void 0) {
+      obj.FrequencyPenalty = message.FrequencyPenalty;
+    }
+    if (message.PresencePenalty !== void 0) {
+      obj.PresencePenalty = message.PresencePenalty;
+    }
+    if (message.MinKeep !== void 0) {
+      obj.MinKeep = Math.round(message.MinKeep);
+    }
+    if (message.MinP !== void 0) {
+      obj.MinP = message.MinP;
+    }
+    if (message.PenalizeNewline !== void 0) {
+      obj.PenalizeNewline = message.PenalizeNewline;
+    }
+    if (message.PenaltyCount !== void 0) {
+      obj.PenaltyCount = Math.round(message.PenaltyCount);
+    }
+    if (message.PreventEOS !== void 0) {
+      obj.PreventEOS = message.PreventEOS;
+    }
+    if (message.TypicalP !== void 0) {
+      obj.TypicalP = message.TypicalP;
+    }
+    if (message.ThinkLevel !== void 0) {
+      obj.ThinkLevel = thinkLevelsToJSON(message.ThinkLevel);
+    }
+    if (message.OutputFormat !== void 0) {
+      obj.OutputFormat = inferenceOutputFormatsToJSON(message.OutputFormat);
+    }
+    if (message.ExampleOutput !== void 0) {
+      obj.ExampleOutput = message.ExampleOutput;
+    }
+    return obj;
+  },
+  create(base) {
+    return SendInferenceRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseSendInferenceRequest();
+    message.SessionId = object.SessionId ?? "";
+    message.InferenceId = object.InferenceId ?? "";
+    message.Text = object.Text ?? "";
+    message.ToolGroup = object.ToolGroup ?? void 0;
+    message.ToolName = object.ToolName ?? void 0;
+    message.AntiPrompts = object.AntiPrompts?.map((e) => e) || [];
+    message.TokensKeep = object.TokensKeep ?? void 0;
+    message.MaxTokens = object.MaxTokens ?? void 0;
+    message.DecodeSpecialTokens = object.DecodeSpecialTokens ?? void 0;
+    message.Temperature = object.Temperature ?? void 0;
+    message.TopP = object.TopP ?? void 0;
+    message.TopK = object.TopK ?? void 0;
+    message.RepeatPenalty = object.RepeatPenalty ?? void 0;
+    message.Seed = object.Seed ?? void 0;
+    message.FrequencyPenalty = object.FrequencyPenalty ?? void 0;
+    message.PresencePenalty = object.PresencePenalty ?? void 0;
+    message.MinKeep = object.MinKeep ?? void 0;
+    message.MinP = object.MinP ?? void 0;
+    message.PenalizeNewline = object.PenalizeNewline ?? void 0;
+    message.PenaltyCount = object.PenaltyCount ?? void 0;
+    message.PreventEOS = object.PreventEOS ?? void 0;
+    message.TypicalP = object.TypicalP ?? void 0;
+    message.ThinkLevel = object.ThinkLevel ?? void 0;
+    message.OutputFormat = object.OutputFormat ?? void 0;
+    message.ExampleOutput = object.ExampleOutput ?? void 0;
+    return message;
+  }
+};
+function createBaseSendInferenceResponse() {
+  return {
+    SessionId: "",
+    InferenceId: "",
+    Id: "",
+    Type: 0,
+    Content: "",
+    AuthorRole: "",
+    Format: 0,
+    MessageTokenCount: 0,
+    SessionTokenCount: 0,
+    ComputeTimeMs: 0
+  };
+}
+var SendInferenceResponse = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.SessionId !== "") {
+      writer.uint32(10).string(message.SessionId);
+    }
+    if (message.InferenceId !== "") {
+      writer.uint32(18).string(message.InferenceId);
+    }
+    if (message.Id !== "") {
+      writer.uint32(26).string(message.Id);
+    }
+    if (message.Type !== 0) {
+      writer.uint32(32).int32(message.Type);
+    }
+    if (message.Content !== "") {
+      writer.uint32(42).string(message.Content);
+    }
+    if (message.AuthorRole !== "") {
+      writer.uint32(50).string(message.AuthorRole);
+    }
+    if (message.Format !== 0) {
+      writer.uint32(56).int32(message.Format);
+    }
+    if (message.MessageTokenCount !== 0) {
+      writer.uint32(64).int32(message.MessageTokenCount);
+    }
+    if (message.SessionTokenCount !== 0) {
+      writer.uint32(72).int32(message.SessionTokenCount);
+    }
+    if (message.ComputeTimeMs !== 0) {
+      writer.uint32(80).int32(message.ComputeTimeMs);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseSendInferenceResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.SessionId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+          message.InferenceId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+          message.Id = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+          message.Type = reader.int32();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+          message.Content = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+          message.AuthorRole = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+          message.Format = reader.int32();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+          message.MessageTokenCount = reader.int32();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+          message.SessionTokenCount = reader.int32();
+          continue;
+        }
+        case 10: {
+          if (tag !== 80) {
+            break;
+          }
+          message.ComputeTimeMs = reader.int32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      SessionId: isSet4(object.SessionId) ? globalThis.String(object.SessionId) : "",
+      InferenceId: isSet4(object.InferenceId) ? globalThis.String(object.InferenceId) : "",
+      Id: isSet4(object.Id) ? globalThis.String(object.Id) : "",
+      Type: isSet4(object.Type) ? inferenceResponseTypesFromJSON(object.Type) : 0,
+      Content: isSet4(object.Content) ? globalThis.String(object.Content) : "",
+      AuthorRole: isSet4(object.AuthorRole) ? globalThis.String(object.AuthorRole) : "",
+      Format: isSet4(object.Format) ? inferenceOutputFormatsFromJSON(object.Format) : 0,
+      MessageTokenCount: isSet4(object.MessageTokenCount) ? globalThis.Number(object.MessageTokenCount) : 0,
+      SessionTokenCount: isSet4(object.SessionTokenCount) ? globalThis.Number(object.SessionTokenCount) : 0,
+      ComputeTimeMs: isSet4(object.ComputeTimeMs) ? globalThis.Number(object.ComputeTimeMs) : 0
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.SessionId !== "") {
+      obj.SessionId = message.SessionId;
+    }
+    if (message.InferenceId !== "") {
+      obj.InferenceId = message.InferenceId;
+    }
+    if (message.Id !== "") {
+      obj.Id = message.Id;
+    }
+    if (message.Type !== 0) {
+      obj.Type = inferenceResponseTypesToJSON(message.Type);
+    }
+    if (message.Content !== "") {
+      obj.Content = message.Content;
+    }
+    if (message.AuthorRole !== "") {
+      obj.AuthorRole = message.AuthorRole;
+    }
+    if (message.Format !== 0) {
+      obj.Format = inferenceOutputFormatsToJSON(message.Format);
+    }
+    if (message.MessageTokenCount !== 0) {
+      obj.MessageTokenCount = Math.round(message.MessageTokenCount);
+    }
+    if (message.SessionTokenCount !== 0) {
+      obj.SessionTokenCount = Math.round(message.SessionTokenCount);
+    }
+    if (message.ComputeTimeMs !== 0) {
+      obj.ComputeTimeMs = Math.round(message.ComputeTimeMs);
+    }
+    return obj;
+  },
+  create(base) {
+    return SendInferenceResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseSendInferenceResponse();
+    message.SessionId = object.SessionId ?? "";
+    message.InferenceId = object.InferenceId ?? "";
+    message.Id = object.Id ?? "";
+    message.Type = object.Type ?? 0;
+    message.Content = object.Content ?? "";
+    message.AuthorRole = object.AuthorRole ?? "";
+    message.Format = object.Format ?? 0;
+    message.MessageTokenCount = object.MessageTokenCount ?? 0;
+    message.SessionTokenCount = object.SessionTokenCount ?? 0;
+    message.ComputeTimeMs = object.ComputeTimeMs ?? 0;
+    return message;
+  }
+};
+function createBaseCreateInferenceRequest() {
+  return { SessionId: "", ModelName: "", InitializationPrompt: "", ThinkLevel: 0, ToolGroups: [] };
+}
+var CreateInferenceRequest = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.SessionId !== "") {
+      writer.uint32(10).string(message.SessionId);
+    }
+    if (message.ModelName !== "") {
+      writer.uint32(18).string(message.ModelName);
+    }
+    if (message.InitializationPrompt !== "") {
+      writer.uint32(26).string(message.InitializationPrompt);
+    }
+    if (message.ThinkLevel !== 0) {
+      writer.uint32(32).int32(message.ThinkLevel);
+    }
+    writer.uint32(42).fork();
+    for (const v of message.ToolGroups) {
+      writer.int32(v);
+    }
+    writer.join();
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseCreateInferenceRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.SessionId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+          message.ModelName = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+          message.InitializationPrompt = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+          message.ThinkLevel = reader.int32();
+          continue;
+        }
+        case 5: {
+          if (tag === 40) {
+            message.ToolGroups.push(reader.int32());
+            continue;
+          }
+          if (tag === 42) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.ToolGroups.push(reader.int32());
+            }
+            continue;
+          }
+          break;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      SessionId: isSet4(object.SessionId) ? globalThis.String(object.SessionId) : "",
+      ModelName: isSet4(object.ModelName) ? globalThis.String(object.ModelName) : "",
+      InitializationPrompt: isSet4(object.InitializationPrompt) ? globalThis.String(object.InitializationPrompt) : "",
+      ThinkLevel: isSet4(object.ThinkLevel) ? thinkLevelsFromJSON(object.ThinkLevel) : 0,
+      ToolGroups: globalThis.Array.isArray(object?.ToolGroups) ? object.ToolGroups.map((e) => inferenceToolGroupsFromJSON(e)) : []
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.SessionId !== "") {
+      obj.SessionId = message.SessionId;
+    }
+    if (message.ModelName !== "") {
+      obj.ModelName = message.ModelName;
+    }
+    if (message.InitializationPrompt !== "") {
+      obj.InitializationPrompt = message.InitializationPrompt;
+    }
+    if (message.ThinkLevel !== 0) {
+      obj.ThinkLevel = thinkLevelsToJSON(message.ThinkLevel);
+    }
+    if (message.ToolGroups?.length) {
+      obj.ToolGroups = message.ToolGroups.map((e) => inferenceToolGroupsToJSON(e));
+    }
+    return obj;
+  },
+  create(base) {
+    return CreateInferenceRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseCreateInferenceRequest();
+    message.SessionId = object.SessionId ?? "";
+    message.ModelName = object.ModelName ?? "";
+    message.InitializationPrompt = object.InitializationPrompt ?? "";
+    message.ThinkLevel = object.ThinkLevel ?? 0;
+    message.ToolGroups = object.ToolGroups?.map((e) => e) || [];
+    return message;
+  }
+};
+function createBaseCreateInferenceResponse() {
+  return { SessionId: "", InferenceId: "" };
+}
+var CreateInferenceResponse = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.SessionId !== "") {
+      writer.uint32(10).string(message.SessionId);
+    }
+    if (message.InferenceId !== "") {
+      writer.uint32(18).string(message.InferenceId);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseCreateInferenceResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.SessionId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+          message.InferenceId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      SessionId: isSet4(object.SessionId) ? globalThis.String(object.SessionId) : "",
+      InferenceId: isSet4(object.InferenceId) ? globalThis.String(object.InferenceId) : ""
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.SessionId !== "") {
+      obj.SessionId = message.SessionId;
+    }
+    if (message.InferenceId !== "") {
+      obj.InferenceId = message.InferenceId;
+    }
+    return obj;
+  },
+  create(base) {
+    return CreateInferenceResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseCreateInferenceResponse();
+    message.SessionId = object.SessionId ?? "";
+    message.InferenceId = object.InferenceId ?? "";
+    return message;
+  }
+};
+function createBaseCloseInferenceRequest() {
+  return { SessionId: "", InferenceId: "", Reason: 0 };
+}
+var CloseInferenceRequest = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.SessionId !== "") {
+      writer.uint32(10).string(message.SessionId);
+    }
+    if (message.InferenceId !== "") {
+      writer.uint32(18).string(message.InferenceId);
+    }
+    if (message.Reason !== 0) {
+      writer.uint32(24).int32(message.Reason);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseCloseInferenceRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.SessionId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+          message.InferenceId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+          message.Reason = reader.int32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      SessionId: isSet4(object.SessionId) ? globalThis.String(object.SessionId) : "",
+      InferenceId: isSet4(object.InferenceId) ? globalThis.String(object.InferenceId) : "",
+      Reason: isSet4(object.Reason) ? inferenceCloseReasonsFromJSON(object.Reason) : 0
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.SessionId !== "") {
+      obj.SessionId = message.SessionId;
+    }
+    if (message.InferenceId !== "") {
+      obj.InferenceId = message.InferenceId;
+    }
+    if (message.Reason !== 0) {
+      obj.Reason = inferenceCloseReasonsToJSON(message.Reason);
+    }
+    return obj;
+  },
+  create(base) {
+    return CloseInferenceRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseCloseInferenceRequest();
+    message.SessionId = object.SessionId ?? "";
+    message.InferenceId = object.InferenceId ?? "";
+    message.Reason = object.Reason ?? 0;
+    return message;
+  }
+};
+function createBaseCloseInferenceResponse() {
+  return { SessionId: "", InferenceId: "", Success: false };
+}
+var CloseInferenceResponse = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.SessionId !== "") {
+      writer.uint32(10).string(message.SessionId);
+    }
+    if (message.InferenceId !== "") {
+      writer.uint32(18).string(message.InferenceId);
+    }
+    if (message.Success !== false) {
+      writer.uint32(24).bool(message.Success);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseCloseInferenceResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.SessionId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+          message.InferenceId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+          message.Success = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      SessionId: isSet4(object.SessionId) ? globalThis.String(object.SessionId) : "",
+      InferenceId: isSet4(object.InferenceId) ? globalThis.String(object.InferenceId) : "",
+      Success: isSet4(object.Success) ? globalThis.Boolean(object.Success) : false
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.SessionId !== "") {
+      obj.SessionId = message.SessionId;
+    }
+    if (message.InferenceId !== "") {
+      obj.InferenceId = message.InferenceId;
+    }
+    if (message.Success !== false) {
+      obj.Success = message.Success;
+    }
+    return obj;
+  },
+  create(base) {
+    return CloseInferenceResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseCloseInferenceResponse();
+    message.SessionId = object.SessionId ?? "";
+    message.InferenceId = object.InferenceId ?? "";
+    message.Success = object.Success ?? false;
+    return message;
+  }
+};
+function isSet4(value) {
+  return value !== null && value !== void 0;
+}
+
+// ../../daisi-sdk-typescript/src/generated/Protos/V1/Models/PeerModels.ts
+function createBasePeer() {
+  return { Name: "", IpAddress: "", Port: 0 };
+}
+var Peer = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.Name !== "") {
+      writer.uint32(10).string(message.Name);
+    }
+    if (message.IpAddress !== "") {
+      writer.uint32(18).string(message.IpAddress);
+    }
+    if (message.Port !== 0) {
+      writer.uint32(24).int32(message.Port);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBasePeer();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.Name = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+          message.IpAddress = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+          message.Port = reader.int32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      Name: isSet5(object.Name) ? globalThis.String(object.Name) : "",
+      IpAddress: isSet5(object.IpAddress) ? globalThis.String(object.IpAddress) : "",
+      Port: isSet5(object.Port) ? globalThis.Number(object.Port) : 0
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.Name !== "") {
+      obj.Name = message.Name;
+    }
+    if (message.IpAddress !== "") {
+      obj.IpAddress = message.IpAddress;
+    }
+    if (message.Port !== 0) {
+      obj.Port = Math.round(message.Port);
+    }
+    return obj;
+  },
+  create(base) {
+    return Peer.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBasePeer();
+    message.Name = object.Name ?? "";
+    message.IpAddress = object.IpAddress ?? "";
+    message.Port = object.Port ?? 0;
+    return message;
+  }
+};
+function isSet5(value) {
+  return value !== null && value !== void 0;
+}
+
+// ../../daisi-sdk-typescript/src/generated/Protos/V1/Models/SettingsModels.ts
+function lLamaRuntimesFromJSON(object) {
+  switch (object) {
+    case 0:
+    case "Auto":
+      return 0 /* Auto */;
+    case 1:
+    case "Cuda":
+      return 1 /* Cuda */;
+    case 2:
+    case "Vulkan":
+      return 2 /* Vulkan */;
+    case 3:
+    case "Avx":
+      return 3 /* Avx */;
+    case 4:
+    case "Avx2":
+      return 4 /* Avx2 */;
+    case 5:
+    case "Avx512":
+      return 5 /* Avx512 */;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return -1 /* UNRECOGNIZED */;
+  }
+}
+function lLamaRuntimesToJSON(object) {
+  switch (object) {
+    case 0 /* Auto */:
+      return "Auto";
+    case 1 /* Cuda */:
+      return "Cuda";
+    case 2 /* Vulkan */:
+      return "Vulkan";
+    case 3 /* Avx */:
+      return "Avx";
+    case 4 /* Avx2 */:
+      return "Avx2";
+    case 5 /* Avx512 */:
+      return "Avx512";
+    case -1 /* UNRECOGNIZED */:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+function storageLocationsFromJSON(object) {
+  switch (object) {
+    case 0:
+    case "None":
+      return 0 /* None */;
+    case 1:
+    case "Local":
+      return 1 /* Local */;
+    case 2:
+    case "Cloud":
+      return 2 /* Cloud */;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return -1 /* UNRECOGNIZED */;
+  }
+}
+function storageLocationsToJSON(object) {
+  switch (object) {
+    case 0 /* None */:
+      return "None";
+    case 1 /* Local */:
+      return "Local";
+    case 2 /* Cloud */:
+      return "Cloud";
+    case -1 /* UNRECOGNIZED */:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+function createBaseSettings() {
+  return { Peer: void 0, Host: void 0, Model: void 0, Storage: void 0, Drive: void 0 };
+}
+var Settings = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.Peer !== void 0) {
+      PeerSettings.encode(message.Peer, writer.uint32(10).fork()).join();
+    }
+    if (message.Host !== void 0) {
+      HostSettings.encode(message.Host, writer.uint32(18).fork()).join();
+    }
+    if (message.Model !== void 0) {
+      ModelSettings.encode(message.Model, writer.uint32(26).fork()).join();
+    }
+    if (message.Storage !== void 0) {
+      StorageSettings.encode(message.Storage, writer.uint32(34).fork()).join();
+    }
+    if (message.Drive !== void 0) {
+      DriveSettings.encode(message.Drive, writer.uint32(42).fork()).join();
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseSettings();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.Peer = PeerSettings.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+          message.Host = HostSettings.decode(reader, reader.uint32());
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+          message.Model = ModelSettings.decode(reader, reader.uint32());
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+          message.Storage = StorageSettings.decode(reader, reader.uint32());
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+          message.Drive = DriveSettings.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      Peer: isSet6(object.Peer) ? PeerSettings.fromJSON(object.Peer) : void 0,
+      Host: isSet6(object.Host) ? HostSettings.fromJSON(object.Host) : void 0,
+      Model: isSet6(object.Model) ? ModelSettings.fromJSON(object.Model) : void 0,
+      Storage: isSet6(object.Storage) ? StorageSettings.fromJSON(object.Storage) : void 0,
+      Drive: isSet6(object.Drive) ? DriveSettings.fromJSON(object.Drive) : void 0
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.Peer !== void 0) {
+      obj.Peer = PeerSettings.toJSON(message.Peer);
+    }
+    if (message.Host !== void 0) {
+      obj.Host = HostSettings.toJSON(message.Host);
+    }
+    if (message.Model !== void 0) {
+      obj.Model = ModelSettings.toJSON(message.Model);
+    }
+    if (message.Storage !== void 0) {
+      obj.Storage = StorageSettings.toJSON(message.Storage);
+    }
+    if (message.Drive !== void 0) {
+      obj.Drive = DriveSettings.toJSON(message.Drive);
+    }
+    return obj;
+  },
+  create(base) {
+    return Settings.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseSettings();
+    message.Peer = object.Peer !== void 0 && object.Peer !== null ? PeerSettings.fromPartial(object.Peer) : void 0;
+    message.Host = object.Host !== void 0 && object.Host !== null ? HostSettings.fromPartial(object.Host) : void 0;
+    message.Model = object.Model !== void 0 && object.Model !== null ? ModelSettings.fromPartial(object.Model) : void 0;
+    message.Storage = object.Storage !== void 0 && object.Storage !== null ? StorageSettings.fromPartial(object.Storage) : void 0;
+    message.Drive = object.Drive !== void 0 && object.Drive !== null ? DriveSettings.fromPartial(object.Drive) : void 0;
+    return message;
+  }
+};
+function createBasePeerSettings() {
+  return { Peers: [], DiscoveryPort: 0, MaxPeers: 0 };
+}
+var PeerSettings = {
+  encode(message, writer = new BinaryWriter()) {
+    for (const v of message.Peers) {
+      Peer.encode(v, writer.uint32(10).fork()).join();
+    }
+    if (message.DiscoveryPort !== 0) {
+      writer.uint32(16).int32(message.DiscoveryPort);
+    }
+    if (message.MaxPeers !== 0) {
+      writer.uint32(24).int32(message.MaxPeers);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBasePeerSettings();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.Peers.push(Peer.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+          message.DiscoveryPort = reader.int32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+          message.MaxPeers = reader.int32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      Peers: globalThis.Array.isArray(object?.Peers) ? object.Peers.map((e) => Peer.fromJSON(e)) : [],
+      DiscoveryPort: isSet6(object.DiscoveryPort) ? globalThis.Number(object.DiscoveryPort) : 0,
+      MaxPeers: isSet6(object.MaxPeers) ? globalThis.Number(object.MaxPeers) : 0
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.Peers?.length) {
+      obj.Peers = message.Peers.map((e) => Peer.toJSON(e));
+    }
+    if (message.DiscoveryPort !== 0) {
+      obj.DiscoveryPort = Math.round(message.DiscoveryPort);
+    }
+    if (message.MaxPeers !== 0) {
+      obj.MaxPeers = Math.round(message.MaxPeers);
+    }
+    return obj;
+  },
+  create(base) {
+    return PeerSettings.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBasePeerSettings();
+    message.Peers = object.Peers?.map((e) => Peer.fromPartial(e)) || [];
+    message.DiscoveryPort = object.DiscoveryPort ?? 0;
+    message.MaxPeers = object.MaxPeers ?? 0;
+    return message;
+  }
+};
+function createBaseModelSettings() {
+  return { ModelFolderPath: "", Models: [], AutomaticDownloads: false, LLama: void 0 };
+}
+var ModelSettings = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.ModelFolderPath !== "") {
+      writer.uint32(10).string(message.ModelFolderPath);
+    }
+    for (const v of message.Models) {
+      AIModel.encode(v, writer.uint32(18).fork()).join();
+    }
+    if (message.AutomaticDownloads !== false) {
+      writer.uint32(24).bool(message.AutomaticDownloads);
+    }
+    if (message.LLama !== void 0) {
+      LLamaSettings.encode(message.LLama, writer.uint32(34).fork()).join();
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseModelSettings();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.ModelFolderPath = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+          message.Models.push(AIModel.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+          message.AutomaticDownloads = reader.bool();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+          message.LLama = LLamaSettings.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      ModelFolderPath: isSet6(object.ModelFolderPath) ? globalThis.String(object.ModelFolderPath) : "",
+      Models: globalThis.Array.isArray(object?.Models) ? object.Models.map((e) => AIModel.fromJSON(e)) : [],
+      AutomaticDownloads: isSet6(object.AutomaticDownloads) ? globalThis.Boolean(object.AutomaticDownloads) : false,
+      LLama: isSet6(object.LLama) ? LLamaSettings.fromJSON(object.LLama) : void 0
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.ModelFolderPath !== "") {
+      obj.ModelFolderPath = message.ModelFolderPath;
+    }
+    if (message.Models?.length) {
+      obj.Models = message.Models.map((e) => AIModel.toJSON(e));
+    }
+    if (message.AutomaticDownloads !== false) {
+      obj.AutomaticDownloads = message.AutomaticDownloads;
+    }
+    if (message.LLama !== void 0) {
+      obj.LLama = LLamaSettings.toJSON(message.LLama);
+    }
+    return obj;
+  },
+  create(base) {
+    return ModelSettings.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseModelSettings();
+    message.ModelFolderPath = object.ModelFolderPath ?? "";
+    message.Models = object.Models?.map((e) => AIModel.fromPartial(e)) || [];
+    message.AutomaticDownloads = object.AutomaticDownloads ?? false;
+    message.LLama = object.LLama !== void 0 && object.LLama !== null ? LLamaSettings.fromPartial(object.LLama) : void 0;
+    return message;
+  }
+};
+function createBaseHostSettings() {
+  return {
+    Id: "",
+    Name: "",
+    MaxConcurrentSessions: 0,
+    SecretKey: "",
+    OrcIpAddressOrDomain: void 0,
+    OrcPort: void 0,
+    AutoUpdate: false,
+    LogLevel: "",
+    OrcUseSSL: false
+  };
+}
+var HostSettings = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.Id !== "") {
+      writer.uint32(10).string(message.Id);
+    }
+    if (message.Name !== "") {
+      writer.uint32(18).string(message.Name);
+    }
+    if (message.MaxConcurrentSessions !== 0) {
+      writer.uint32(24).int32(message.MaxConcurrentSessions);
+    }
+    if (message.SecretKey !== "") {
+      writer.uint32(34).string(message.SecretKey);
+    }
+    if (message.OrcIpAddressOrDomain !== void 0) {
+      StringValue.encode({ value: message.OrcIpAddressOrDomain }, writer.uint32(42).fork()).join();
+    }
+    if (message.OrcPort !== void 0) {
+      Int32Value.encode({ value: message.OrcPort }, writer.uint32(50).fork()).join();
+    }
+    if (message.AutoUpdate !== false) {
+      writer.uint32(56).bool(message.AutoUpdate);
+    }
+    if (message.LogLevel !== "") {
+      writer.uint32(66).string(message.LogLevel);
+    }
+    if (message.OrcUseSSL !== false) {
+      writer.uint32(72).bool(message.OrcUseSSL);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseHostSettings();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.Id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+          message.Name = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+          message.MaxConcurrentSessions = reader.int32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+          message.SecretKey = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+          message.OrcIpAddressOrDomain = StringValue.decode(reader, reader.uint32()).value;
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+          message.OrcPort = Int32Value.decode(reader, reader.uint32()).value;
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+          message.AutoUpdate = reader.bool();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+          message.LogLevel = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+          message.OrcUseSSL = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      Id: isSet6(object.Id) ? globalThis.String(object.Id) : "",
+      Name: isSet6(object.Name) ? globalThis.String(object.Name) : "",
+      MaxConcurrentSessions: isSet6(object.MaxConcurrentSessions) ? globalThis.Number(object.MaxConcurrentSessions) : 0,
+      SecretKey: isSet6(object.SecretKey) ? globalThis.String(object.SecretKey) : "",
+      OrcIpAddressOrDomain: isSet6(object.OrcIpAddressOrDomain) ? String(object.OrcIpAddressOrDomain) : void 0,
+      OrcPort: isSet6(object.OrcPort) ? Number(object.OrcPort) : void 0,
+      AutoUpdate: isSet6(object.AutoUpdate) ? globalThis.Boolean(object.AutoUpdate) : false,
+      LogLevel: isSet6(object.LogLevel) ? globalThis.String(object.LogLevel) : "",
+      OrcUseSSL: isSet6(object.OrcUseSSL) ? globalThis.Boolean(object.OrcUseSSL) : false
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.Id !== "") {
+      obj.Id = message.Id;
+    }
+    if (message.Name !== "") {
+      obj.Name = message.Name;
+    }
+    if (message.MaxConcurrentSessions !== 0) {
+      obj.MaxConcurrentSessions = Math.round(message.MaxConcurrentSessions);
+    }
+    if (message.SecretKey !== "") {
+      obj.SecretKey = message.SecretKey;
+    }
+    if (message.OrcIpAddressOrDomain !== void 0) {
+      obj.OrcIpAddressOrDomain = message.OrcIpAddressOrDomain;
+    }
+    if (message.OrcPort !== void 0) {
+      obj.OrcPort = message.OrcPort;
+    }
+    if (message.AutoUpdate !== false) {
+      obj.AutoUpdate = message.AutoUpdate;
+    }
+    if (message.LogLevel !== "") {
+      obj.LogLevel = message.LogLevel;
+    }
+    if (message.OrcUseSSL !== false) {
+      obj.OrcUseSSL = message.OrcUseSSL;
+    }
+    return obj;
+  },
+  create(base) {
+    return HostSettings.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseHostSettings();
+    message.Id = object.Id ?? "";
+    message.Name = object.Name ?? "";
+    message.MaxConcurrentSessions = object.MaxConcurrentSessions ?? 0;
+    message.SecretKey = object.SecretKey ?? "";
+    message.OrcIpAddressOrDomain = object.OrcIpAddressOrDomain ?? void 0;
+    message.OrcPort = object.OrcPort ?? void 0;
+    message.AutoUpdate = object.AutoUpdate ?? false;
+    message.LogLevel = object.LogLevel ?? "";
+    message.OrcUseSSL = object.OrcUseSSL ?? false;
+    return message;
+  }
+};
+function createBaseLLamaSettings() {
+  return {
+    Runtime: 0,
+    ShowLogs: false,
+    AutoFallback: false,
+    SkipCheck: false,
+    LlamaPath: "",
+    LlavaPath: "",
+    ContextSize: 0,
+    GpuLayerCount: 0,
+    BatchSize: 0
+  };
+}
+var LLamaSettings = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.Runtime !== 0) {
+      writer.uint32(8).int32(message.Runtime);
+    }
+    if (message.ShowLogs !== false) {
+      writer.uint32(16).bool(message.ShowLogs);
+    }
+    if (message.AutoFallback !== false) {
+      writer.uint32(24).bool(message.AutoFallback);
+    }
+    if (message.SkipCheck !== false) {
+      writer.uint32(32).bool(message.SkipCheck);
+    }
+    if (message.LlamaPath !== "") {
+      writer.uint32(42).string(message.LlamaPath);
+    }
+    if (message.LlavaPath !== "") {
+      writer.uint32(50).string(message.LlavaPath);
+    }
+    if (message.ContextSize !== 0) {
+      writer.uint32(56).uint32(message.ContextSize);
+    }
+    if (message.GpuLayerCount !== 0) {
+      writer.uint32(64).int32(message.GpuLayerCount);
+    }
+    if (message.BatchSize !== 0) {
+      writer.uint32(72).uint32(message.BatchSize);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseLLamaSettings();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+          message.Runtime = reader.int32();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+          message.ShowLogs = reader.bool();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+          message.AutoFallback = reader.bool();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+          message.SkipCheck = reader.bool();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+          message.LlamaPath = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+          message.LlavaPath = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+          message.ContextSize = reader.uint32();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+          message.GpuLayerCount = reader.int32();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+          message.BatchSize = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      Runtime: isSet6(object.Runtime) ? lLamaRuntimesFromJSON(object.Runtime) : 0,
+      ShowLogs: isSet6(object.ShowLogs) ? globalThis.Boolean(object.ShowLogs) : false,
+      AutoFallback: isSet6(object.AutoFallback) ? globalThis.Boolean(object.AutoFallback) : false,
+      SkipCheck: isSet6(object.SkipCheck) ? globalThis.Boolean(object.SkipCheck) : false,
+      LlamaPath: isSet6(object.LlamaPath) ? globalThis.String(object.LlamaPath) : "",
+      LlavaPath: isSet6(object.LlavaPath) ? globalThis.String(object.LlavaPath) : "",
+      ContextSize: isSet6(object.ContextSize) ? globalThis.Number(object.ContextSize) : 0,
+      GpuLayerCount: isSet6(object.GpuLayerCount) ? globalThis.Number(object.GpuLayerCount) : 0,
+      BatchSize: isSet6(object.BatchSize) ? globalThis.Number(object.BatchSize) : 0
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.Runtime !== 0) {
+      obj.Runtime = lLamaRuntimesToJSON(message.Runtime);
+    }
+    if (message.ShowLogs !== false) {
+      obj.ShowLogs = message.ShowLogs;
+    }
+    if (message.AutoFallback !== false) {
+      obj.AutoFallback = message.AutoFallback;
+    }
+    if (message.SkipCheck !== false) {
+      obj.SkipCheck = message.SkipCheck;
+    }
+    if (message.LlamaPath !== "") {
+      obj.LlamaPath = message.LlamaPath;
+    }
+    if (message.LlavaPath !== "") {
+      obj.LlavaPath = message.LlavaPath;
+    }
+    if (message.ContextSize !== 0) {
+      obj.ContextSize = Math.round(message.ContextSize);
+    }
+    if (message.GpuLayerCount !== 0) {
+      obj.GpuLayerCount = Math.round(message.GpuLayerCount);
+    }
+    if (message.BatchSize !== 0) {
+      obj.BatchSize = Math.round(message.BatchSize);
+    }
+    return obj;
+  },
+  create(base) {
+    return LLamaSettings.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseLLamaSettings();
+    message.Runtime = object.Runtime ?? 0;
+    message.ShowLogs = object.ShowLogs ?? false;
+    message.AutoFallback = object.AutoFallback ?? false;
+    message.SkipCheck = object.SkipCheck ?? false;
+    message.LlamaPath = object.LlamaPath ?? "";
+    message.LlavaPath = object.LlavaPath ?? "";
+    message.ContextSize = object.ContextSize ?? 0;
+    message.GpuLayerCount = object.GpuLayerCount ?? 0;
+    message.BatchSize = object.BatchSize ?? 0;
+    return message;
+  }
+};
+function createBaseAIModel() {
+  return {
+    Name: "",
+    FileName: "",
+    Url: "",
+    IsMultiModal: false,
+    IsDefault: false,
+    Enabled: false,
+    LoadAtStartup: false,
+    ThinkLevels: [],
+    HasReasoning: false,
+    LLama: void 0,
+    Id: ""
+  };
+}
+var AIModel = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.Name !== "") {
+      writer.uint32(10).string(message.Name);
+    }
+    if (message.FileName !== "") {
+      writer.uint32(18).string(message.FileName);
+    }
+    if (message.Url !== "") {
+      writer.uint32(26).string(message.Url);
+    }
+    if (message.IsMultiModal !== false) {
+      writer.uint32(32).bool(message.IsMultiModal);
+    }
+    if (message.IsDefault !== false) {
+      writer.uint32(40).bool(message.IsDefault);
+    }
+    if (message.Enabled !== false) {
+      writer.uint32(48).bool(message.Enabled);
+    }
+    if (message.LoadAtStartup !== false) {
+      writer.uint32(56).bool(message.LoadAtStartup);
+    }
+    writer.uint32(66).fork();
+    for (const v of message.ThinkLevels) {
+      writer.int32(v);
+    }
+    writer.join();
+    if (message.HasReasoning !== false) {
+      writer.uint32(72).bool(message.HasReasoning);
+    }
+    if (message.LLama !== void 0) {
+      LLamaSettings.encode(message.LLama, writer.uint32(82).fork()).join();
+    }
+    if (message.Id !== "") {
+      writer.uint32(90).string(message.Id);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseAIModel();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.Name = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+          message.FileName = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+          message.Url = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+          message.IsMultiModal = reader.bool();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+          message.IsDefault = reader.bool();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+          message.Enabled = reader.bool();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+          message.LoadAtStartup = reader.bool();
+          continue;
+        }
+        case 8: {
+          if (tag === 64) {
+            message.ThinkLevels.push(reader.int32());
+            continue;
+          }
+          if (tag === 66) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.ThinkLevels.push(reader.int32());
+            }
+            continue;
+          }
+          break;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+          message.HasReasoning = reader.bool();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+          message.LLama = LLamaSettings.decode(reader, reader.uint32());
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+          message.Id = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      Name: isSet6(object.Name) ? globalThis.String(object.Name) : "",
+      FileName: isSet6(object.FileName) ? globalThis.String(object.FileName) : "",
+      Url: isSet6(object.Url) ? globalThis.String(object.Url) : "",
+      IsMultiModal: isSet6(object.IsMultiModal) ? globalThis.Boolean(object.IsMultiModal) : false,
+      IsDefault: isSet6(object.IsDefault) ? globalThis.Boolean(object.IsDefault) : false,
+      Enabled: isSet6(object.Enabled) ? globalThis.Boolean(object.Enabled) : false,
+      LoadAtStartup: isSet6(object.LoadAtStartup) ? globalThis.Boolean(object.LoadAtStartup) : false,
+      ThinkLevels: globalThis.Array.isArray(object?.ThinkLevels) ? object.ThinkLevels.map((e) => thinkLevelsFromJSON(e)) : [],
+      HasReasoning: isSet6(object.HasReasoning) ? globalThis.Boolean(object.HasReasoning) : false,
+      LLama: isSet6(object.LLama) ? LLamaSettings.fromJSON(object.LLama) : void 0,
+      Id: isSet6(object.Id) ? globalThis.String(object.Id) : ""
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.Name !== "") {
+      obj.Name = message.Name;
+    }
+    if (message.FileName !== "") {
+      obj.FileName = message.FileName;
+    }
+    if (message.Url !== "") {
+      obj.Url = message.Url;
+    }
+    if (message.IsMultiModal !== false) {
+      obj.IsMultiModal = message.IsMultiModal;
+    }
+    if (message.IsDefault !== false) {
+      obj.IsDefault = message.IsDefault;
+    }
+    if (message.Enabled !== false) {
+      obj.Enabled = message.Enabled;
+    }
+    if (message.LoadAtStartup !== false) {
+      obj.LoadAtStartup = message.LoadAtStartup;
+    }
+    if (message.ThinkLevels?.length) {
+      obj.ThinkLevels = message.ThinkLevels.map((e) => thinkLevelsToJSON(e));
+    }
+    if (message.HasReasoning !== false) {
+      obj.HasReasoning = message.HasReasoning;
+    }
+    if (message.LLama !== void 0) {
+      obj.LLama = LLamaSettings.toJSON(message.LLama);
+    }
+    if (message.Id !== "") {
+      obj.Id = message.Id;
+    }
+    return obj;
+  },
+  create(base) {
+    return AIModel.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseAIModel();
+    message.Name = object.Name ?? "";
+    message.FileName = object.FileName ?? "";
+    message.Url = object.Url ?? "";
+    message.IsMultiModal = object.IsMultiModal ?? false;
+    message.IsDefault = object.IsDefault ?? false;
+    message.Enabled = object.Enabled ?? false;
+    message.LoadAtStartup = object.LoadAtStartup ?? false;
+    message.ThinkLevels = object.ThinkLevels?.map((e) => e) || [];
+    message.HasReasoning = object.HasReasoning ?? false;
+    message.LLama = object.LLama !== void 0 && object.LLama !== null ? LLamaSettings.fromPartial(object.LLama) : void 0;
+    message.Id = object.Id ?? "";
+    return message;
+  }
+};
+function createBaseStorageSettings() {
+  return { Location: 0, LocalPath: "" };
+}
+var StorageSettings = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.Location !== 0) {
+      writer.uint32(8).int32(message.Location);
+    }
+    if (message.LocalPath !== "") {
+      writer.uint32(18).string(message.LocalPath);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseStorageSettings();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+          message.Location = reader.int32();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+          message.LocalPath = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      Location: isSet6(object.Location) ? storageLocationsFromJSON(object.Location) : 0,
+      LocalPath: isSet6(object.LocalPath) ? globalThis.String(object.LocalPath) : ""
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.Location !== 0) {
+      obj.Location = storageLocationsToJSON(message.Location);
+    }
+    if (message.LocalPath !== "") {
+      obj.LocalPath = message.LocalPath;
+    }
+    return obj;
+  },
+  create(base) {
+    return StorageSettings.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseStorageSettings();
+    message.Location = object.Location ?? 0;
+    message.LocalPath = object.LocalPath ?? "";
+    return message;
+  }
+};
+function isSet6(value) {
+  return value !== null && value !== void 0;
+}
+
+// ../../daisi-sdk-typescript/src/generated/Protos/V1/Models/CommandModels.ts
+function createBaseCommand() {
+  return { Name: "", Message: void 0, Payload: void 0, SessionId: void 0, RequestId: void 0 };
+}
+var Command = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.Name !== "") {
+      writer.uint32(10).string(message.Name);
+    }
+    if (message.Message !== void 0) {
+      StringValue.encode({ value: message.Message }, writer.uint32(18).fork()).join();
+    }
+    if (message.Payload !== void 0) {
+      Any.encode(message.Payload, writer.uint32(26).fork()).join();
+    }
+    if (message.SessionId !== void 0) {
+      StringValue.encode({ value: message.SessionId }, writer.uint32(34).fork()).join();
+    }
+    if (message.RequestId !== void 0) {
+      StringValue.encode({ value: message.RequestId }, writer.uint32(42).fork()).join();
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseCommand();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.Name = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+          message.Message = StringValue.decode(reader, reader.uint32()).value;
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+          message.Payload = Any.decode(reader, reader.uint32());
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+          message.SessionId = StringValue.decode(reader, reader.uint32()).value;
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+          message.RequestId = StringValue.decode(reader, reader.uint32()).value;
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      Name: isSet7(object.Name) ? globalThis.String(object.Name) : "",
+      Message: isSet7(object.Message) ? String(object.Message) : void 0,
+      Payload: isSet7(object.Payload) ? Any.fromJSON(object.Payload) : void 0,
+      SessionId: isSet7(object.SessionId) ? String(object.SessionId) : void 0,
+      RequestId: isSet7(object.RequestId) ? String(object.RequestId) : void 0
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.Name !== "") {
+      obj.Name = message.Name;
+    }
+    if (message.Message !== void 0) {
+      obj.Message = message.Message;
+    }
+    if (message.Payload !== void 0) {
+      obj.Payload = Any.toJSON(message.Payload);
+    }
+    if (message.SessionId !== void 0) {
+      obj.SessionId = message.SessionId;
+    }
+    if (message.RequestId !== void 0) {
+      obj.RequestId = message.RequestId;
+    }
+    return obj;
+  },
+  create(base) {
+    return Command.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseCommand();
+    message.Name = object.Name ?? "";
+    message.Message = object.Message ?? void 0;
+    message.Payload = object.Payload !== void 0 && object.Payload !== null ? Any.fromPartial(object.Payload) : void 0;
+    message.SessionId = object.SessionId ?? void 0;
+    message.RequestId = object.RequestId ?? void 0;
+    return message;
+  }
+};
+function createBaseHeartbeatRequest() {
+  return { Settings: void 0 };
+}
+var HeartbeatRequest = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.Settings !== void 0) {
+      Settings.encode(message.Settings, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseHeartbeatRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.Settings = Settings.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return { Settings: isSet7(object.Settings) ? Settings.fromJSON(object.Settings) : void 0 };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.Settings !== void 0) {
+      obj.Settings = Settings.toJSON(message.Settings);
+    }
+    return obj;
+  },
+  create(base) {
+    return HeartbeatRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseHeartbeatRequest();
+    message.Settings = object.Settings !== void 0 && object.Settings !== null ? Settings.fromPartial(object.Settings) : void 0;
+    return message;
+  }
+};
+function createBaseListenForCommandsRequest() {
+  return {};
+}
+var ListenForCommandsRequest = {
+  encode(_, writer = new BinaryWriter()) {
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseListenForCommandsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(_) {
+    return {};
+  },
+  toJSON(_) {
+    const obj = {};
+    return obj;
+  },
+  create(base) {
+    return ListenForCommandsRequest.fromPartial(base ?? {});
+  },
+  fromPartial(_) {
+    const message = createBaseListenForCommandsRequest();
+    return message;
+  }
+};
+function createBaseSendCommandRequest() {
+  return { Command: void 0 };
+}
+var SendCommandRequest = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.Command !== void 0) {
+      Command.encode(message.Command, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseSendCommandRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.Command = Command.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return { Command: isSet7(object.Command) ? Command.fromJSON(object.Command) : void 0 };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.Command !== void 0) {
+      obj.Command = Command.toJSON(message.Command);
+    }
+    return obj;
+  },
+  create(base) {
+    return SendCommandRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseSendCommandRequest();
+    message.Command = object.Command !== void 0 && object.Command !== null ? Command.fromPartial(object.Command) : void 0;
+    return message;
+  }
+};
+function createBaseSendCommandResponse() {
+  return { Success: false };
+}
+var SendCommandResponse = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.Success !== false) {
+      writer.uint32(8).bool(message.Success);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseSendCommandResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+          message.Success = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return { Success: isSet7(object.Success) ? globalThis.Boolean(object.Success) : false };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.Success !== false) {
+      obj.Success = message.Success;
+    }
+    return obj;
+  },
+  create(base) {
+    return SendCommandResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseSendCommandResponse();
+    message.Success = object.Success ?? false;
+    return message;
+  }
+};
+function isSet7(value) {
+  return value !== null && value !== void 0;
+}
+
+// ../../daisi-sdk-typescript/src/generated/Protos/V1/Commands.ts
+var HostCommandsProtoDefinition = {
+  name: "HostCommandsProto",
+  fullName: "daisi.protos.v1.HostCommandsProto",
+  methods: {
+    open: {
+      name: "Open",
+      requestType: Command,
+      requestStream: true,
+      responseType: Command,
+      responseStream: true,
+      options: {}
+    },
+    /** Browser-compatible split RPCs (grpc-web can't do bidi streaming) */
+    listenForCommands: {
+      name: "ListenForCommands",
+      requestType: ListenForCommandsRequest,
+      requestStream: false,
+      responseType: Command,
+      responseStream: true,
+      options: {}
+    },
+    sendCommand: {
+      name: "SendCommand",
+      requestType: SendCommandRequest,
+      requestStream: false,
+      responseType: SendCommandResponse,
+      responseStream: false,
+      options: {}
+    }
+  }
+};
+
+// src/proto-helpers.ts
+var TYPE_PREFIX = "type.googleapis.com/";
+function packAny(typeName, message, messageFns) {
+  return {
+    typeUrl: `${TYPE_PREFIX}${typeName}`,
+    value: messageFns.encode(message).finish()
+  };
+}
+function unpackAny(any, messageFns) {
+  if (!any || !any.typeUrl || !any.value || any.value.length === 0) return null;
+  return messageFns.decode(any.value);
+}
+function getTypeName(any) {
+  if (!any?.typeUrl) return "";
+  const idx = any.typeUrl.lastIndexOf("/");
+  return idx >= 0 ? any.typeUrl.substring(idx + 1) : any.typeUrl;
+}
+
+// src/orc-connection.ts
+function describeCommand(command) {
+  const parts = [command.Name || "?"];
+  if (command.SessionId) parts.push(`session=${command.SessionId.substring(0, 8)}`);
+  if (command.RequestId) parts.push(`req=${command.RequestId.substring(0, 8)}`);
+  if (command.Message) parts.push(`msg="${command.Message.substring(0, 50)}"`);
+  if (command.Payload) {
+    const typeName = getTypeName(command.Payload);
+    if (typeName) parts.push(`payload=${typeName}`);
+  }
+  return parts.join(" | ");
+}
+var OrcConnection = class {
+  abortController = null;
+  heartbeatInterval = null;
+  client = null;
+  onCommand = null;
+  onDisconnect = null;
+  buildHeartbeat = () => ({ Name: "HeartbeatRequest" });
+  onLog = () => {
+  };
+  async connect(clientKey, orcAddress, onCommand, onDisconnect, buildHeartbeat, onLog) {
+    this.onCommand = onCommand;
+    this.onDisconnect = onDisconnect;
+    this.buildHeartbeat = buildHeartbeat;
+    this.onLog = onLog;
+    this.abortController = new AbortController();
+    this.log("info", `Connecting to ${orcAddress}...`);
+    const channel = (0, import_nice_grpc_web2.createChannel)(orcAddress);
+    const authMiddleware = createAuthMiddleware({ getClientKey: () => clientKey });
+    this.client = (0, import_nice_grpc_web2.createClientFactory)().use(authMiddleware).create(HostCommandsProtoDefinition, channel);
+    this.log("info", "Client created, starting listener and heartbeat...");
+    this.startListening();
+    this.startHeartbeat();
+  }
+  disconnect() {
+    this.abortController?.abort();
+    this.abortController = null;
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+    this.client = null;
+    this.log("warn", "Disconnected");
+  }
+  async sendCommand(command) {
+    if (!this.client) return;
+    await this.client.sendCommand({ Command: command });
+  }
+  async startListening() {
+    if (!this.client || !this.abortController) return;
+    try {
+      this.log("info", "Opening ListenForCommands stream...");
+      const stream = this.client.listenForCommands({}, {
+        signal: this.abortController.signal
+      });
+      for await (const command of stream) {
+        this.log("info", `\u2190 ${describeCommand(command)}`);
+        if (this.onCommand) {
+          const response = await this.onCommand(command);
+          if (response) {
+            this.log("success", `\u2192 ${describeCommand(response)}`);
+            await this.sendCommand(response);
+          }
+        }
+      }
+      this.log("warn", "Stream ended");
+    } catch (e) {
+      if (e.name !== "AbortError") {
+        this.log("error", `Stream error: ${e.message}`);
+      }
+    } finally {
+      this.onDisconnect?.();
+    }
+  }
+  startHeartbeat() {
+    this.sendHeartbeat();
+    this.heartbeatInterval = setInterval(() => this.sendHeartbeat(), 6e4);
+  }
+  async sendHeartbeat() {
+    if (!this.client) return;
+    try {
+      const hb = this.buildHeartbeat();
+      await this.sendCommand(hb);
+      this.log("success", `\u2192 ${describeCommand(hb)}`);
+    } catch (e) {
+      this.log("error", `Heartbeat failed: ${e.message}`);
+    }
+  }
+  log(level, message) {
+    console.log(`[orc] ${message}`);
+    this.onLog(level, message);
+  }
+};
+
+// src/command-handler.ts
+var CommandHandler = class {
+  engine;
+  activeSessions = /* @__PURE__ */ new Map();
+  sendCommand = null;
+  constructor(engine) {
+    this.engine = engine;
+  }
+  setSendCommand(fn) {
+    this.sendCommand = fn;
+  }
+  /** Build a heartbeat command with model info for sending to ORC. */
+  buildHeartbeat() {
+    const modelInfo = this.engine.info;
+    const heartbeat = {
+      Settings: {
+        Model: {
+          ModelFolderPath: "",
+          Models: modelInfo ? [{
+            Name: modelInfo.name || "Browser Model",
+            FileName: "",
+            Url: "",
+            IsMultiModal: false,
+            IsDefault: true,
+            Enabled: true,
+            LoadAtStartup: false,
+            ThinkLevels: [],
+            HasReasoning: false,
+            Id: ""
+          }] : [],
+          AutomaticDownloads: false
+        }
+      }
+    };
+    return {
+      Name: "HeartbeatRequest",
+      Payload: packAny("daisi.protos.v1.HeartbeatRequest", heartbeat, HeartbeatRequest)
+    };
+  }
+  /** Handle an incoming command from ORC. Returns a response command or null. */
+  async handle(command) {
+    switch (command.Name) {
+      case "HeartbeatRequest":
+        return null;
+      case "CreateInferenceRequest":
+        return this.handleCreateInference(command);
+      case "SendInferenceRequest":
+        return this.handleSendInference(command);
+      case "CloseInferenceRequest":
+        return this.handleCloseInference(command);
+      case "CancelStreamRequest":
+        return this.handleCancelStream(command);
+      case "DownloadModelRequest":
+        return null;
+      case "UpdateRequiredRequest":
+        return null;
+      default:
+        console.warn(`[cmd] Unhandled command: ${command.Name}`);
+        return null;
+    }
+  }
+  handleCreateInference(command) {
+    const request = unpackAny(command.Payload, CreateInferenceRequest);
+    const sessionId = request?.SessionId || command.SessionId || "";
+    this.engine.resetSession();
+    this.activeSessions.set(sessionId, new AbortController());
+    const response = {
+      SessionId: sessionId,
+      InferenceId: request?.SessionId || ""
+    };
+    return {
+      Name: "CreateInferenceResponse",
+      SessionId: sessionId,
+      RequestId: command.RequestId,
+      Payload: packAny("daisi.protos.v1.CreateInferenceResponse", response, CreateInferenceResponse)
+    };
+  }
+  async handleSendInference(command) {
+    const request = unpackAny(command.Payload, SendInferenceRequest);
+    const sessionId = request?.SessionId || command.SessionId || "";
+    const controller = this.activeSessions.get(sessionId);
+    if (!controller) return null;
+    const prompt = request?.Text || command.Message || "";
+    if (!prompt) return null;
+    const maxTokens = request?.MaxTokens || 512;
+    const temperature = request?.Temperature || 0.7;
+    const startTime = performance.now();
+    let fullResponse = "";
+    let tokenCount = 0;
+    try {
+      for await (const token of this.engine.generate(prompt, {
+        maxTokens,
+        temperature,
+        signal: controller.signal
+      })) {
+        fullResponse += token;
+        tokenCount++;
+        if (this.sendCommand) {
+          const streamResponse = {
+            SessionId: sessionId,
+            InferenceId: request?.InferenceId || "",
+            Id: "",
+            Type: 0,
+            // Token
+            Content: token,
+            AuthorRole: "assistant",
+            Format: 0,
+            MessageTokenCount: tokenCount,
+            SessionTokenCount: tokenCount,
+            ComputeTimeMs: Math.round(performance.now() - startTime)
+          };
+          await this.sendCommand({
+            Name: "SendInferenceResponse",
+            SessionId: sessionId,
+            RequestId: command.RequestId,
+            Payload: packAny("daisi.protos.v1.SendInferenceResponse", streamResponse, SendInferenceResponse)
+          });
+        }
+      }
+    } catch {
+    }
+    const finalResponse = {
+      SessionId: sessionId,
+      InferenceId: request?.InferenceId || "",
+      Id: "",
+      Type: 2,
+      // Done
+      Content: "",
+      AuthorRole: "assistant",
+      Format: 0,
+      MessageTokenCount: tokenCount,
+      SessionTokenCount: tokenCount,
+      ComputeTimeMs: Math.round(performance.now() - startTime)
+    };
+    return {
+      Name: "SendInferenceResponse",
+      SessionId: sessionId,
+      RequestId: command.RequestId,
+      Payload: packAny("daisi.protos.v1.SendInferenceResponse", finalResponse, SendInferenceResponse)
+    };
+  }
+  handleCloseInference(command) {
+    const request = unpackAny(command.Payload, CloseInferenceRequest);
+    const sessionId = request?.SessionId || command.SessionId || "";
+    const controller = this.activeSessions.get(sessionId);
+    controller?.abort();
+    this.activeSessions.delete(sessionId);
+    const response = {
+      SessionId: sessionId,
+      InferenceId: request?.InferenceId || "",
+      Success: true
+    };
+    return {
+      Name: "CloseInferenceResponse",
+      SessionId: sessionId,
+      RequestId: command.RequestId,
+      Payload: packAny("daisi.protos.v1.CloseInferenceResponse", response, CloseInferenceResponse)
+    };
+  }
+  handleCancelStream(command) {
+    const sessionId = command.SessionId ?? "";
+    const controller = this.activeSessions.get(sessionId);
+    controller?.abort();
+    return null;
+  }
+};
+
 // src/index.ts
 var BrowserHost = class {
   engine = new LlogosEngine();
+  orcConnection = new OrcConnection();
+  commandHandler = null;
   abortController = null;
   dotNetRef = null;
-  /** Set the Blazor DotNetObjectReference for callbacks. */
   setDotNetRef(ref) {
     this.dotNetRef = ref;
   }
-  /** Initialize WebGPU. Returns GPU capabilities or throws. */
   async initGpu() {
-    if (!LlogosEngine.isSupported()) {
-      throw new Error("WebGPU not available");
-    }
-    return await this.engine.initGpu();
+    if (!LlogosEngine.isSupported()) throw new Error("WebGPU not available");
+    const caps = await this.engine.initGpu();
+    const ai = caps.adapterInfo;
+    console.log("[gpu] adapterInfo:", { vendor: ai.vendor, architecture: ai.architecture, device: ai.device, description: ai.description });
+    return {
+      ...caps,
+      adapterInfo: { vendor: ai.vendor, architecture: ai.architecture, device: ai.device, description: ai.description }
+    };
   }
-  /** Inspect a model URL without downloading. */
   async inspectModel(url) {
     return await this.engine.inspectModel(url);
   }
-  /** Load a model with progress callbacks to Blazor. */
   async loadModel(url) {
     const info = await this.engine.loadModel(url, {
       onProgress: (p) => {
         this.dotNetRef?.invokeMethodAsync("OnLoadProgress", p.phase, p.bytesDownloaded, p.totalBytes);
       }
     });
+    this.commandHandler = new CommandHandler(this.engine);
     return info;
   }
-  /** Unload the current model. */
   unloadModel() {
     this.engine.unloadModel();
+    this.commandHandler = null;
   }
-  /** Reset the conversation (clear KV cache). */
   resetSession() {
     this.engine.resetSession();
   }
-  /** Generate text from a prompt. Streams tokens to Blazor via callback. */
   async generate(prompt, maxTokens, temperature) {
     this.abortController = new AbortController();
     let count = 0;
@@ -1942,57 +11882,85 @@ var BrowserHost = class {
       }
     } finally {
       const elapsed = (performance.now() - start) / 1e3;
-      const tokPerSec = elapsed > 0 ? count / elapsed : 0;
-      this.dotNetRef?.invokeMethodAsync("OnGenerationComplete", count, tokPerSec);
+      this.dotNetRef?.invokeMethodAsync("OnGenerationComplete", count, elapsed > 0 ? count / elapsed : 0);
       this.abortController = null;
     }
   }
-  /** Stop the current generation. */
   stopGeneration() {
     this.abortController?.abort();
   }
-  /** Get current state for UI. */
   getState() {
+    const info = this.engine.info;
     return {
       status: this.engine.status,
-      modelInfo: this.engine.info,
-      error: null,
-      tokensGenerated: 0,
-      tokPerSec: 0,
-      vramMb: Math.round(this.engine.vramUsage / 1024 / 1024)
+      vramMb: Math.round(this.engine.vramUsage / 1024 / 1024),
+      model: info ? {
+        name: info.metadata.get("general.name") || info.architecture || "Unknown",
+        architecture: info.architecture,
+        blockCount: info.blockCount,
+        embeddingLength: info.embeddingLength,
+        headCount: info.headCount,
+        headCountKv: info.headCountKv,
+        contextLength: info.contextLength,
+        vocabSize: info.vocabSize,
+        feedForwardLength: info.feedForwardLength,
+        tensorCount: info.tensors.length,
+        quantization: info.metadata.get("general.file_type") || ""
+      } : null
     };
   }
-  /** Check if WebGPU is supported. */
   isSupported() {
     return LlogosEngine.isSupported();
   }
-  /** Check if a model URL is cached and ready to load. */
   async isCached(url) {
     try {
       const cache = await caches.open("llogos-webgpu-models");
-      const match = await cache.match(url);
-      return !!match;
+      return !!await cache.match(url);
     } catch {
       return false;
     }
   }
   // ── ORC Connection ──────────────────────────────────────────────────
-  clientKey = null;
-  connected = false;
-  /** Connect to ORC with a client key (obtained from Manager server). */
-  async connectToOrc(clientKey) {
-    this.clientKey = clientKey;
-    this.connected = true;
-    console.log("[browser-host] Connected to ORC with clientKey");
+  async connectToOrc(clientKey, orcAddress) {
+    if (!this.commandHandler) throw new Error("Model not loaded");
+    this.commandHandler.setSendCommand((cmd) => this.orcConnection.sendCommand(cmd));
+    await this.orcConnection.connect(
+      clientKey,
+      orcAddress,
+      async (command) => this.commandHandler.handle(command),
+      () => this.dotNetRef?.invokeMethodAsync("OnOrcConnectionChanged", false),
+      () => this.commandHandler.buildHeartbeat(),
+      (level, message) => this.dotNetRef?.invokeMethodAsync("OnOrcLog", level, message)
+    );
     this.dotNetRef?.invokeMethodAsync("OnOrcConnectionChanged", true);
   }
-  /** Disconnect from ORC. */
   async disconnectFromOrc() {
-    this.connected = false;
-    this.clientKey = null;
-    console.log("[browser-host] Disconnected from ORC");
+    this.orcConnection.disconnect();
     this.dotNetRef?.invokeMethodAsync("OnOrcConnectionChanged", false);
   }
 };
 window.browserHost = new BrowserHost();
+/*! Bundled license information:
+
+long/index.js:
+  (**
+   * @license
+   * Copyright 2009 The Closure Library Authors
+   * Copyright 2020 Daniel Wirtz / The long.js Authors.
+   *
+   * Licensed under the Apache License, Version 2.0 (the "License");
+   * you may not use this file except in compliance with the License.
+   * You may obtain a copy of the License at
+   *
+   *     http://www.apache.org/licenses/LICENSE-2.0
+   *
+   * Unless required by applicable law or agreed to in writing, software
+   * distributed under the License is distributed on an "AS IS" BASIS,
+   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   * See the License for the specific language governing permissions and
+   * limitations under the License.
+   *
+   * SPDX-License-Identifier: Apache-2.0
+   *)
+*/
 //# sourceMappingURL=browser-host.js.map

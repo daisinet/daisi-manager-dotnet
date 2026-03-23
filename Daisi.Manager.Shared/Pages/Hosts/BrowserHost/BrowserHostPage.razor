@@ -3,8 +3,10 @@
 @using System.Text.Json
 @using Daisi.SDK.Web.Authorization
 @inject IJSRuntime JS
+@using Microsoft.Extensions.Configuration
 @inject HostClientFactory HostClientFactory
 @inject AuthClientFactory AuthClientFactory
+@inject IConfiguration Configuration
 
 <PageTitle>DAISI Browser Host</PageTitle>
 
@@ -15,32 +17,66 @@
             <h3 class="mb-0"><i class="fa-duotone fa-microchip"></i> Browser Host</h3>
             <p class="text-secondary mb-0">Run a DAISI Host directly in your browser using WebGPU.</p>
         </div>
-        <button class="btn btn-outline-success" @onclick="ToggleChat" disabled="@(!modelLoaded)">
-            <i class="fa-duotone fa-comments"></i> Chat
+        <button class="btn btn-outline-success me-2" @onclick="() => ToggleChat(false)" disabled="@(!modelLoaded)">
+            <i class="fa-duotone fa-lock"></i> Private Chat
+        </button>
+        <button class="btn btn-outline-info" @onclick="() => ToggleChat(true)" disabled="@(!isOnline)">
+            <i class="fa-duotone fa-network-wired"></i> ORC Chat
         </button>
     </div>
 
     <div class="row g-3">
         @* GPU Status *@
-        <div class="col-md-4">
-            <div class="card bg-dark">
-                <div class="card-header"><i class="fa-duotone fa-gpu-card"></i> GPU</div>
-                <div class="card-body">
-                    <span class="@(gpuReady ? "text-success" : "text-warning")">@gpuStatus</span>
+        <div class="col-md-4 d-flex">
+            <div class="card bg-dark w-100">
+                <div class="card-header"><i class="fa-duotone fa-microchip"></i> GPU</div>
+                <div class="card-body" style="font-size: 13px;">
+                    @if (gpuReady)
+                    {
+                        <div class="text-success"><i class="fa-duotone fa-circle-check"></i> Ready</div>
+                        <div><span class="text-secondary">Device:</span> @(string.IsNullOrEmpty(gpuDevice) ? "—" : gpuDevice)</div>
+                        <div>
+                            <span class="text-secondary">Buffer:</span> @gpuMaxBufferMb MB
+                            @if (gpuSupportsF16) { <span class="badge bg-success ms-1">FP16</span> }
+                            @if (gpuSupportsTimestamp) { <span class="badge bg-info ms-1">Timestamps</span> }
+                        </div>
+                    }
+                    else
+                    {
+                        <span class="text-warning">@gpuStatus</span>
+                    }
                 </div>
             </div>
         </div>
 
         @* Model *@
-        <div class="col-md-4">
-            <div class="card bg-dark">
+        <div class="col-md-4 d-flex">
+            <div class="card bg-dark w-100">
                 <div class="card-header"><i class="fa-duotone fa-brain"></i> Model</div>
-                <div class="card-body">
+                <div class="card-body" style="font-size: 13px;">
                     @if (modelLoaded)
                     {
-                        <span class="text-success">@modelName</span>
-                        <span class="text-secondary ms-2">@vramMb MB</span>
-                        <button class="btn btn-sm btn-outline-danger float-end" @onclick="UnloadModel">Unload</button>
+                        <div class="d-flex align-items-center">
+                            <span class="text-success"><i class="fa-duotone fa-circle-check"></i> @modelName</span>
+                            <button class="btn btn-sm btn-outline-danger ms-auto" @onclick="UnloadModel">Unload</button>
+                        </div>
+                        <div><span class="text-secondary">Arch:</span> @modelArch &nbsp; <span class="text-secondary">Layers:</span> @modelLayers</div>
+                        <div class="d-flex justify-content-between">
+                            <span><span class="text-secondary">VRAM:</span> @vramMb MB &nbsp; <span class="text-secondary">Tensors:</span> @modelTensors</span>
+                            @if (!showModelDetails)
+                            {
+                                <a href="javascript:void(0)" class="text-secondary" style="font-size: 11px;" @onclick="() => showModelDetails = true">▼ More</a>
+                            }
+                        </div>
+                        @if (showModelDetails)
+                        {
+                            <div><span class="text-secondary">Embed:</span> @modelEmbed &nbsp; <span class="text-secondary">FFN:</span> @modelFfn</div>
+                            <div><span class="text-secondary">Heads:</span> @modelHeads (@modelHeadsKv KV)</div>
+                            <div class="d-flex justify-content-between">
+                                <span><span class="text-secondary">Context:</span> @modelCtx &nbsp; <span class="text-secondary">Vocab:</span> @modelVocab</span>
+                                <a href="javascript:void(0)" class="text-secondary" style="font-size: 11px;" @onclick="() => showModelDetails = false">▲ Less</a>
+                            </div>
+                        }
                     }
                     else
                     {
@@ -67,39 +103,70 @@
         </div>
 
         @* ORC Connection *@
-        <div class="col-md-4">
-            <div class="card bg-dark">
+        <div class="col-md-4 d-flex">
+            <div class="card bg-dark w-100">
                 <div class="card-header"><i class="fa-duotone fa-network-wired"></i> ORC Connection</div>
-                <div class="card-body">
+                <div class="card-body" style="font-size: 13px;">
                     @if (isOnline)
                     {
-                        <span class="text-success"><i class="fa-duotone fa-circle-check"></i> Online as @selectedHostName</span>
-                        <button class="btn btn-sm btn-outline-danger float-end" @onclick="GoOffline">Disconnect</button>
+                        <div class="d-flex align-items-center">
+                            <span class="text-success"><i class="fa-duotone fa-circle-check"></i> Online as @selectedHostName</span>
+                            <button class="btn btn-sm btn-outline-danger ms-auto" @onclick="GoOffline">Disconnect</button>
+                        </div>
+                        <div><span class="text-secondary">Uptime:</span> @GetUptime()</div>
+                        <div><span class="text-secondary">Heartbeats:</span> @heartbeatCount</div>
                     }
                     else
                     {
-                        <div class="input-group">
-                            <select class="form-select" @bind="selectedHostId" disabled="@(isConnecting || hosts == null)">
-                                <option value="">-- Select host identity --</option>
-                                @if (hosts != null)
-                                {
-                                    @foreach (var host in hosts)
-                                    {
-                                        <option value="@host.Id">@host.Name</option>
-                                    }
-                                }
-                            </select>
-                            <button class="btn btn-outline-success" @onclick="GoOnline"
-                                    disabled="@(string.IsNullOrEmpty(selectedHostId) || !modelLoaded || isConnecting)">
-                                @if (isConnecting) { <span class="spinner-border spinner-border-sm"></span> }
-                                Go Online
-                            </button>
+                        <div class="text-secondary">
+                            @if (isConnecting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span> <span>Connecting...</span>
+                            }
+                            else if (!modelLoaded)
+                            {
+                                <span>Waiting for model to load...</span>
+                            }
+                            else
+                            {
+                                <span>Ready to connect</span>
+                            }
                         </div>
                         @if (!string.IsNullOrEmpty(connectionError))
                         {
-                            <small class="text-danger mt-1 d-block">@connectionError</small>
+                            <small class="text-danger d-block">@connectionError</small>
                         }
                     }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ORC Activity Log *@
+    <div class="row g-3 mt-0">
+        <div class="col-12">
+            <div class="card bg-dark">
+                <div class="card-header d-flex align-items-center">
+                    <i class="fa-duotone fa-terminal me-2"></i> ORC Activity
+                    <button class="btn btn-sm btn-outline-secondary ms-auto" @onclick="ClearLog" title="Clear">
+                        <i class="fa-duotone fa-trash-can"></i>
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div style="height: 260px; overflow-y: auto; font-family: monospace; font-size: 12px; padding: 0.75rem; white-space: pre-wrap;"
+                         id="orc-log-panel">
+                        @if (orcLogEntries.Count == 0)
+                        {
+                            <span class="text-secondary">No activity yet. Connect to an ORC to see messages.</span>
+                        }
+                        else
+                        {
+                            @foreach (var entry in orcLogEntries)
+                            {
+                                <div class="@entry.CssClass">@entry.Text</div>
+                            }
+                        }
+                    </div>
                 </div>
             </div>
         </div>
@@ -113,8 +180,16 @@
          style="width: 420px; z-index: 1050;">
         @* Chat header *@
         <div class="d-flex align-items-center p-3 border-bottom">
-            <i class="fa-duotone fa-comments text-success me-2"></i>
-            <strong>Chat</strong>
+            @if (chatViaOrc)
+            {
+                <i class="fa-duotone fa-network-wired text-info me-2"></i>
+                <strong>ORC Chat</strong>
+            }
+            else
+            {
+                <i class="fa-duotone fa-lock text-success me-2"></i>
+                <strong>Private Chat</strong>
+            }
             <button class="btn btn-sm btn-outline-secondary ms-auto" @onclick="NewChat" title="New Chat">
                 <i class="fa-duotone fa-rotate-right"></i>
             </button>
@@ -122,14 +197,21 @@
             {
                 <button class="btn btn-sm btn-outline-danger ms-2" @onclick="StopGeneration">Stop</button>
             }
-            <button class="btn btn-sm btn-outline-secondary ms-2" @onclick="ToggleChat">
+            <button class="btn btn-sm btn-outline-secondary ms-2" @onclick="CloseChat">
                 <i class="fa-duotone fa-xmark"></i>
             </button>
         </div>
 
-        @* Privacy notice *@
+        @* Notice *@
         <div class="px-3 py-2 border-bottom" style="font-size: 12px;">
-            <span class="text-secondary"><i class="fa-duotone fa-lock text-success"></i> Always free. Always private. Your conversation runs entirely on your device — nothing is sent to a server.</span>
+            @if (chatViaOrc)
+            {
+                <span class="text-secondary"><i class="fa-duotone fa-network-wired text-info"></i> This chat routes through the ORC — testing the full host pipeline.</span>
+            }
+            else
+            {
+                <span class="text-secondary"><i class="fa-duotone fa-lock text-success"></i> Always free. Always private. Your conversation runs entirely on your device — nothing is sent to a server.</span>
+            }
         </div>
 
         @* Chat messages *@
@@ -170,11 +252,26 @@
     // GPU / Model
     private bool gpuReady;
     private string gpuStatus = "Initializing...";
+    private string gpuDevice = "";
+    private string gpuVendor = "";
+    private string gpuArch = "";
+    private int gpuMaxBufferMb;
+    private bool gpuSupportsF16;
+    private bool gpuSupportsTimestamp;
     private bool modelLoaded;
     private bool isLoading;
     private bool isGenerating;
     private string selectedModelUrl = "";
     private string modelName = "";
+    private string modelArch = "";
+    private int modelLayers;
+    private int modelEmbed;
+    private int modelHeads;
+    private int modelHeadsKv;
+    private int modelFfn;
+    private int modelCtx;
+    private int modelVocab;
+    private int modelTensors;
     private int vramMb;
     private string loadProgress = "";
     private int loadProgressPct;
@@ -182,6 +279,9 @@
     private string userInput = "";
     private string statsText = "";
     private bool chatOpen;
+    private bool chatViaOrc;
+    private bool showModelDetails;
+    private System.Threading.Timer? uptimeTimer;
 
     // ORC connection
     private List<Daisi.Protos.V1.Host>? hosts;
@@ -190,6 +290,12 @@
     private bool isOnline;
     private bool isConnecting;
     private string connectionError = "";
+    private DateTime? connectedAt;
+    private int heartbeatCount;
+
+    // ORC activity log
+    private List<LogEntry> orcLogEntries = new();
+    private record LogEntry(string Text, string CssClass);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -200,9 +306,29 @@
 
             try
             {
-                await JS.InvokeAsync<object>("browserHost.initGpu");
+                var caps = await JS.InvokeAsync<JsonElement>("browserHost.initGpu");
                 gpuReady = true;
                 gpuStatus = "Ready";
+
+                if (caps.TryGetProperty("adapterInfo", out var info))
+                {
+                    gpuDevice = Capitalize(info.TryGetProperty("device", out var d) ? d.GetString() ?? "" : "");
+                    gpuVendor = Capitalize(info.TryGetProperty("vendor", out var v) ? v.GetString() ?? "" : "");
+                    gpuArch = Capitalize(info.TryGetProperty("architecture", out var a) ? a.GetString() ?? "" : "");
+                    // Fall back through other fields if device is empty
+                    if (string.IsNullOrEmpty(gpuDevice) && info.TryGetProperty("description", out var desc))
+                        gpuDevice = desc.GetString() ?? "";
+                    if (string.IsNullOrEmpty(gpuDevice) && !string.IsNullOrEmpty(gpuArch))
+                        gpuDevice = gpuArch;
+                    if (string.IsNullOrEmpty(gpuDevice))
+                        gpuDevice = "WebGPU";
+                }
+                if (caps.TryGetProperty("maxBufferSize", out var mbs))
+                    gpuMaxBufferMb = (int)(mbs.GetInt64() / 1024 / 1024);
+                if (caps.TryGetProperty("supportsF16", out var f16))
+                    gpuSupportsF16 = f16.GetBoolean();
+                if (caps.TryGetProperty("supportsTimestampQuery", out var ts))
+                    gpuSupportsTimestamp = ts.GetBoolean();
             }
             catch (Exception ex)
             {
@@ -228,13 +354,41 @@
     {
         try
         {
-            var response = await HostClientFactory.Create().GetHostsAsync(new Daisi.Protos.V1.GetHostsRequest());
-            hosts = response.Hosts.OrderBy(h => h.Name).ToList();
+            var hostClient = HostClientFactory.Create();
+            var response = await hostClient.GetHostsAsync(new Daisi.Protos.V1.GetHostsRequest());
+            hosts = response.Hosts
+                .Where(h => h.OperatingSystem == "Browser")
+                .OrderBy(h => h.Name).ToList();
+
+            // Auto-create a browser host if none exists (one per account)
+            if (hosts.Count == 0)
+            {
+                var reg = await hostClient.RegisterAsync(new Daisi.Protos.V1.RegisterHostRequest
+                {
+                    Host = new Daisi.Protos.V1.Host
+                    {
+                        Name = "Browser Host",
+                        OperatingSystem = "Browser",
+                        OperatingSystemVersion = "WebGPU",
+                    }
+                });
+
+                // Reload to pick up the newly created host
+                response = await hostClient.GetHostsAsync(new Daisi.Protos.V1.GetHostsRequest());
+                hosts = response.Hosts
+                    .Where(h => h.OperatingSystem == "Browser")
+                    .OrderBy(h => h.Name).ToList();
+            }
+
+            // Auto-select when there's exactly one browser host
+            if (hosts.Count == 1)
+                selectedHostId = hosts[0].Id;
         }
         catch { hosts = new(); }
     }
 
-    private void ToggleChat() { chatOpen = !chatOpen; }
+    private void ToggleChat(bool viaOrc) { chatViaOrc = viaOrc; chatOpen = true; }
+    private void CloseChat() { chatOpen = false; }
 
     private async Task LoadModel()
     {
@@ -246,9 +400,28 @@
         {
             await JS.InvokeVoidAsync("browserHost.loadModel", selectedModelUrl);
             modelLoaded = true;
-            modelName = "TinyLlama 1.1B Q8_0";
             var state = await JS.InvokeAsync<JsonElement>("browserHost.getState");
             vramMb = state.GetProperty("vramMb").GetInt32();
+            if (state.TryGetProperty("model", out var m) && m.ValueKind != JsonValueKind.Null)
+            {
+                modelName = m.TryGetProperty("name", out var n) ? n.GetString() ?? "Unknown" : "Unknown";
+                modelArch = m.TryGetProperty("architecture", out var a) ? a.GetString() ?? "" : "";
+                modelLayers = m.TryGetProperty("blockCount", out var bc) ? bc.GetInt32() : 0;
+                modelEmbed = m.TryGetProperty("embeddingLength", out var el) ? el.GetInt32() : 0;
+                modelHeads = m.TryGetProperty("headCount", out var hc) ? hc.GetInt32() : 0;
+                modelHeadsKv = m.TryGetProperty("headCountKv", out var hkv) ? hkv.GetInt32() : 0;
+                modelFfn = m.TryGetProperty("feedForwardLength", out var ff) ? ff.GetInt32() : 0;
+                modelCtx = m.TryGetProperty("contextLength", out var cl) ? cl.GetInt32() : 0;
+                modelVocab = m.TryGetProperty("vocabSize", out var vs) ? vs.GetInt32() : 0;
+                modelTensors = m.TryGetProperty("tensorCount", out var tc) ? tc.GetInt32() : 0;
+            }
+
+            // Auto-connect to ORC after model loads
+            if (!isOnline && !string.IsNullOrEmpty(selectedHostId))
+            {
+                StateHasChanged();
+                await GoOnline();
+            }
         }
         catch (Exception ex) { loadProgress = $"Error: {ex.Message}"; }
         finally { isLoading = false; StateHasChanged(); }
@@ -277,9 +450,17 @@
             var clientKeyResponse = await authClient.CreateClientKeyAsync(
                 new Daisi.Protos.V1.CreateClientKeyRequest { SecretKey = secretKeyResponse.SecretKey });
 
-            await JS.InvokeVoidAsync("browserHost.connectToOrc", clientKeyResponse.ClientKey);
+            // Pass ORC address from config so browser connects directly
+            var orcDomain = Daisi.SDK.Models.DaisiStaticSettings.OrcIpAddressOrDomain ?? "orc.daisinet.com";
+            var orcPort = Daisi.SDK.Models.DaisiStaticSettings.OrcPort;
+            var useSsl = Daisi.SDK.Models.DaisiStaticSettings.OrcUseSSL;
+            var orcAddress = $"{(useSsl ? "https" : "http")}://{orcDomain}:{orcPort}";
+            await JS.InvokeVoidAsync("browserHost.connectToOrc", clientKeyResponse.ClientKey, orcAddress);
             selectedHostName = hosts?.FirstOrDefault(h => h.Id == selectedHostId)?.Name ?? selectedHostId;
             isOnline = true;
+            connectedAt = DateTime.Now;
+            heartbeatCount = 0;
+            uptimeTimer = new System.Threading.Timer(_ => InvokeAsync(StateHasChanged), null, 1000, 1000);
         }
         catch (Exception ex) { connectionError = ex.Message; }
         finally { isConnecting = false; StateHasChanged(); }
@@ -289,6 +470,9 @@
     {
         await JS.InvokeVoidAsync("browserHost.disconnectFromOrc");
         isOnline = false;
+        connectedAt = null;
+        uptimeTimer?.Dispose();
+        uptimeTimer = null;
         StateHasChanged();
     }
 
@@ -318,7 +502,34 @@
     [JSInvokable] public void OnToken(string token) { chatHtml += System.Net.WebUtility.HtmlEncode(token); InvokeAsync(StateHasChanged); }
     [JSInvokable] public void OnGenerationComplete(int tokenCount, double tokPerSec) { statsText = $"{tokenCount} tokens | {tokPerSec:F1} tok/s | VRAM: {vramMb} MB"; InvokeAsync(StateHasChanged); }
     [JSInvokable] public void OnLoadProgress(string phase, long bytesDownloaded, long totalBytes) { loadProgressPct = totalBytes > 0 ? (int)(bytesDownloaded * 100 / totalBytes) : 0; loadProgress = $"{phase}... {bytesDownloaded / 1024 / 1024}/{totalBytes / 1024 / 1024} MB"; InvokeAsync(StateHasChanged); }
-    [JSInvokable] public void OnOrcConnectionChanged(bool connected) { isOnline = connected; InvokeAsync(StateHasChanged); }
+    [JSInvokable] public void OnOrcConnectionChanged(bool connected) { isOnline = connected; AddLog(connected ? "Connected to ORC" : "Disconnected from ORC", connected ? "text-success" : "text-warning"); InvokeAsync(StateHasChanged); }
+    [JSInvokable] public void OnOrcLog(string level, string message)
+    {
+        var css = level switch { "error" => "text-danger", "warn" => "text-warning", "success" => "text-success", _ => "text-secondary" };
+        if (message.Contains("HeartbeatRequest") && level == "success") heartbeatCount++;
+        AddLog(message, css);
+        InvokeAsync(StateHasChanged);
+    }
 
-    public async ValueTask DisposeAsync() { if (jsModule != null) await jsModule.DisposeAsync(); }
+    private void AddLog(string text, string css)
+    {
+        var ts = DateTime.Now.ToString("HH:mm:ss");
+        orcLogEntries.Add(new LogEntry($"[{ts}] {text}", css));
+        if (orcLogEntries.Count > 200) orcLogEntries.RemoveAt(0);
+    }
+
+    private void ClearLog() { orcLogEntries.Clear(); }
+
+    private static string Capitalize(string s) => string.IsNullOrEmpty(s) ? s : char.ToUpper(s[0]) + s[1..];
+
+    private string GetUptime()
+    {
+        if (connectedAt == null) return "—";
+        var elapsed = DateTime.Now - connectedAt.Value;
+        if (elapsed.TotalHours >= 1) return $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m";
+        if (elapsed.TotalMinutes >= 1) return $"{(int)elapsed.TotalMinutes}m {elapsed.Seconds}s";
+        return $"{(int)elapsed.TotalSeconds}s";
+    }
+
+    public async ValueTask DisposeAsync() { uptimeTimer?.Dispose(); if (jsModule != null) await jsModule.DisposeAsync(); }
 }
