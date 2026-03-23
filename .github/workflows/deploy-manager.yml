@@ -34,6 +34,43 @@ jobs:
           token: ${{ secrets.SDK_PAT }}
           path: daisi-orc-dotnet
 
+      - name: Checkout daisi-llogos
+        uses: actions/checkout@v4
+        with:
+          repository: daisinet/daisi-llogos
+          token: ${{ secrets.SDK_PAT }}
+          path: daisi-llogos
+
+      - name: Checkout daisi-sdk-typescript
+        uses: actions/checkout@v4
+        with:
+          repository: daisinet/daisi-sdk-typescript
+          token: ${{ secrets.SDK_PAT }}
+          path: daisi-sdk-typescript
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build llogos-webgpu
+        run: |
+          cd daisi-llogos/src/Daisi.Llogos.WebGpu
+          npm install
+          npm run build
+
+      - name: Build daisi-sdk-typescript
+        run: |
+          cd daisi-sdk-typescript
+          npm install
+          npm run build
+
+      - name: Build browser-host-engine
+        run: |
+          cd daisi-manager-dotnet/browser-host-engine
+          npm install
+          npm run build
+
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
