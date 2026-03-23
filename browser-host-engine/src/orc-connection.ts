@@ -15,8 +15,8 @@ export type LogHandler = (level: string, message: string) => void;
 /** Describe a command in human-readable form for logging. */
 function describeCommand(command: Partial<Command>): string {
   const parts = [command.Name || '?'];
-  if (command.SessionId) parts.push(`session=${command.SessionId.substring(0, 8)}`);
-  if (command.RequestId) parts.push(`req=${command.RequestId.substring(0, 8)}`);
+  if (command.SessionId) parts.push(`session=${command.SessionId.substring(0, 16)}`);
+  if (command.RequestId) parts.push(`req=${command.RequestId.substring(0, 12)}`);
   if (command.Message) parts.push(`msg="${command.Message.substring(0, 50)}"`);
   if (command.Payload) {
     const typeName = getTypeName(command.Payload);

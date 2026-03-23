@@ -16,14 +16,21 @@ import {
   CloseInferenceRequest,
   CloseInferenceResponse,
 } from '@daisi/sdk-generated-inference-models';
+import {
+  ConnectRequest,
+  ConnectResponse,
+} from '@daisi/sdk-generated-session-models';
 import { packAny, unpackAny } from './proto-helpers.js';
 
 export type SendCommandFn = (command: Partial<Command>) => Promise<void>;
+export type ClaimSessionFn = (sessionId: string) => Promise<boolean>;
 
 export class CommandHandler {
   private engine: LlogosEngine;
   private activeSessions = new Map<string, AbortController>();
   private sendCommand: SendCommandFn | null = null;
+  private claimSession: ClaimSessionFn | null = null;
+  private log: (level: string, msg: string) => void = () => {};
 
   constructor(engine: LlogosEngine) {
     this.engine = engine;
@@ -31,6 +38,14 @@ export class CommandHandler {
 
   setSendCommand(fn: SendCommandFn): void {
     this.sendCommand = fn;
+  }
+
+  setClaimSession(fn: ClaimSessionFn): void {
+    this.claimSession = fn;
+  }
+
+  setLog(fn: (level: string, msg: string) => void): void {
+    this.log = fn;
   }
 
   /** Build a heartbeat command with model info for sending to ORC. */
@@ -69,6 +84,9 @@ export class CommandHandler {
         // ORC heartbeat is a response to ours — don't echo back
         return null;
 
+      case 'ConnectRequest':
+        return this.handleConnect(command);
+
       case 'CreateInferenceRequest':
         return this.handleCreateInference(command);
 
@@ -93,6 +111,34 @@ export class CommandHandler {
         console.warn(`[cmd] Unhandled command: ${command.Name}`);
         return null;
     }
+  }
+
+  private async handleConnect(command: Command): Promise<Command> {
+    const request = unpackAny(command.Payload, ConnectRequest);
+    const sessionId = request?.SessionId || command.SessionId || '';
+
+    let hasCapacity = true;
+    // Claim the session with ORC
+    if (this.claimSession) {
+      try {
+        hasCapacity = await this.claimSession(sessionId);
+      } catch {
+        hasCapacity = false;
+      }
+    }
+
+    const response: ConnectResponse = {
+      Id: hasCapacity ? sessionId : '',
+      HasCapacity: hasCapacity,
+      AlreadyConnected: this.activeSessions.has(sessionId),
+    };
+
+    return {
+      Name: 'ConnectResponse',
+      SessionId: sessionId,
+      RequestId: command.RequestId,
+      Payload: packAny('daisi.protos.v1.ConnectResponse', response, ConnectResponse),
+    };
   }
 
   private handleCreateInference(command: Command): Command {
@@ -128,63 +174,70 @@ export class CommandHandler {
     const temperature = request?.Temperature || 0.7;
     const startTime = performance.now();
 
-    let fullResponse = '';
+    this.log('success', `→ SendInferenceResponse Starting: "${prompt.substring(0, 60)}${prompt.length > 60 ? '...' : ''}" (max ${maxTokens} tokens)`);
+
     let tokenCount = 0;
+    let tokenBuffer = '';
+    const BATCH_SIZE = 10;
+    const inferenceId = request?.InferenceId || '';
+
+    const flushTokens = async () => {
+      if (!tokenBuffer || !this.sendCommand) return;
+      const streamResponse: SendInferenceResponse = {
+        SessionId: sessionId,
+        InferenceId: inferenceId,
+        Id: '',
+        Type: 0, // Text
+        Content: tokenBuffer,
+        AuthorRole: 'assistant',
+        Format: 0,
+        MessageTokenCount: tokenCount,
+        SessionTokenCount: tokenCount,
+        ComputeTimeMs: Math.round(performance.now() - startTime),
+      };
+      await this.sendCommand({
+        Name: 'SendInferenceResponse',
+        SessionId: sessionId,
+        RequestId: command.RequestId,
+        Payload: packAny('daisi.protos.v1.SendInferenceResponse', streamResponse, SendInferenceResponse),
+      });
+      tokenBuffer = '';
+    };
+
     try {
       for await (const token of this.engine.generate(prompt, {
         maxTokens,
         temperature,
         signal: controller.signal,
       })) {
-        fullResponse += token;
+        tokenBuffer += token;
         tokenCount++;
 
-        // Stream individual tokens back to ORC
-        if (this.sendCommand) {
-          const streamResponse: SendInferenceResponse = {
-            SessionId: sessionId,
-            InferenceId: request?.InferenceId || '',
-            Id: '',
-            Type: 0, // Token
-            Content: token,
-            AuthorRole: 'assistant',
-            Format: 0,
-            MessageTokenCount: tokenCount,
-            SessionTokenCount: tokenCount,
-            ComputeTimeMs: Math.round(performance.now() - startTime),
-          };
-          await this.sendCommand({
-            Name: 'SendInferenceResponse',
-            SessionId: sessionId,
-            RequestId: command.RequestId,
-            Payload: packAny('daisi.protos.v1.SendInferenceResponse', streamResponse, SendInferenceResponse),
-          });
+        if (tokenCount % BATCH_SIZE === 0) {
+          await flushTokens();
         }
       }
+      // Flush remaining tokens
+      await flushTokens();
     } catch {
-      // Aborted or error
+      // Aborted or error — flush what we have
+      await flushTokens();
     }
 
-    // Send final "done" response
-    const finalResponse: SendInferenceResponse = {
-      SessionId: sessionId,
-      InferenceId: request?.InferenceId || '',
-      Id: '',
-      Type: 2, // Done
-      Content: '',
-      AuthorRole: 'assistant',
-      Format: 0,
-      MessageTokenCount: tokenCount,
-      SessionTokenCount: tokenCount,
-      ComputeTimeMs: Math.round(performance.now() - startTime),
-    };
+    const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
+    const tokSec = tokenCount > 0 ? (tokenCount / ((performance.now() - startTime) / 1000)).toFixed(1) : '0';
+    this.log('success', `→ SendInferenceResponse Complete: ${tokenCount} tokens in ${elapsed}s (${tokSec} tok/s)`);
 
-    return {
-      Name: 'SendInferenceResponse',
-      SessionId: sessionId,
-      RequestId: command.RequestId,
-      Payload: packAny('daisi.protos.v1.SendInferenceResponse', finalResponse, SendInferenceResponse),
-    };
+    // Send ENDSTREAM to signal completion to ORC
+    if (this.sendCommand) {
+      await this.sendCommand({
+        Name: 'ENDSTREAM',
+        SessionId: sessionId,
+        RequestId: command.RequestId,
+      });
+    }
+
+    return null;
   }
 
   private handleCloseInference(command: Command): Command {

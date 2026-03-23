@@ -105,7 +105,7 @@
         @* ORC Connection *@
         <div class="col-md-4 d-flex">
             <div class="card bg-dark w-100">
-                <div class="card-header"><i class="fa-duotone fa-network-wired"></i> ORC Connection</div>
+                <div class="card-header"><i class="fa-duotone fa-chart-line"></i> Host Stats</div>
                 <div class="card-body" style="font-size: 13px;">
                     @if (isOnline)
                     {
@@ -491,9 +491,24 @@
         chatHtml += $"<span class=\"text-info\">&gt; {System.Net.WebUtility.HtmlEncode(prompt)}</span>\n";
         isGenerating = true; statsText = "";
         StateHasChanged();
-        try { await JS.InvokeVoidAsync("browserHost.generate", prompt, 256, 0); }
-        catch (Exception ex) { chatHtml += $"\n<span class=\"text-danger\">[Error: {ex.Message}]</span>\n"; }
-        finally { isGenerating = false; chatHtml += "\n"; StateHasChanged(); }
+
+        if (chatViaOrc && isOnline)
+        {
+            await SendViaOrc(prompt);
+        }
+        else
+        {
+            try { await JS.InvokeVoidAsync("browserHost.generate", prompt, 256, 0); }
+            catch (Exception ex) { chatHtml += $"\n<span class=\"text-danger\">[Error: {ex.Message}]</span>\n"; }
+        }
+
+        isGenerating = false; chatHtml += "\n"; StateHasChanged();
+    }
+
+    private async Task SendViaOrc(string prompt)
+    {
+        try { await JS.InvokeVoidAsync("browserHost.sendViaOrc", prompt); }
+        catch (Exception ex) { chatHtml += $"\n<span class=\"text-danger\">[ORC Error: {ex.Message}]</span>\n"; }
     }
 
     private async Task StopGeneration() => await JS.InvokeVoidAsync("browserHost.stopGeneration");

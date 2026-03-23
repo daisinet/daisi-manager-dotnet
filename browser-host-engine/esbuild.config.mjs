@@ -33,6 +33,9 @@ const buildOptions = {
     '@daisi/sdk-generated-inference-models': '../../daisi-sdk-typescript/src/generated/Protos/V1/Models/InferenceModels.ts',
     '@daisi/sdk-generated-settings-models': '../../daisi-sdk-typescript/src/generated/Protos/V1/Models/SettingsModels.ts',
     '@daisi/sdk-protobuf-any': '../../daisi-sdk-typescript/src/generated/google/protobuf/any.ts',
+    '@daisi/sdk-generated-sessions': '../../daisi-sdk-typescript/src/generated/Protos/V1/Sessions.ts',
+    '@daisi/sdk-generated-inferences': '../../daisi-sdk-typescript/src/generated/Protos/V1/Inferences.ts',
+    '@daisi/sdk-generated-session-models': '../../daisi-sdk-typescript/src/generated/Protos/V1/Models/SessionModels.ts',
   },
 };
 

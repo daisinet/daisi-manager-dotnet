@@ -1550,9 +1550,9 @@ var require_channel = __commonJS({
   "node_modules/nice-grpc-web/lib/client/channel.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.createChannel = createChannel3;
+    exports.createChannel = createChannel4;
     var fetch_1 = require_fetch();
-    function createChannel3(address, transport = (0, fetch_1.FetchTransport)()) {
+    function createChannel4(address, transport = (0, fetch_1.FetchTransport)()) {
       return { address, transport };
     }
   }
@@ -2195,7 +2195,7 @@ var require_ClientFactory = __commonJS({
   "node_modules/nice-grpc-web/lib/client/ClientFactory.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.createClientFactory = createClientFactory3;
+    exports.createClientFactory = createClientFactory4;
     exports.createClient = createClient;
     var nice_grpc_common_1 = require_lib();
     var service_definitions_1 = require_service_definitions();
@@ -2203,11 +2203,11 @@ var require_ClientFactory = __commonJS({
     var createClientStreamingMethod_1 = require_createClientStreamingMethod();
     var createServerStreamingMethod_1 = require_createServerStreamingMethod();
     var createUnaryMethod_1 = require_createUnaryMethod();
-    function createClientFactory3() {
+    function createClientFactory4() {
       return createClientFactoryWithMiddleware();
     }
     function createClient(definition, channel, defaultCallOptions) {
-      return createClientFactory3().create(definition, channel, defaultCallOptions);
+      return createClientFactory4().create(definition, channel, defaultCallOptions);
     }
     function createClientFactoryWithMiddleware(middleware) {
       return {
@@ -4019,9 +4019,9 @@ var require_channel2 = __commonJS({
   "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/channel.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.createChannel = createChannel3;
+    exports.createChannel = createChannel4;
     var fetch_1 = require_fetch2();
-    function createChannel3(address, transport = (0, fetch_1.FetchTransport)()) {
+    function createChannel4(address, transport = (0, fetch_1.FetchTransport)()) {
       return { address, transport };
     }
   }
@@ -4664,7 +4664,7 @@ var require_ClientFactory2 = __commonJS({
   "../../daisi-sdk-typescript/node_modules/nice-grpc-web/lib/client/ClientFactory.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.createClientFactory = createClientFactory3;
+    exports.createClientFactory = createClientFactory4;
     exports.createClient = createClient;
     var nice_grpc_common_1 = require_lib4();
     var service_definitions_1 = require_service_definitions2();
@@ -4672,11 +4672,11 @@ var require_ClientFactory2 = __commonJS({
     var createClientStreamingMethod_1 = require_createClientStreamingMethod2();
     var createServerStreamingMethod_1 = require_createServerStreamingMethod2();
     var createUnaryMethod_1 = require_createUnaryMethod2();
-    function createClientFactory3() {
+    function createClientFactory4() {
       return createClientFactoryWithMiddleware();
     }
     function createClient(definition, channel, defaultCallOptions) {
-      return createClientFactory3().create(definition, channel, defaultCallOptions);
+      return createClientFactory4().create(definition, channel, defaultCallOptions);
     }
     function createClientFactoryWithMiddleware(middleware) {
       return {
@@ -6861,8 +6861,8 @@ ${userMessage}<|im_end|>
   }
 };
 
-// src/orc-connection.ts
-var import_nice_grpc_web2 = __toESM(require_lib3(), 1);
+// src/index.ts
+var import_nice_grpc_web3 = __toESM(require_lib3(), 1);
 
 // ../../daisi-sdk-typescript/dist/web.js
 var import_nice_grpc_web = __toESM(require_lib6(), 1);
@@ -8532,102 +8532,6 @@ function createAuthMiddleware(provider) {
   };
 }
 
-// ../../daisi-sdk-typescript/src/generated/google/protobuf/any.ts
-function createBaseAny() {
-  return { typeUrl: "", value: new Uint8Array(0) };
-}
-var Any = {
-  encode(message, writer = new BinaryWriter()) {
-    if (message.typeUrl !== "") {
-      writer.uint32(10).string(message.typeUrl);
-    }
-    if (message.value.length !== 0) {
-      writer.uint32(18).bytes(message.value);
-    }
-    return writer;
-  },
-  decode(input, length) {
-    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
-    const end = length === void 0 ? reader.len : reader.pos + length;
-    const message = createBaseAny();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1: {
-          if (tag !== 10) {
-            break;
-          }
-          message.typeUrl = reader.string();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-          message.value = reader.bytes();
-          continue;
-        }
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skip(tag & 7);
-    }
-    return message;
-  },
-  fromJSON(object) {
-    return {
-      typeUrl: isSet(object.typeUrl) ? globalThis.String(object.typeUrl) : isSet(object.type_url) ? globalThis.String(object.type_url) : "",
-      value: isSet(object.value) ? bytesFromBase64(object.value) : new Uint8Array(0)
-    };
-  },
-  toJSON(message) {
-    const obj = {};
-    if (message.typeUrl !== "") {
-      obj.typeUrl = message.typeUrl;
-    }
-    if (message.value.length !== 0) {
-      obj.value = base64FromBytes(message.value);
-    }
-    return obj;
-  },
-  create(base) {
-    return Any.fromPartial(base ?? {});
-  },
-  fromPartial(object) {
-    const message = createBaseAny();
-    message.typeUrl = object.typeUrl ?? "";
-    message.value = object.value ?? new Uint8Array(0);
-    return message;
-  }
-};
-function bytesFromBase64(b64) {
-  if (globalThis.Buffer) {
-    return Uint8Array.from(globalThis.Buffer.from(b64, "base64"));
-  } else {
-    const bin = globalThis.atob(b64);
-    const arr = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; ++i) {
-      arr[i] = bin.charCodeAt(i);
-    }
-    return arr;
-  }
-}
-function base64FromBytes(arr) {
-  if (globalThis.Buffer) {
-    return globalThis.Buffer.from(arr).toString("base64");
-  } else {
-    const bin = [];
-    arr.forEach((byte) => {
-      bin.push(globalThis.String.fromCharCode(byte));
-    });
-    return globalThis.btoa(bin.join(""));
-  }
-}
-function isSet(value) {
-  return value !== null && value !== void 0;
-}
-
 // ../../daisi-sdk-typescript/src/generated/google/protobuf/wrappers.ts
 function createBaseInt32Value() {
   return { value: 0 };
@@ -8662,7 +8566,7 @@ var Int32Value = {
     return message;
   },
   fromJSON(object) {
-    return { value: isSet2(object.value) ? globalThis.Number(object.value) : 0 };
+    return { value: isSet(object.value) ? globalThis.Number(object.value) : 0 };
   },
   toJSON(message) {
     const obj = {};
@@ -8713,7 +8617,7 @@ var StringValue = {
     return message;
   },
   fromJSON(object) {
-    return { value: isSet2(object.value) ? globalThis.String(object.value) : "" };
+    return { value: isSet(object.value) ? globalThis.String(object.value) : "" };
   },
   toJSON(message) {
     const obj = {};
@@ -8731,11 +8635,419 @@ var StringValue = {
     return message;
   }
 };
+function isSet(value) {
+  return value !== null && value !== void 0;
+}
+
+// ../../daisi-sdk-typescript/src/generated/google/protobuf/timestamp.ts
+function createBaseTimestamp() {
+  return { seconds: long_default.ZERO, nanos: 0 };
+}
+var Timestamp = {
+  encode(message, writer = new BinaryWriter()) {
+    if (!message.seconds.equals(long_default.ZERO)) {
+      writer.uint32(8).int64(message.seconds.toString());
+    }
+    if (message.nanos !== 0) {
+      writer.uint32(16).int32(message.nanos);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseTimestamp();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+          message.seconds = long_default.fromString(reader.int64().toString());
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+          message.nanos = reader.int32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      seconds: isSet2(object.seconds) ? long_default.fromValue(object.seconds) : long_default.ZERO,
+      nanos: isSet2(object.nanos) ? globalThis.Number(object.nanos) : 0
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (!message.seconds.equals(long_default.ZERO)) {
+      obj.seconds = (message.seconds || long_default.ZERO).toString();
+    }
+    if (message.nanos !== 0) {
+      obj.nanos = Math.round(message.nanos);
+    }
+    return obj;
+  },
+  create(base) {
+    return Timestamp.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseTimestamp();
+    message.seconds = object.seconds !== void 0 && object.seconds !== null ? long_default.fromValue(object.seconds) : long_default.ZERO;
+    message.nanos = object.nanos ?? 0;
+    return message;
+  }
+};
 function isSet2(value) {
   return value !== null && value !== void 0;
 }
 
 // ../../daisi-sdk-typescript/src/generated/Protos/V1/Models/HostModels.ts
+function hostStatusFromJSON(object) {
+  switch (object) {
+    case 0:
+    case "Unknown":
+      return 0 /* Unknown */;
+    case 1:
+    case "Online":
+      return 1 /* Online */;
+    case 2:
+    case "Offline":
+      return 2 /* Offline */;
+    case 3:
+    case "Maintenance":
+      return 3 /* Maintenance */;
+    case 4:
+    case "Archived":
+      return 4 /* Archived */;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return -1 /* UNRECOGNIZED */;
+  }
+}
+function hostStatusToJSON(object) {
+  switch (object) {
+    case 0 /* Unknown */:
+      return "Unknown";
+    case 1 /* Online */:
+      return "Online";
+    case 2 /* Offline */:
+      return "Offline";
+    case 3 /* Maintenance */:
+      return "Maintenance";
+    case 4 /* Archived */:
+      return "Archived";
+    case -1 /* UNRECOGNIZED */:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+function createBaseHost() {
+  return {
+    Id: "",
+    Name: "",
+    IpAddress: void 0,
+    Port: 0,
+    DateStarted: void 0,
+    DateStopped: void 0,
+    DateLastHeartbeat: void 0,
+    DateLastSession: void 0,
+    OperatingSystem: void 0,
+    OperatingSystemVersion: void 0,
+    Status: 0,
+    Region: "",
+    DirectConnect: false,
+    PeerConnect: false,
+    AppVersion: void 0,
+    ReleaseGroup: void 0
+  };
+}
+var Host = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.Id !== "") {
+      writer.uint32(10).string(message.Id);
+    }
+    if (message.Name !== "") {
+      writer.uint32(18).string(message.Name);
+    }
+    if (message.IpAddress !== void 0) {
+      StringValue.encode({ value: message.IpAddress }, writer.uint32(26).fork()).join();
+    }
+    if (message.Port !== 0) {
+      writer.uint32(32).int32(message.Port);
+    }
+    if (message.DateStarted !== void 0) {
+      Timestamp.encode(toTimestamp(message.DateStarted), writer.uint32(42).fork()).join();
+    }
+    if (message.DateStopped !== void 0) {
+      Timestamp.encode(toTimestamp(message.DateStopped), writer.uint32(50).fork()).join();
+    }
+    if (message.DateLastHeartbeat !== void 0) {
+      Timestamp.encode(toTimestamp(message.DateLastHeartbeat), writer.uint32(58).fork()).join();
+    }
+    if (message.DateLastSession !== void 0) {
+      Timestamp.encode(toTimestamp(message.DateLastSession), writer.uint32(66).fork()).join();
+    }
+    if (message.OperatingSystem !== void 0) {
+      StringValue.encode({ value: message.OperatingSystem }, writer.uint32(74).fork()).join();
+    }
+    if (message.OperatingSystemVersion !== void 0) {
+      StringValue.encode({ value: message.OperatingSystemVersion }, writer.uint32(82).fork()).join();
+    }
+    if (message.Status !== 0) {
+      writer.uint32(88).int32(message.Status);
+    }
+    if (message.Region !== "") {
+      writer.uint32(98).string(message.Region);
+    }
+    if (message.DirectConnect !== false) {
+      writer.uint32(104).bool(message.DirectConnect);
+    }
+    if (message.PeerConnect !== false) {
+      writer.uint32(112).bool(message.PeerConnect);
+    }
+    if (message.AppVersion !== void 0) {
+      StringValue.encode({ value: message.AppVersion }, writer.uint32(122).fork()).join();
+    }
+    if (message.ReleaseGroup !== void 0) {
+      StringValue.encode({ value: message.ReleaseGroup }, writer.uint32(130).fork()).join();
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseHost();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.Id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+          message.Name = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+          message.IpAddress = StringValue.decode(reader, reader.uint32()).value;
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+          message.Port = reader.int32();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+          message.DateStarted = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+          message.DateStopped = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+          message.DateLastHeartbeat = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+          message.DateLastSession = fromTimestamp(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+          message.OperatingSystem = StringValue.decode(reader, reader.uint32()).value;
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+          message.OperatingSystemVersion = StringValue.decode(reader, reader.uint32()).value;
+          continue;
+        }
+        case 11: {
+          if (tag !== 88) {
+            break;
+          }
+          message.Status = reader.int32();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+          message.Region = reader.string();
+          continue;
+        }
+        case 13: {
+          if (tag !== 104) {
+            break;
+          }
+          message.DirectConnect = reader.bool();
+          continue;
+        }
+        case 14: {
+          if (tag !== 112) {
+            break;
+          }
+          message.PeerConnect = reader.bool();
+          continue;
+        }
+        case 15: {
+          if (tag !== 122) {
+            break;
+          }
+          message.AppVersion = StringValue.decode(reader, reader.uint32()).value;
+          continue;
+        }
+        case 16: {
+          if (tag !== 130) {
+            break;
+          }
+          message.ReleaseGroup = StringValue.decode(reader, reader.uint32()).value;
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      Id: isSet3(object.Id) ? globalThis.String(object.Id) : "",
+      Name: isSet3(object.Name) ? globalThis.String(object.Name) : "",
+      IpAddress: isSet3(object.IpAddress) ? String(object.IpAddress) : void 0,
+      Port: isSet3(object.Port) ? globalThis.Number(object.Port) : 0,
+      DateStarted: isSet3(object.DateStarted) ? fromJsonTimestamp(object.DateStarted) : void 0,
+      DateStopped: isSet3(object.DateStopped) ? fromJsonTimestamp(object.DateStopped) : void 0,
+      DateLastHeartbeat: isSet3(object.DateLastHeartbeat) ? fromJsonTimestamp(object.DateLastHeartbeat) : void 0,
+      DateLastSession: isSet3(object.DateLastSession) ? fromJsonTimestamp(object.DateLastSession) : void 0,
+      OperatingSystem: isSet3(object.OperatingSystem) ? String(object.OperatingSystem) : void 0,
+      OperatingSystemVersion: isSet3(object.OperatingSystemVersion) ? String(object.OperatingSystemVersion) : void 0,
+      Status: isSet3(object.Status) ? hostStatusFromJSON(object.Status) : 0,
+      Region: isSet3(object.Region) ? globalThis.String(object.Region) : "",
+      DirectConnect: isSet3(object.DirectConnect) ? globalThis.Boolean(object.DirectConnect) : false,
+      PeerConnect: isSet3(object.PeerConnect) ? globalThis.Boolean(object.PeerConnect) : false,
+      AppVersion: isSet3(object.AppVersion) ? String(object.AppVersion) : void 0,
+      ReleaseGroup: isSet3(object.ReleaseGroup) ? String(object.ReleaseGroup) : void 0
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.Id !== "") {
+      obj.Id = message.Id;
+    }
+    if (message.Name !== "") {
+      obj.Name = message.Name;
+    }
+    if (message.IpAddress !== void 0) {
+      obj.IpAddress = message.IpAddress;
+    }
+    if (message.Port !== 0) {
+      obj.Port = Math.round(message.Port);
+    }
+    if (message.DateStarted !== void 0) {
+      obj.DateStarted = message.DateStarted.toISOString();
+    }
+    if (message.DateStopped !== void 0) {
+      obj.DateStopped = message.DateStopped.toISOString();
+    }
+    if (message.DateLastHeartbeat !== void 0) {
+      obj.DateLastHeartbeat = message.DateLastHeartbeat.toISOString();
+    }
+    if (message.DateLastSession !== void 0) {
+      obj.DateLastSession = message.DateLastSession.toISOString();
+    }
+    if (message.OperatingSystem !== void 0) {
+      obj.OperatingSystem = message.OperatingSystem;
+    }
+    if (message.OperatingSystemVersion !== void 0) {
+      obj.OperatingSystemVersion = message.OperatingSystemVersion;
+    }
+    if (message.Status !== 0) {
+      obj.Status = hostStatusToJSON(message.Status);
+    }
+    if (message.Region !== "") {
+      obj.Region = message.Region;
+    }
+    if (message.DirectConnect !== false) {
+      obj.DirectConnect = message.DirectConnect;
+    }
+    if (message.PeerConnect !== false) {
+      obj.PeerConnect = message.PeerConnect;
+    }
+    if (message.AppVersion !== void 0) {
+      obj.AppVersion = message.AppVersion;
+    }
+    if (message.ReleaseGroup !== void 0) {
+      obj.ReleaseGroup = message.ReleaseGroup;
+    }
+    return obj;
+  },
+  create(base) {
+    return Host.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseHost();
+    message.Id = object.Id ?? "";
+    message.Name = object.Name ?? "";
+    message.IpAddress = object.IpAddress ?? void 0;
+    message.Port = object.Port ?? 0;
+    message.DateStarted = object.DateStarted ?? void 0;
+    message.DateStopped = object.DateStopped ?? void 0;
+    message.DateLastHeartbeat = object.DateLastHeartbeat ?? void 0;
+    message.DateLastSession = object.DateLastSession ?? void 0;
+    message.OperatingSystem = object.OperatingSystem ?? void 0;
+    message.OperatingSystemVersion = object.OperatingSystemVersion ?? void 0;
+    message.Status = object.Status ?? 0;
+    message.Region = object.Region ?? "";
+    message.DirectConnect = object.DirectConnect ?? false;
+    message.PeerConnect = object.PeerConnect ?? false;
+    message.AppVersion = object.AppVersion ?? void 0;
+    message.ReleaseGroup = object.ReleaseGroup ?? void 0;
+    return message;
+  }
+};
 function createBaseDriveSettings() {
   return { DrivePath: "", MaxDriveStorageBytes: long_default.ZERO, VectorDbEnabled: false, MaxVectorDbAccounts: 0 };
 }
@@ -8834,9 +9146,1056 @@ var DriveSettings = {
     return message;
   }
 };
+function toTimestamp(date) {
+  const seconds = numberToLong(Math.trunc(date.getTime() / 1e3));
+  const nanos = date.getTime() % 1e3 * 1e6;
+  return { seconds, nanos };
+}
+function fromTimestamp(t) {
+  let millis = (t.seconds.toNumber() || 0) * 1e3;
+  millis += (t.nanos || 0) / 1e6;
+  return new globalThis.Date(millis);
+}
+function fromJsonTimestamp(o) {
+  if (o instanceof globalThis.Date) {
+    return o;
+  } else if (typeof o === "string") {
+    return new globalThis.Date(o);
+  } else {
+    return fromTimestamp(Timestamp.fromJSON(o));
+  }
+}
+function numberToLong(number) {
+  return long_default.fromNumber(number);
+}
 function isSet3(value) {
   return value !== null && value !== void 0;
 }
+
+// ../../daisi-sdk-typescript/src/generated/Protos/V1/Models/OrcModels.ts
+function orcStatusFromJSON(object) {
+  switch (object) {
+    case 0:
+    case "OrcStatusOffline":
+      return 0 /* OrcStatusOffline */;
+    case 1:
+    case "OrcStatusOnline":
+      return 1 /* OrcStatusOnline */;
+    case 2:
+    case "OrcStatusMaintenance":
+      return 2 /* OrcStatusMaintenance */;
+    case 3:
+    case "OrcStatusArchived":
+      return 3 /* OrcStatusArchived */;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return -1 /* UNRECOGNIZED */;
+  }
+}
+function orcStatusToJSON(object) {
+  switch (object) {
+    case 0 /* OrcStatusOffline */:
+      return "OrcStatusOffline";
+    case 1 /* OrcStatusOnline */:
+      return "OrcStatusOnline";
+    case 2 /* OrcStatusMaintenance */:
+      return "OrcStatusMaintenance";
+    case 3 /* OrcStatusArchived */:
+      return "OrcStatusArchived";
+    case -1 /* UNRECOGNIZED */:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+function createBaseOrchestrator() {
+  return {
+    Id: "",
+    Name: "",
+    Networks: [],
+    Domain: "",
+    Port: 0,
+    RequiresSSL: false,
+    OpenConnectionCount: 0,
+    DateStart: void 0,
+    DateStop: void 0,
+    Version: "",
+    Status: 0,
+    AccountId: "",
+    AccountName: ""
+  };
+}
+var Orchestrator = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.Id !== "") {
+      writer.uint32(10).string(message.Id);
+    }
+    if (message.Name !== "") {
+      writer.uint32(18).string(message.Name);
+    }
+    for (const v of message.Networks) {
+      OrcNetwork.encode(v, writer.uint32(26).fork()).join();
+    }
+    if (message.Domain !== "") {
+      writer.uint32(34).string(message.Domain);
+    }
+    if (message.Port !== 0) {
+      writer.uint32(40).int32(message.Port);
+    }
+    if (message.RequiresSSL !== false) {
+      writer.uint32(48).bool(message.RequiresSSL);
+    }
+    if (message.OpenConnectionCount !== 0) {
+      writer.uint32(56).int32(message.OpenConnectionCount);
+    }
+    if (message.DateStart !== void 0) {
+      Timestamp.encode(toTimestamp2(message.DateStart), writer.uint32(66).fork()).join();
+    }
+    if (message.DateStop !== void 0) {
+      Timestamp.encode(toTimestamp2(message.DateStop), writer.uint32(74).fork()).join();
+    }
+    if (message.Version !== "") {
+      writer.uint32(82).string(message.Version);
+    }
+    if (message.Status !== 0) {
+      writer.uint32(88).int32(message.Status);
+    }
+    if (message.AccountId !== "") {
+      writer.uint32(98).string(message.AccountId);
+    }
+    if (message.AccountName !== "") {
+      writer.uint32(106).string(message.AccountName);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseOrchestrator();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.Id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+          message.Name = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+          message.Networks.push(OrcNetwork.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+          message.Domain = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+          message.Port = reader.int32();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+          message.RequiresSSL = reader.bool();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+          message.OpenConnectionCount = reader.int32();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+          message.DateStart = fromTimestamp2(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+          message.DateStop = fromTimestamp2(Timestamp.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+          message.Version = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 88) {
+            break;
+          }
+          message.Status = reader.int32();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+          message.AccountId = reader.string();
+          continue;
+        }
+        case 13: {
+          if (tag !== 106) {
+            break;
+          }
+          message.AccountName = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      Id: isSet4(object.Id) ? globalThis.String(object.Id) : "",
+      Name: isSet4(object.Name) ? globalThis.String(object.Name) : "",
+      Networks: globalThis.Array.isArray(object?.Networks) ? object.Networks.map((e) => OrcNetwork.fromJSON(e)) : [],
+      Domain: isSet4(object.Domain) ? globalThis.String(object.Domain) : "",
+      Port: isSet4(object.Port) ? globalThis.Number(object.Port) : 0,
+      RequiresSSL: isSet4(object.RequiresSSL) ? globalThis.Boolean(object.RequiresSSL) : false,
+      OpenConnectionCount: isSet4(object.OpenConnectionCount) ? globalThis.Number(object.OpenConnectionCount) : 0,
+      DateStart: isSet4(object.DateStart) ? fromJsonTimestamp2(object.DateStart) : void 0,
+      DateStop: isSet4(object.DateStop) ? fromJsonTimestamp2(object.DateStop) : void 0,
+      Version: isSet4(object.Version) ? globalThis.String(object.Version) : "",
+      Status: isSet4(object.Status) ? orcStatusFromJSON(object.Status) : 0,
+      AccountId: isSet4(object.AccountId) ? globalThis.String(object.AccountId) : "",
+      AccountName: isSet4(object.AccountName) ? globalThis.String(object.AccountName) : ""
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.Id !== "") {
+      obj.Id = message.Id;
+    }
+    if (message.Name !== "") {
+      obj.Name = message.Name;
+    }
+    if (message.Networks?.length) {
+      obj.Networks = message.Networks.map((e) => OrcNetwork.toJSON(e));
+    }
+    if (message.Domain !== "") {
+      obj.Domain = message.Domain;
+    }
+    if (message.Port !== 0) {
+      obj.Port = Math.round(message.Port);
+    }
+    if (message.RequiresSSL !== false) {
+      obj.RequiresSSL = message.RequiresSSL;
+    }
+    if (message.OpenConnectionCount !== 0) {
+      obj.OpenConnectionCount = Math.round(message.OpenConnectionCount);
+    }
+    if (message.DateStart !== void 0) {
+      obj.DateStart = message.DateStart.toISOString();
+    }
+    if (message.DateStop !== void 0) {
+      obj.DateStop = message.DateStop.toISOString();
+    }
+    if (message.Version !== "") {
+      obj.Version = message.Version;
+    }
+    if (message.Status !== 0) {
+      obj.Status = orcStatusToJSON(message.Status);
+    }
+    if (message.AccountId !== "") {
+      obj.AccountId = message.AccountId;
+    }
+    if (message.AccountName !== "") {
+      obj.AccountName = message.AccountName;
+    }
+    return obj;
+  },
+  create(base) {
+    return Orchestrator.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseOrchestrator();
+    message.Id = object.Id ?? "";
+    message.Name = object.Name ?? "";
+    message.Networks = object.Networks?.map((e) => OrcNetwork.fromPartial(e)) || [];
+    message.Domain = object.Domain ?? "";
+    message.Port = object.Port ?? 0;
+    message.RequiresSSL = object.RequiresSSL ?? false;
+    message.OpenConnectionCount = object.OpenConnectionCount ?? 0;
+    message.DateStart = object.DateStart ?? void 0;
+    message.DateStop = object.DateStop ?? void 0;
+    message.Version = object.Version ?? "";
+    message.Status = object.Status ?? 0;
+    message.AccountId = object.AccountId ?? "";
+    message.AccountName = object.AccountName ?? "";
+    return message;
+  }
+};
+function createBaseOrcNetwork() {
+  return { Id: "", Name: "", IsPublic: false };
+}
+var OrcNetwork = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.Id !== "") {
+      writer.uint32(10).string(message.Id);
+    }
+    if (message.Name !== "") {
+      writer.uint32(18).string(message.Name);
+    }
+    if (message.IsPublic !== false) {
+      writer.uint32(24).bool(message.IsPublic);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseOrcNetwork();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.Id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+          message.Name = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+          message.IsPublic = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      Id: isSet4(object.Id) ? globalThis.String(object.Id) : "",
+      Name: isSet4(object.Name) ? globalThis.String(object.Name) : "",
+      IsPublic: isSet4(object.IsPublic) ? globalThis.Boolean(object.IsPublic) : false
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.Id !== "") {
+      obj.Id = message.Id;
+    }
+    if (message.Name !== "") {
+      obj.Name = message.Name;
+    }
+    if (message.IsPublic !== false) {
+      obj.IsPublic = message.IsPublic;
+    }
+    return obj;
+  },
+  create(base) {
+    return OrcNetwork.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseOrcNetwork();
+    message.Id = object.Id ?? "";
+    message.Name = object.Name ?? "";
+    message.IsPublic = object.IsPublic ?? false;
+    return message;
+  }
+};
+function toTimestamp2(date) {
+  const seconds = numberToLong2(Math.trunc(date.getTime() / 1e3));
+  const nanos = date.getTime() % 1e3 * 1e6;
+  return { seconds, nanos };
+}
+function fromTimestamp2(t) {
+  let millis = (t.seconds.toNumber() || 0) * 1e3;
+  millis += (t.nanos || 0) / 1e6;
+  return new globalThis.Date(millis);
+}
+function fromJsonTimestamp2(o) {
+  if (o instanceof globalThis.Date) {
+    return o;
+  } else if (typeof o === "string") {
+    return new globalThis.Date(o);
+  } else {
+    return fromTimestamp2(Timestamp.fromJSON(o));
+  }
+}
+function numberToLong2(number) {
+  return long_default.fromNumber(number);
+}
+function isSet4(value) {
+  return value !== null && value !== void 0;
+}
+
+// ../../daisi-sdk-typescript/src/generated/Protos/V1/Models/SessionModels.ts
+function createBaseCreateSessionRequest() {
+  return {
+    ModelName: "",
+    DirectConnectRequired: false,
+    PreferredHostNames: [],
+    PreferredRegion: void 0,
+    NetworkName: void 0,
+    HostId: void 0
+  };
+}
+var CreateSessionRequest = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.ModelName !== "") {
+      writer.uint32(10).string(message.ModelName);
+    }
+    if (message.DirectConnectRequired !== false) {
+      writer.uint32(16).bool(message.DirectConnectRequired);
+    }
+    for (const v of message.PreferredHostNames) {
+      StringValue.encode({ value: v }, writer.uint32(26).fork()).join();
+    }
+    if (message.PreferredRegion !== void 0) {
+      StringValue.encode({ value: message.PreferredRegion }, writer.uint32(34).fork()).join();
+    }
+    if (message.NetworkName !== void 0) {
+      StringValue.encode({ value: message.NetworkName }, writer.uint32(42).fork()).join();
+    }
+    if (message.HostId !== void 0) {
+      StringValue.encode({ value: message.HostId }, writer.uint32(50).fork()).join();
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseCreateSessionRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.ModelName = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+          message.DirectConnectRequired = reader.bool();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+          message.PreferredHostNames.push(StringValue.decode(reader, reader.uint32()).value);
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+          message.PreferredRegion = StringValue.decode(reader, reader.uint32()).value;
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+          message.NetworkName = StringValue.decode(reader, reader.uint32()).value;
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+          message.HostId = StringValue.decode(reader, reader.uint32()).value;
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      ModelName: isSet5(object.ModelName) ? globalThis.String(object.ModelName) : "",
+      DirectConnectRequired: isSet5(object.DirectConnectRequired) ? globalThis.Boolean(object.DirectConnectRequired) : false,
+      PreferredHostNames: globalThis.Array.isArray(object?.PreferredHostNames) ? object.PreferredHostNames.map((e) => String(e)) : [],
+      PreferredRegion: isSet5(object.PreferredRegion) ? String(object.PreferredRegion) : void 0,
+      NetworkName: isSet5(object.NetworkName) ? String(object.NetworkName) : void 0,
+      HostId: isSet5(object.HostId) ? String(object.HostId) : void 0
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.ModelName !== "") {
+      obj.ModelName = message.ModelName;
+    }
+    if (message.DirectConnectRequired !== false) {
+      obj.DirectConnectRequired = message.DirectConnectRequired;
+    }
+    if (message.PreferredHostNames?.length) {
+      obj.PreferredHostNames = message.PreferredHostNames;
+    }
+    if (message.PreferredRegion !== void 0) {
+      obj.PreferredRegion = message.PreferredRegion;
+    }
+    if (message.NetworkName !== void 0) {
+      obj.NetworkName = message.NetworkName;
+    }
+    if (message.HostId !== void 0) {
+      obj.HostId = message.HostId;
+    }
+    return obj;
+  },
+  create(base) {
+    return CreateSessionRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseCreateSessionRequest();
+    message.ModelName = object.ModelName ?? "";
+    message.DirectConnectRequired = object.DirectConnectRequired ?? false;
+    message.PreferredHostNames = object.PreferredHostNames?.map((e) => e) || [];
+    message.PreferredRegion = object.PreferredRegion ?? void 0;
+    message.NetworkName = object.NetworkName ?? void 0;
+    message.HostId = object.HostId ?? void 0;
+    return message;
+  }
+};
+function createBaseCreateSessionResponse() {
+  return { Id: "", Success: false, Host: void 0, MoveToOrc: void 0 };
+}
+var CreateSessionResponse = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.Id !== "") {
+      writer.uint32(10).string(message.Id);
+    }
+    if (message.Success !== false) {
+      writer.uint32(16).bool(message.Success);
+    }
+    if (message.Host !== void 0) {
+      Host.encode(message.Host, writer.uint32(26).fork()).join();
+    }
+    if (message.MoveToOrc !== void 0) {
+      Orchestrator.encode(message.MoveToOrc, writer.uint32(34).fork()).join();
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseCreateSessionResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.Id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+          message.Success = reader.bool();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+          message.Host = Host.decode(reader, reader.uint32());
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+          message.MoveToOrc = Orchestrator.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      Id: isSet5(object.Id) ? globalThis.String(object.Id) : "",
+      Success: isSet5(object.Success) ? globalThis.Boolean(object.Success) : false,
+      Host: isSet5(object.Host) ? Host.fromJSON(object.Host) : void 0,
+      MoveToOrc: isSet5(object.MoveToOrc) ? Orchestrator.fromJSON(object.MoveToOrc) : void 0
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.Id !== "") {
+      obj.Id = message.Id;
+    }
+    if (message.Success !== false) {
+      obj.Success = message.Success;
+    }
+    if (message.Host !== void 0) {
+      obj.Host = Host.toJSON(message.Host);
+    }
+    if (message.MoveToOrc !== void 0) {
+      obj.MoveToOrc = Orchestrator.toJSON(message.MoveToOrc);
+    }
+    return obj;
+  },
+  create(base) {
+    return CreateSessionResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseCreateSessionResponse();
+    message.Id = object.Id ?? "";
+    message.Success = object.Success ?? false;
+    message.Host = object.Host !== void 0 && object.Host !== null ? Host.fromPartial(object.Host) : void 0;
+    message.MoveToOrc = object.MoveToOrc !== void 0 && object.MoveToOrc !== null ? Orchestrator.fromPartial(object.MoveToOrc) : void 0;
+    return message;
+  }
+};
+function createBaseClaimSessionRequest() {
+  return { Id: "" };
+}
+var ClaimSessionRequest = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.Id !== "") {
+      writer.uint32(10).string(message.Id);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseClaimSessionRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.Id = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return { Id: isSet5(object.Id) ? globalThis.String(object.Id) : "" };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.Id !== "") {
+      obj.Id = message.Id;
+    }
+    return obj;
+  },
+  create(base) {
+    return ClaimSessionRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseClaimSessionRequest();
+    message.Id = object.Id ?? "";
+    return message;
+  }
+};
+function createBaseClaimSessionResponse() {
+  return { Success: false, ModelName: void 0 };
+}
+var ClaimSessionResponse = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.Success !== false) {
+      writer.uint32(8).bool(message.Success);
+    }
+    if (message.ModelName !== void 0) {
+      StringValue.encode({ value: message.ModelName }, writer.uint32(18).fork()).join();
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseClaimSessionResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+          message.Success = reader.bool();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+          message.ModelName = StringValue.decode(reader, reader.uint32()).value;
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      Success: isSet5(object.Success) ? globalThis.Boolean(object.Success) : false,
+      ModelName: isSet5(object.ModelName) ? String(object.ModelName) : void 0
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.Success !== false) {
+      obj.Success = message.Success;
+    }
+    if (message.ModelName !== void 0) {
+      obj.ModelName = message.ModelName;
+    }
+    return obj;
+  },
+  create(base) {
+    return ClaimSessionResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseClaimSessionResponse();
+    message.Success = object.Success ?? false;
+    message.ModelName = object.ModelName ?? void 0;
+    return message;
+  }
+};
+function createBaseCloseSessionRequest() {
+  return { Id: "" };
+}
+var CloseSessionRequest = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.Id !== "") {
+      writer.uint32(10).string(message.Id);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseCloseSessionRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.Id = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return { Id: isSet5(object.Id) ? globalThis.String(object.Id) : "" };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.Id !== "") {
+      obj.Id = message.Id;
+    }
+    return obj;
+  },
+  create(base) {
+    return CloseSessionRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseCloseSessionRequest();
+    message.Id = object.Id ?? "";
+    return message;
+  }
+};
+function createBaseCloseSessionResponse() {
+  return { Success: false };
+}
+var CloseSessionResponse = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.Success !== false) {
+      writer.uint32(8).bool(message.Success);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseCloseSessionResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+          message.Success = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return { Success: isSet5(object.Success) ? globalThis.Boolean(object.Success) : false };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.Success !== false) {
+      obj.Success = message.Success;
+    }
+    return obj;
+  },
+  create(base) {
+    return CloseSessionResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseCloseSessionResponse();
+    message.Success = object.Success ?? false;
+    return message;
+  }
+};
+function createBaseConnectRequest() {
+  return { SessionId: "" };
+}
+var ConnectRequest = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.SessionId !== "") {
+      writer.uint32(10).string(message.SessionId);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseConnectRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.SessionId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return { SessionId: isSet5(object.SessionId) ? globalThis.String(object.SessionId) : "" };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.SessionId !== "") {
+      obj.SessionId = message.SessionId;
+    }
+    return obj;
+  },
+  create(base) {
+    return ConnectRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseConnectRequest();
+    message.SessionId = object.SessionId ?? "";
+    return message;
+  }
+};
+function createBaseConnectResponse() {
+  return { Id: "", HasCapacity: false, AlreadyConnected: false };
+}
+var ConnectResponse = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.Id !== "") {
+      writer.uint32(10).string(message.Id);
+    }
+    if (message.HasCapacity !== false) {
+      writer.uint32(16).bool(message.HasCapacity);
+    }
+    if (message.AlreadyConnected !== false) {
+      writer.uint32(24).bool(message.AlreadyConnected);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseConnectResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.Id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+          message.HasCapacity = reader.bool();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+          message.AlreadyConnected = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      Id: isSet5(object.Id) ? globalThis.String(object.Id) : "",
+      HasCapacity: isSet5(object.HasCapacity) ? globalThis.Boolean(object.HasCapacity) : false,
+      AlreadyConnected: isSet5(object.AlreadyConnected) ? globalThis.Boolean(object.AlreadyConnected) : false
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.Id !== "") {
+      obj.Id = message.Id;
+    }
+    if (message.HasCapacity !== false) {
+      obj.HasCapacity = message.HasCapacity;
+    }
+    if (message.AlreadyConnected !== false) {
+      obj.AlreadyConnected = message.AlreadyConnected;
+    }
+    return obj;
+  },
+  create(base) {
+    return ConnectResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseConnectResponse();
+    message.Id = object.Id ?? "";
+    message.HasCapacity = object.HasCapacity ?? false;
+    message.AlreadyConnected = object.AlreadyConnected ?? false;
+    return message;
+  }
+};
+function isSet5(value) {
+  return value !== null && value !== void 0;
+}
+
+// ../../daisi-sdk-typescript/src/generated/Protos/V1/Sessions.ts
+var SessionsProtoDefinition = {
+  name: "SessionsProto",
+  fullName: "daisi.protos.v1.SessionsProto",
+  methods: {
+    create: {
+      name: "Create",
+      requestType: CreateSessionRequest,
+      requestStream: false,
+      responseType: CreateSessionResponse,
+      responseStream: false,
+      options: {}
+    },
+    claim: {
+      name: "Claim",
+      requestType: ClaimSessionRequest,
+      requestStream: false,
+      responseType: ClaimSessionResponse,
+      responseStream: false,
+      options: {}
+    },
+    close: {
+      name: "Close",
+      requestType: CloseSessionRequest,
+      requestStream: false,
+      responseType: CloseSessionResponse,
+      responseStream: false,
+      options: {}
+    },
+    connect: {
+      name: "Connect",
+      requestType: ConnectRequest,
+      requestStream: false,
+      responseType: ConnectResponse,
+      responseStream: false,
+      options: {}
+    }
+  }
+};
 
 // ../../daisi-sdk-typescript/src/generated/Protos/V1/Models/InferenceModels.ts
 function inferenceCloseReasonsFromJSON(object) {
@@ -9389,31 +10748,31 @@ var SendInferenceRequest = {
   },
   fromJSON(object) {
     return {
-      SessionId: isSet4(object.SessionId) ? globalThis.String(object.SessionId) : "",
-      InferenceId: isSet4(object.InferenceId) ? globalThis.String(object.InferenceId) : "",
-      Text: isSet4(object.Text) ? globalThis.String(object.Text) : "",
-      ToolGroup: isSet4(object.ToolGroup) ? inferenceToolGroupsFromJSON(object.ToolGroup) : void 0,
-      ToolName: isSet4(object.ToolName) ? globalThis.String(object.ToolName) : void 0,
+      SessionId: isSet6(object.SessionId) ? globalThis.String(object.SessionId) : "",
+      InferenceId: isSet6(object.InferenceId) ? globalThis.String(object.InferenceId) : "",
+      Text: isSet6(object.Text) ? globalThis.String(object.Text) : "",
+      ToolGroup: isSet6(object.ToolGroup) ? inferenceToolGroupsFromJSON(object.ToolGroup) : void 0,
+      ToolName: isSet6(object.ToolName) ? globalThis.String(object.ToolName) : void 0,
       AntiPrompts: globalThis.Array.isArray(object?.AntiPrompts) ? object.AntiPrompts.map((e) => globalThis.String(e)) : [],
-      TokensKeep: isSet4(object.TokensKeep) ? globalThis.Number(object.TokensKeep) : void 0,
-      MaxTokens: isSet4(object.MaxTokens) ? globalThis.Number(object.MaxTokens) : void 0,
-      DecodeSpecialTokens: isSet4(object.DecodeSpecialTokens) ? globalThis.Boolean(object.DecodeSpecialTokens) : void 0,
-      Temperature: isSet4(object.Temperature) ? globalThis.Number(object.Temperature) : void 0,
-      TopP: isSet4(object.TopP) ? globalThis.Number(object.TopP) : void 0,
-      TopK: isSet4(object.TopK) ? globalThis.Number(object.TopK) : void 0,
-      RepeatPenalty: isSet4(object.RepeatPenalty) ? globalThis.Number(object.RepeatPenalty) : void 0,
-      Seed: isSet4(object.Seed) ? globalThis.Number(object.Seed) : void 0,
-      FrequencyPenalty: isSet4(object.FrequencyPenalty) ? globalThis.Number(object.FrequencyPenalty) : void 0,
-      PresencePenalty: isSet4(object.PresencePenalty) ? globalThis.Number(object.PresencePenalty) : void 0,
-      MinKeep: isSet4(object.MinKeep) ? globalThis.Number(object.MinKeep) : void 0,
-      MinP: isSet4(object.MinP) ? globalThis.Number(object.MinP) : void 0,
-      PenalizeNewline: isSet4(object.PenalizeNewline) ? globalThis.Boolean(object.PenalizeNewline) : void 0,
-      PenaltyCount: isSet4(object.PenaltyCount) ? globalThis.Number(object.PenaltyCount) : void 0,
-      PreventEOS: isSet4(object.PreventEOS) ? globalThis.Boolean(object.PreventEOS) : void 0,
-      TypicalP: isSet4(object.TypicalP) ? globalThis.Number(object.TypicalP) : void 0,
-      ThinkLevel: isSet4(object.ThinkLevel) ? thinkLevelsFromJSON(object.ThinkLevel) : void 0,
-      OutputFormat: isSet4(object.OutputFormat) ? inferenceOutputFormatsFromJSON(object.OutputFormat) : void 0,
-      ExampleOutput: isSet4(object.ExampleOutput) ? globalThis.String(object.ExampleOutput) : void 0
+      TokensKeep: isSet6(object.TokensKeep) ? globalThis.Number(object.TokensKeep) : void 0,
+      MaxTokens: isSet6(object.MaxTokens) ? globalThis.Number(object.MaxTokens) : void 0,
+      DecodeSpecialTokens: isSet6(object.DecodeSpecialTokens) ? globalThis.Boolean(object.DecodeSpecialTokens) : void 0,
+      Temperature: isSet6(object.Temperature) ? globalThis.Number(object.Temperature) : void 0,
+      TopP: isSet6(object.TopP) ? globalThis.Number(object.TopP) : void 0,
+      TopK: isSet6(object.TopK) ? globalThis.Number(object.TopK) : void 0,
+      RepeatPenalty: isSet6(object.RepeatPenalty) ? globalThis.Number(object.RepeatPenalty) : void 0,
+      Seed: isSet6(object.Seed) ? globalThis.Number(object.Seed) : void 0,
+      FrequencyPenalty: isSet6(object.FrequencyPenalty) ? globalThis.Number(object.FrequencyPenalty) : void 0,
+      PresencePenalty: isSet6(object.PresencePenalty) ? globalThis.Number(object.PresencePenalty) : void 0,
+      MinKeep: isSet6(object.MinKeep) ? globalThis.Number(object.MinKeep) : void 0,
+      MinP: isSet6(object.MinP) ? globalThis.Number(object.MinP) : void 0,
+      PenalizeNewline: isSet6(object.PenalizeNewline) ? globalThis.Boolean(object.PenalizeNewline) : void 0,
+      PenaltyCount: isSet6(object.PenaltyCount) ? globalThis.Number(object.PenaltyCount) : void 0,
+      PreventEOS: isSet6(object.PreventEOS) ? globalThis.Boolean(object.PreventEOS) : void 0,
+      TypicalP: isSet6(object.TypicalP) ? globalThis.Number(object.TypicalP) : void 0,
+      ThinkLevel: isSet6(object.ThinkLevel) ? thinkLevelsFromJSON(object.ThinkLevel) : void 0,
+      OutputFormat: isSet6(object.OutputFormat) ? inferenceOutputFormatsFromJSON(object.OutputFormat) : void 0,
+      ExampleOutput: isSet6(object.ExampleOutput) ? globalThis.String(object.ExampleOutput) : void 0
     };
   },
   toJSON(message) {
@@ -9663,16 +11022,16 @@ var SendInferenceResponse = {
   },
   fromJSON(object) {
     return {
-      SessionId: isSet4(object.SessionId) ? globalThis.String(object.SessionId) : "",
-      InferenceId: isSet4(object.InferenceId) ? globalThis.String(object.InferenceId) : "",
-      Id: isSet4(object.Id) ? globalThis.String(object.Id) : "",
-      Type: isSet4(object.Type) ? inferenceResponseTypesFromJSON(object.Type) : 0,
-      Content: isSet4(object.Content) ? globalThis.String(object.Content) : "",
-      AuthorRole: isSet4(object.AuthorRole) ? globalThis.String(object.AuthorRole) : "",
-      Format: isSet4(object.Format) ? inferenceOutputFormatsFromJSON(object.Format) : 0,
-      MessageTokenCount: isSet4(object.MessageTokenCount) ? globalThis.Number(object.MessageTokenCount) : 0,
-      SessionTokenCount: isSet4(object.SessionTokenCount) ? globalThis.Number(object.SessionTokenCount) : 0,
-      ComputeTimeMs: isSet4(object.ComputeTimeMs) ? globalThis.Number(object.ComputeTimeMs) : 0
+      SessionId: isSet6(object.SessionId) ? globalThis.String(object.SessionId) : "",
+      InferenceId: isSet6(object.InferenceId) ? globalThis.String(object.InferenceId) : "",
+      Id: isSet6(object.Id) ? globalThis.String(object.Id) : "",
+      Type: isSet6(object.Type) ? inferenceResponseTypesFromJSON(object.Type) : 0,
+      Content: isSet6(object.Content) ? globalThis.String(object.Content) : "",
+      AuthorRole: isSet6(object.AuthorRole) ? globalThis.String(object.AuthorRole) : "",
+      Format: isSet6(object.Format) ? inferenceOutputFormatsFromJSON(object.Format) : 0,
+      MessageTokenCount: isSet6(object.MessageTokenCount) ? globalThis.Number(object.MessageTokenCount) : 0,
+      SessionTokenCount: isSet6(object.SessionTokenCount) ? globalThis.Number(object.SessionTokenCount) : 0,
+      ComputeTimeMs: isSet6(object.ComputeTimeMs) ? globalThis.Number(object.ComputeTimeMs) : 0
     };
   },
   toJSON(message) {
@@ -9724,6 +11083,257 @@ var SendInferenceResponse = {
     message.MessageTokenCount = object.MessageTokenCount ?? 0;
     message.SessionTokenCount = object.SessionTokenCount ?? 0;
     message.ComputeTimeMs = object.ComputeTimeMs ?? 0;
+    return message;
+  }
+};
+function createBaseInferenceStatsRequest() {
+  return { SessionId: "", InferenceId: "" };
+}
+var InferenceStatsRequest = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.SessionId !== "") {
+      writer.uint32(10).string(message.SessionId);
+    }
+    if (message.InferenceId !== "") {
+      writer.uint32(18).string(message.InferenceId);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseInferenceStatsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.SessionId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+          message.InferenceId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      SessionId: isSet6(object.SessionId) ? globalThis.String(object.SessionId) : "",
+      InferenceId: isSet6(object.InferenceId) ? globalThis.String(object.InferenceId) : ""
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.SessionId !== "") {
+      obj.SessionId = message.SessionId;
+    }
+    if (message.InferenceId !== "") {
+      obj.InferenceId = message.InferenceId;
+    }
+    return obj;
+  },
+  create(base) {
+    return InferenceStatsRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseInferenceStatsRequest();
+    message.SessionId = object.SessionId ?? "";
+    message.InferenceId = object.InferenceId ?? "";
+    return message;
+  }
+};
+function createBaseInferenceStatsResponse() {
+  return {
+    SessionId: "",
+    InferenceId: "",
+    Success: false,
+    LastMessageTokenCount: 0,
+    SessionTokenCount: 0,
+    LastMessageToolCount: 0,
+    SessionToolCount: 0,
+    LastMessageComputeTimeMs: 0,
+    SessionComputeTimeMs: 0
+  };
+}
+var InferenceStatsResponse = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.SessionId !== "") {
+      writer.uint32(10).string(message.SessionId);
+    }
+    if (message.InferenceId !== "") {
+      writer.uint32(18).string(message.InferenceId);
+    }
+    if (message.Success !== false) {
+      writer.uint32(24).bool(message.Success);
+    }
+    if (message.LastMessageTokenCount !== 0) {
+      writer.uint32(32).int32(message.LastMessageTokenCount);
+    }
+    if (message.SessionTokenCount !== 0) {
+      writer.uint32(40).int32(message.SessionTokenCount);
+    }
+    if (message.LastMessageToolCount !== 0) {
+      writer.uint32(48).int32(message.LastMessageToolCount);
+    }
+    if (message.SessionToolCount !== 0) {
+      writer.uint32(56).int32(message.SessionToolCount);
+    }
+    if (message.LastMessageComputeTimeMs !== 0) {
+      writer.uint32(64).int32(message.LastMessageComputeTimeMs);
+    }
+    if (message.SessionComputeTimeMs !== 0) {
+      writer.uint32(72).int32(message.SessionComputeTimeMs);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseInferenceStatsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.SessionId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+          message.InferenceId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+          message.Success = reader.bool();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+          message.LastMessageTokenCount = reader.int32();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+          message.SessionTokenCount = reader.int32();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+          message.LastMessageToolCount = reader.int32();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+          message.SessionToolCount = reader.int32();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+          message.LastMessageComputeTimeMs = reader.int32();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+          message.SessionComputeTimeMs = reader.int32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      SessionId: isSet6(object.SessionId) ? globalThis.String(object.SessionId) : "",
+      InferenceId: isSet6(object.InferenceId) ? globalThis.String(object.InferenceId) : "",
+      Success: isSet6(object.Success) ? globalThis.Boolean(object.Success) : false,
+      LastMessageTokenCount: isSet6(object.LastMessageTokenCount) ? globalThis.Number(object.LastMessageTokenCount) : 0,
+      SessionTokenCount: isSet6(object.SessionTokenCount) ? globalThis.Number(object.SessionTokenCount) : 0,
+      LastMessageToolCount: isSet6(object.LastMessageToolCount) ? globalThis.Number(object.LastMessageToolCount) : 0,
+      SessionToolCount: isSet6(object.SessionToolCount) ? globalThis.Number(object.SessionToolCount) : 0,
+      LastMessageComputeTimeMs: isSet6(object.LastMessageComputeTimeMs) ? globalThis.Number(object.LastMessageComputeTimeMs) : 0,
+      SessionComputeTimeMs: isSet6(object.SessionComputeTimeMs) ? globalThis.Number(object.SessionComputeTimeMs) : 0
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.SessionId !== "") {
+      obj.SessionId = message.SessionId;
+    }
+    if (message.InferenceId !== "") {
+      obj.InferenceId = message.InferenceId;
+    }
+    if (message.Success !== false) {
+      obj.Success = message.Success;
+    }
+    if (message.LastMessageTokenCount !== 0) {
+      obj.LastMessageTokenCount = Math.round(message.LastMessageTokenCount);
+    }
+    if (message.SessionTokenCount !== 0) {
+      obj.SessionTokenCount = Math.round(message.SessionTokenCount);
+    }
+    if (message.LastMessageToolCount !== 0) {
+      obj.LastMessageToolCount = Math.round(message.LastMessageToolCount);
+    }
+    if (message.SessionToolCount !== 0) {
+      obj.SessionToolCount = Math.round(message.SessionToolCount);
+    }
+    if (message.LastMessageComputeTimeMs !== 0) {
+      obj.LastMessageComputeTimeMs = Math.round(message.LastMessageComputeTimeMs);
+    }
+    if (message.SessionComputeTimeMs !== 0) {
+      obj.SessionComputeTimeMs = Math.round(message.SessionComputeTimeMs);
+    }
+    return obj;
+  },
+  create(base) {
+    return InferenceStatsResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseInferenceStatsResponse();
+    message.SessionId = object.SessionId ?? "";
+    message.InferenceId = object.InferenceId ?? "";
+    message.Success = object.Success ?? false;
+    message.LastMessageTokenCount = object.LastMessageTokenCount ?? 0;
+    message.SessionTokenCount = object.SessionTokenCount ?? 0;
+    message.LastMessageToolCount = object.LastMessageToolCount ?? 0;
+    message.SessionToolCount = object.SessionToolCount ?? 0;
+    message.LastMessageComputeTimeMs = object.LastMessageComputeTimeMs ?? 0;
+    message.SessionComputeTimeMs = object.SessionComputeTimeMs ?? 0;
     return message;
   }
 };
@@ -9810,10 +11420,10 @@ var CreateInferenceRequest = {
   },
   fromJSON(object) {
     return {
-      SessionId: isSet4(object.SessionId) ? globalThis.String(object.SessionId) : "",
-      ModelName: isSet4(object.ModelName) ? globalThis.String(object.ModelName) : "",
-      InitializationPrompt: isSet4(object.InitializationPrompt) ? globalThis.String(object.InitializationPrompt) : "",
-      ThinkLevel: isSet4(object.ThinkLevel) ? thinkLevelsFromJSON(object.ThinkLevel) : 0,
+      SessionId: isSet6(object.SessionId) ? globalThis.String(object.SessionId) : "",
+      ModelName: isSet6(object.ModelName) ? globalThis.String(object.ModelName) : "",
+      InitializationPrompt: isSet6(object.InitializationPrompt) ? globalThis.String(object.InitializationPrompt) : "",
+      ThinkLevel: isSet6(object.ThinkLevel) ? thinkLevelsFromJSON(object.ThinkLevel) : 0,
       ToolGroups: globalThis.Array.isArray(object?.ToolGroups) ? object.ToolGroups.map((e) => inferenceToolGroupsFromJSON(e)) : []
     };
   },
@@ -9893,8 +11503,8 @@ var CreateInferenceResponse = {
   },
   fromJSON(object) {
     return {
-      SessionId: isSet4(object.SessionId) ? globalThis.String(object.SessionId) : "",
-      InferenceId: isSet4(object.InferenceId) ? globalThis.String(object.InferenceId) : ""
+      SessionId: isSet6(object.SessionId) ? globalThis.String(object.SessionId) : "",
+      InferenceId: isSet6(object.InferenceId) ? globalThis.String(object.InferenceId) : ""
     };
   },
   toJSON(message) {
@@ -9971,9 +11581,9 @@ var CloseInferenceRequest = {
   },
   fromJSON(object) {
     return {
-      SessionId: isSet4(object.SessionId) ? globalThis.String(object.SessionId) : "",
-      InferenceId: isSet4(object.InferenceId) ? globalThis.String(object.InferenceId) : "",
-      Reason: isSet4(object.Reason) ? inferenceCloseReasonsFromJSON(object.Reason) : 0
+      SessionId: isSet6(object.SessionId) ? globalThis.String(object.SessionId) : "",
+      InferenceId: isSet6(object.InferenceId) ? globalThis.String(object.InferenceId) : "",
+      Reason: isSet6(object.Reason) ? inferenceCloseReasonsFromJSON(object.Reason) : 0
     };
   },
   toJSON(message) {
@@ -10054,9 +11664,9 @@ var CloseInferenceResponse = {
   },
   fromJSON(object) {
     return {
-      SessionId: isSet4(object.SessionId) ? globalThis.String(object.SessionId) : "",
-      InferenceId: isSet4(object.InferenceId) ? globalThis.String(object.InferenceId) : "",
-      Success: isSet4(object.Success) ? globalThis.Boolean(object.Success) : false
+      SessionId: isSet6(object.SessionId) ? globalThis.String(object.SessionId) : "",
+      InferenceId: isSet6(object.InferenceId) ? globalThis.String(object.InferenceId) : "",
+      Success: isSet6(object.Success) ? globalThis.Boolean(object.Success) : false
     };
   },
   toJSON(message) {
@@ -10083,7 +11693,146 @@ var CloseInferenceResponse = {
     return message;
   }
 };
-function isSet4(value) {
+function isSet6(value) {
+  return value !== null && value !== void 0;
+}
+
+// ../../daisi-sdk-typescript/src/generated/Protos/V1/Inferences.ts
+var InferencesProtoDefinition = {
+  name: "InferencesProto",
+  fullName: "daisi.protos.v1.InferencesProto",
+  methods: {
+    create: {
+      name: "Create",
+      requestType: CreateInferenceRequest,
+      requestStream: false,
+      responseType: CreateInferenceResponse,
+      responseStream: false,
+      options: {}
+    },
+    send: {
+      name: "Send",
+      requestType: SendInferenceRequest,
+      requestStream: false,
+      responseType: SendInferenceResponse,
+      responseStream: true,
+      options: {}
+    },
+    stats: {
+      name: "Stats",
+      requestType: InferenceStatsRequest,
+      requestStream: false,
+      responseType: InferenceStatsResponse,
+      responseStream: false,
+      options: {}
+    },
+    close: {
+      name: "Close",
+      requestType: CloseInferenceRequest,
+      requestStream: false,
+      responseType: CloseInferenceResponse,
+      responseStream: false,
+      options: {}
+    }
+  }
+};
+
+// src/orc-connection.ts
+var import_nice_grpc_web2 = __toESM(require_lib3(), 1);
+
+// ../../daisi-sdk-typescript/src/generated/google/protobuf/any.ts
+function createBaseAny() {
+  return { typeUrl: "", value: new Uint8Array(0) };
+}
+var Any = {
+  encode(message, writer = new BinaryWriter()) {
+    if (message.typeUrl !== "") {
+      writer.uint32(10).string(message.typeUrl);
+    }
+    if (message.value.length !== 0) {
+      writer.uint32(18).bytes(message.value);
+    }
+    return writer;
+  },
+  decode(input, length) {
+    const reader = input instanceof BinaryReader2 ? input : new BinaryReader2(input);
+    const end = length === void 0 ? reader.len : reader.pos + length;
+    const message = createBaseAny();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+          message.typeUrl = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+          message.value = reader.bytes();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+  fromJSON(object) {
+    return {
+      typeUrl: isSet7(object.typeUrl) ? globalThis.String(object.typeUrl) : isSet7(object.type_url) ? globalThis.String(object.type_url) : "",
+      value: isSet7(object.value) ? bytesFromBase64(object.value) : new Uint8Array(0)
+    };
+  },
+  toJSON(message) {
+    const obj = {};
+    if (message.typeUrl !== "") {
+      obj.typeUrl = message.typeUrl;
+    }
+    if (message.value.length !== 0) {
+      obj.value = base64FromBytes(message.value);
+    }
+    return obj;
+  },
+  create(base) {
+    return Any.fromPartial(base ?? {});
+  },
+  fromPartial(object) {
+    const message = createBaseAny();
+    message.typeUrl = object.typeUrl ?? "";
+    message.value = object.value ?? new Uint8Array(0);
+    return message;
+  }
+};
+function bytesFromBase64(b64) {
+  if (globalThis.Buffer) {
+    return Uint8Array.from(globalThis.Buffer.from(b64, "base64"));
+  } else {
+    const bin = globalThis.atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; ++i) {
+      arr[i] = bin.charCodeAt(i);
+    }
+    return arr;
+  }
+}
+function base64FromBytes(arr) {
+  if (globalThis.Buffer) {
+    return globalThis.Buffer.from(arr).toString("base64");
+  } else {
+    const bin = [];
+    arr.forEach((byte) => {
+      bin.push(globalThis.String.fromCharCode(byte));
+    });
+    return globalThis.btoa(bin.join(""));
+  }
+}
+function isSet7(value) {
   return value !== null && value !== void 0;
 }
 
@@ -10142,9 +11891,9 @@ var Peer = {
   },
   fromJSON(object) {
     return {
-      Name: isSet5(object.Name) ? globalThis.String(object.Name) : "",
-      IpAddress: isSet5(object.IpAddress) ? globalThis.String(object.IpAddress) : "",
-      Port: isSet5(object.Port) ? globalThis.Number(object.Port) : 0
+      Name: isSet8(object.Name) ? globalThis.String(object.Name) : "",
+      IpAddress: isSet8(object.IpAddress) ? globalThis.String(object.IpAddress) : "",
+      Port: isSet8(object.Port) ? globalThis.Number(object.Port) : 0
     };
   },
   toJSON(message) {
@@ -10171,7 +11920,7 @@ var Peer = {
     return message;
   }
 };
-function isSet5(value) {
+function isSet8(value) {
   return value !== null && value !== void 0;
 }
 
@@ -10325,11 +12074,11 @@ var Settings = {
   },
   fromJSON(object) {
     return {
-      Peer: isSet6(object.Peer) ? PeerSettings.fromJSON(object.Peer) : void 0,
-      Host: isSet6(object.Host) ? HostSettings.fromJSON(object.Host) : void 0,
-      Model: isSet6(object.Model) ? ModelSettings.fromJSON(object.Model) : void 0,
-      Storage: isSet6(object.Storage) ? StorageSettings.fromJSON(object.Storage) : void 0,
-      Drive: isSet6(object.Drive) ? DriveSettings.fromJSON(object.Drive) : void 0
+      Peer: isSet9(object.Peer) ? PeerSettings.fromJSON(object.Peer) : void 0,
+      Host: isSet9(object.Host) ? HostSettings.fromJSON(object.Host) : void 0,
+      Model: isSet9(object.Model) ? ModelSettings.fromJSON(object.Model) : void 0,
+      Storage: isSet9(object.Storage) ? StorageSettings.fromJSON(object.Storage) : void 0,
+      Drive: isSet9(object.Drive) ? DriveSettings.fromJSON(object.Drive) : void 0
     };
   },
   toJSON(message) {
@@ -10419,8 +12168,8 @@ var PeerSettings = {
   fromJSON(object) {
     return {
       Peers: globalThis.Array.isArray(object?.Peers) ? object.Peers.map((e) => Peer.fromJSON(e)) : [],
-      DiscoveryPort: isSet6(object.DiscoveryPort) ? globalThis.Number(object.DiscoveryPort) : 0,
-      MaxPeers: isSet6(object.MaxPeers) ? globalThis.Number(object.MaxPeers) : 0
+      DiscoveryPort: isSet9(object.DiscoveryPort) ? globalThis.Number(object.DiscoveryPort) : 0,
+      MaxPeers: isSet9(object.MaxPeers) ? globalThis.Number(object.MaxPeers) : 0
     };
   },
   toJSON(message) {
@@ -10511,10 +12260,10 @@ var ModelSettings = {
   },
   fromJSON(object) {
     return {
-      ModelFolderPath: isSet6(object.ModelFolderPath) ? globalThis.String(object.ModelFolderPath) : "",
+      ModelFolderPath: isSet9(object.ModelFolderPath) ? globalThis.String(object.ModelFolderPath) : "",
       Models: globalThis.Array.isArray(object?.Models) ? object.Models.map((e) => AIModel.fromJSON(e)) : [],
-      AutomaticDownloads: isSet6(object.AutomaticDownloads) ? globalThis.Boolean(object.AutomaticDownloads) : false,
-      LLama: isSet6(object.LLama) ? LLamaSettings.fromJSON(object.LLama) : void 0
+      AutomaticDownloads: isSet9(object.AutomaticDownloads) ? globalThis.Boolean(object.AutomaticDownloads) : false,
+      LLama: isSet9(object.LLama) ? LLamaSettings.fromJSON(object.LLama) : void 0
     };
   },
   toJSON(message) {
@@ -10669,15 +12418,15 @@ var HostSettings = {
   },
   fromJSON(object) {
     return {
-      Id: isSet6(object.Id) ? globalThis.String(object.Id) : "",
-      Name: isSet6(object.Name) ? globalThis.String(object.Name) : "",
-      MaxConcurrentSessions: isSet6(object.MaxConcurrentSessions) ? globalThis.Number(object.MaxConcurrentSessions) : 0,
-      SecretKey: isSet6(object.SecretKey) ? globalThis.String(object.SecretKey) : "",
-      OrcIpAddressOrDomain: isSet6(object.OrcIpAddressOrDomain) ? String(object.OrcIpAddressOrDomain) : void 0,
-      OrcPort: isSet6(object.OrcPort) ? Number(object.OrcPort) : void 0,
-      AutoUpdate: isSet6(object.AutoUpdate) ? globalThis.Boolean(object.AutoUpdate) : false,
-      LogLevel: isSet6(object.LogLevel) ? globalThis.String(object.LogLevel) : "",
-      OrcUseSSL: isSet6(object.OrcUseSSL) ? globalThis.Boolean(object.OrcUseSSL) : false
+      Id: isSet9(object.Id) ? globalThis.String(object.Id) : "",
+      Name: isSet9(object.Name) ? globalThis.String(object.Name) : "",
+      MaxConcurrentSessions: isSet9(object.MaxConcurrentSessions) ? globalThis.Number(object.MaxConcurrentSessions) : 0,
+      SecretKey: isSet9(object.SecretKey) ? globalThis.String(object.SecretKey) : "",
+      OrcIpAddressOrDomain: isSet9(object.OrcIpAddressOrDomain) ? String(object.OrcIpAddressOrDomain) : void 0,
+      OrcPort: isSet9(object.OrcPort) ? Number(object.OrcPort) : void 0,
+      AutoUpdate: isSet9(object.AutoUpdate) ? globalThis.Boolean(object.AutoUpdate) : false,
+      LogLevel: isSet9(object.LogLevel) ? globalThis.String(object.LogLevel) : "",
+      OrcUseSSL: isSet9(object.OrcUseSSL) ? globalThis.Boolean(object.OrcUseSSL) : false
     };
   },
   toJSON(message) {
@@ -10852,15 +12601,15 @@ var LLamaSettings = {
   },
   fromJSON(object) {
     return {
-      Runtime: isSet6(object.Runtime) ? lLamaRuntimesFromJSON(object.Runtime) : 0,
-      ShowLogs: isSet6(object.ShowLogs) ? globalThis.Boolean(object.ShowLogs) : false,
-      AutoFallback: isSet6(object.AutoFallback) ? globalThis.Boolean(object.AutoFallback) : false,
-      SkipCheck: isSet6(object.SkipCheck) ? globalThis.Boolean(object.SkipCheck) : false,
-      LlamaPath: isSet6(object.LlamaPath) ? globalThis.String(object.LlamaPath) : "",
-      LlavaPath: isSet6(object.LlavaPath) ? globalThis.String(object.LlavaPath) : "",
-      ContextSize: isSet6(object.ContextSize) ? globalThis.Number(object.ContextSize) : 0,
-      GpuLayerCount: isSet6(object.GpuLayerCount) ? globalThis.Number(object.GpuLayerCount) : 0,
-      BatchSize: isSet6(object.BatchSize) ? globalThis.Number(object.BatchSize) : 0
+      Runtime: isSet9(object.Runtime) ? lLamaRuntimesFromJSON(object.Runtime) : 0,
+      ShowLogs: isSet9(object.ShowLogs) ? globalThis.Boolean(object.ShowLogs) : false,
+      AutoFallback: isSet9(object.AutoFallback) ? globalThis.Boolean(object.AutoFallback) : false,
+      SkipCheck: isSet9(object.SkipCheck) ? globalThis.Boolean(object.SkipCheck) : false,
+      LlamaPath: isSet9(object.LlamaPath) ? globalThis.String(object.LlamaPath) : "",
+      LlavaPath: isSet9(object.LlavaPath) ? globalThis.String(object.LlavaPath) : "",
+      ContextSize: isSet9(object.ContextSize) ? globalThis.Number(object.ContextSize) : 0,
+      GpuLayerCount: isSet9(object.GpuLayerCount) ? globalThis.Number(object.GpuLayerCount) : 0,
+      BatchSize: isSet9(object.BatchSize) ? globalThis.Number(object.BatchSize) : 0
     };
   },
   toJSON(message) {
@@ -11066,17 +12815,17 @@ var AIModel = {
   },
   fromJSON(object) {
     return {
-      Name: isSet6(object.Name) ? globalThis.String(object.Name) : "",
-      FileName: isSet6(object.FileName) ? globalThis.String(object.FileName) : "",
-      Url: isSet6(object.Url) ? globalThis.String(object.Url) : "",
-      IsMultiModal: isSet6(object.IsMultiModal) ? globalThis.Boolean(object.IsMultiModal) : false,
-      IsDefault: isSet6(object.IsDefault) ? globalThis.Boolean(object.IsDefault) : false,
-      Enabled: isSet6(object.Enabled) ? globalThis.Boolean(object.Enabled) : false,
-      LoadAtStartup: isSet6(object.LoadAtStartup) ? globalThis.Boolean(object.LoadAtStartup) : false,
+      Name: isSet9(object.Name) ? globalThis.String(object.Name) : "",
+      FileName: isSet9(object.FileName) ? globalThis.String(object.FileName) : "",
+      Url: isSet9(object.Url) ? globalThis.String(object.Url) : "",
+      IsMultiModal: isSet9(object.IsMultiModal) ? globalThis.Boolean(object.IsMultiModal) : false,
+      IsDefault: isSet9(object.IsDefault) ? globalThis.Boolean(object.IsDefault) : false,
+      Enabled: isSet9(object.Enabled) ? globalThis.Boolean(object.Enabled) : false,
+      LoadAtStartup: isSet9(object.LoadAtStartup) ? globalThis.Boolean(object.LoadAtStartup) : false,
       ThinkLevels: globalThis.Array.isArray(object?.ThinkLevels) ? object.ThinkLevels.map((e) => thinkLevelsFromJSON(e)) : [],
-      HasReasoning: isSet6(object.HasReasoning) ? globalThis.Boolean(object.HasReasoning) : false,
-      LLama: isSet6(object.LLama) ? LLamaSettings.fromJSON(object.LLama) : void 0,
-      Id: isSet6(object.Id) ? globalThis.String(object.Id) : ""
+      HasReasoning: isSet9(object.HasReasoning) ? globalThis.Boolean(object.HasReasoning) : false,
+      LLama: isSet9(object.LLama) ? LLamaSettings.fromJSON(object.LLama) : void 0,
+      Id: isSet9(object.Id) ? globalThis.String(object.Id) : ""
     };
   },
   toJSON(message) {
@@ -11179,8 +12928,8 @@ var StorageSettings = {
   },
   fromJSON(object) {
     return {
-      Location: isSet6(object.Location) ? storageLocationsFromJSON(object.Location) : 0,
-      LocalPath: isSet6(object.LocalPath) ? globalThis.String(object.LocalPath) : ""
+      Location: isSet9(object.Location) ? storageLocationsFromJSON(object.Location) : 0,
+      LocalPath: isSet9(object.LocalPath) ? globalThis.String(object.LocalPath) : ""
     };
   },
   toJSON(message) {
@@ -11203,7 +12952,7 @@ var StorageSettings = {
     return message;
   }
 };
-function isSet6(value) {
+function isSet9(value) {
   return value !== null && value !== void 0;
 }
 
@@ -11282,11 +13031,11 @@ var Command = {
   },
   fromJSON(object) {
     return {
-      Name: isSet7(object.Name) ? globalThis.String(object.Name) : "",
-      Message: isSet7(object.Message) ? String(object.Message) : void 0,
-      Payload: isSet7(object.Payload) ? Any.fromJSON(object.Payload) : void 0,
-      SessionId: isSet7(object.SessionId) ? String(object.SessionId) : void 0,
-      RequestId: isSet7(object.RequestId) ? String(object.RequestId) : void 0
+      Name: isSet10(object.Name) ? globalThis.String(object.Name) : "",
+      Message: isSet10(object.Message) ? String(object.Message) : void 0,
+      Payload: isSet10(object.Payload) ? Any.fromJSON(object.Payload) : void 0,
+      SessionId: isSet10(object.SessionId) ? String(object.SessionId) : void 0,
+      RequestId: isSet10(object.RequestId) ? String(object.RequestId) : void 0
     };
   },
   toJSON(message) {
@@ -11354,7 +13103,7 @@ var HeartbeatRequest = {
     return message;
   },
   fromJSON(object) {
-    return { Settings: isSet7(object.Settings) ? Settings.fromJSON(object.Settings) : void 0 };
+    return { Settings: isSet10(object.Settings) ? Settings.fromJSON(object.Settings) : void 0 };
   },
   toJSON(message) {
     const obj = {};
@@ -11442,7 +13191,7 @@ var SendCommandRequest = {
     return message;
   },
   fromJSON(object) {
-    return { Command: isSet7(object.Command) ? Command.fromJSON(object.Command) : void 0 };
+    return { Command: isSet10(object.Command) ? Command.fromJSON(object.Command) : void 0 };
   },
   toJSON(message) {
     const obj = {};
@@ -11493,7 +13242,7 @@ var SendCommandResponse = {
     return message;
   },
   fromJSON(object) {
-    return { Success: isSet7(object.Success) ? globalThis.Boolean(object.Success) : false };
+    return { Success: isSet10(object.Success) ? globalThis.Boolean(object.Success) : false };
   },
   toJSON(message) {
     const obj = {};
@@ -11511,7 +13260,7 @@ var SendCommandResponse = {
     return message;
   }
 };
-function isSet7(value) {
+function isSet10(value) {
   return value !== null && value !== void 0;
 }
 
@@ -11569,8 +13318,8 @@ function getTypeName(any) {
 // src/orc-connection.ts
 function describeCommand(command) {
   const parts = [command.Name || "?"];
-  if (command.SessionId) parts.push(`session=${command.SessionId.substring(0, 8)}`);
-  if (command.RequestId) parts.push(`req=${command.RequestId.substring(0, 8)}`);
+  if (command.SessionId) parts.push(`session=${command.SessionId.substring(0, 16)}`);
+  if (command.RequestId) parts.push(`req=${command.RequestId.substring(0, 12)}`);
   if (command.Message) parts.push(`msg="${command.Message.substring(0, 50)}"`);
   if (command.Payload) {
     const typeName = getTypeName(command.Payload);
@@ -11666,11 +13415,20 @@ var CommandHandler = class {
   engine;
   activeSessions = /* @__PURE__ */ new Map();
   sendCommand = null;
+  claimSession = null;
+  log = () => {
+  };
   constructor(engine) {
     this.engine = engine;
   }
   setSendCommand(fn) {
     this.sendCommand = fn;
+  }
+  setClaimSession(fn) {
+    this.claimSession = fn;
+  }
+  setLog(fn) {
+    this.log = fn;
   }
   /** Build a heartbeat command with model info for sending to ORC. */
   buildHeartbeat() {
@@ -11705,6 +13463,8 @@ var CommandHandler = class {
     switch (command.Name) {
       case "HeartbeatRequest":
         return null;
+      case "ConnectRequest":
+        return this.handleConnect(command);
       case "CreateInferenceRequest":
         return this.handleCreateInference(command);
       case "SendInferenceRequest":
@@ -11721,6 +13481,29 @@ var CommandHandler = class {
         console.warn(`[cmd] Unhandled command: ${command.Name}`);
         return null;
     }
+  }
+  async handleConnect(command) {
+    const request = unpackAny(command.Payload, ConnectRequest);
+    const sessionId = request?.SessionId || command.SessionId || "";
+    let hasCapacity = true;
+    if (this.claimSession) {
+      try {
+        hasCapacity = await this.claimSession(sessionId);
+      } catch {
+        hasCapacity = false;
+      }
+    }
+    const response = {
+      Id: hasCapacity ? sessionId : "",
+      HasCapacity: hasCapacity,
+      AlreadyConnected: this.activeSessions.has(sessionId)
+    };
+    return {
+      Name: "ConnectResponse",
+      SessionId: sessionId,
+      RequestId: command.RequestId,
+      Payload: packAny("daisi.protos.v1.ConnectResponse", response, ConnectResponse)
+    };
   }
   handleCreateInference(command) {
     const request = unpackAny(command.Payload, CreateInferenceRequest);
@@ -11748,59 +13531,61 @@ var CommandHandler = class {
     const maxTokens = request?.MaxTokens || 512;
     const temperature = request?.Temperature || 0.7;
     const startTime = performance.now();
-    let fullResponse = "";
+    this.log("success", `\u2192 SendInferenceResponse Starting: "${prompt.substring(0, 60)}${prompt.length > 60 ? "..." : ""}" (max ${maxTokens} tokens)`);
     let tokenCount = 0;
+    let tokenBuffer = "";
+    const BATCH_SIZE = 10;
+    const inferenceId = request?.InferenceId || "";
+    const flushTokens = async () => {
+      if (!tokenBuffer || !this.sendCommand) return;
+      const streamResponse = {
+        SessionId: sessionId,
+        InferenceId: inferenceId,
+        Id: "",
+        Type: 0,
+        // Text
+        Content: tokenBuffer,
+        AuthorRole: "assistant",
+        Format: 0,
+        MessageTokenCount: tokenCount,
+        SessionTokenCount: tokenCount,
+        ComputeTimeMs: Math.round(performance.now() - startTime)
+      };
+      await this.sendCommand({
+        Name: "SendInferenceResponse",
+        SessionId: sessionId,
+        RequestId: command.RequestId,
+        Payload: packAny("daisi.protos.v1.SendInferenceResponse", streamResponse, SendInferenceResponse)
+      });
+      tokenBuffer = "";
+    };
     try {
       for await (const token of this.engine.generate(prompt, {
         maxTokens,
         temperature,
         signal: controller.signal
       })) {
-        fullResponse += token;
+        tokenBuffer += token;
         tokenCount++;
-        if (this.sendCommand) {
-          const streamResponse = {
-            SessionId: sessionId,
-            InferenceId: request?.InferenceId || "",
-            Id: "",
-            Type: 0,
-            // Token
-            Content: token,
-            AuthorRole: "assistant",
-            Format: 0,
-            MessageTokenCount: tokenCount,
-            SessionTokenCount: tokenCount,
-            ComputeTimeMs: Math.round(performance.now() - startTime)
-          };
-          await this.sendCommand({
-            Name: "SendInferenceResponse",
-            SessionId: sessionId,
-            RequestId: command.RequestId,
-            Payload: packAny("daisi.protos.v1.SendInferenceResponse", streamResponse, SendInferenceResponse)
-          });
+        if (tokenCount % BATCH_SIZE === 0) {
+          await flushTokens();
         }
       }
+      await flushTokens();
     } catch {
+      await flushTokens();
     }
-    const finalResponse = {
-      SessionId: sessionId,
-      InferenceId: request?.InferenceId || "",
-      Id: "",
-      Type: 2,
-      // Done
-      Content: "",
-      AuthorRole: "assistant",
-      Format: 0,
-      MessageTokenCount: tokenCount,
-      SessionTokenCount: tokenCount,
-      ComputeTimeMs: Math.round(performance.now() - startTime)
-    };
-    return {
-      Name: "SendInferenceResponse",
-      SessionId: sessionId,
-      RequestId: command.RequestId,
-      Payload: packAny("daisi.protos.v1.SendInferenceResponse", finalResponse, SendInferenceResponse)
-    };
+    const elapsed = ((performance.now() - startTime) / 1e3).toFixed(1);
+    const tokSec = tokenCount > 0 ? (tokenCount / ((performance.now() - startTime) / 1e3)).toFixed(1) : "0";
+    this.log("success", `\u2192 SendInferenceResponse Complete: ${tokenCount} tokens in ${elapsed}s (${tokSec} tok/s)`);
+    if (this.sendCommand) {
+      await this.sendCommand({
+        Name: "ENDSTREAM",
+        SessionId: sessionId,
+        RequestId: command.RequestId
+      });
+    }
+    return null;
   }
   handleCloseInference(command) {
     const request = unpackAny(command.Payload, CloseInferenceRequest);
@@ -11835,6 +13620,8 @@ var BrowserHost = class {
   commandHandler = null;
   abortController = null;
   dotNetRef = null;
+  orcClientKey = "";
+  orcAddress = "";
   setDotNetRef(ref) {
     this.dotNetRef = ref;
   }
@@ -11923,7 +13710,17 @@ var BrowserHost = class {
   // ── ORC Connection ──────────────────────────────────────────────────
   async connectToOrc(clientKey, orcAddress) {
     if (!this.commandHandler) throw new Error("Model not loaded");
+    this.orcClientKey = clientKey;
+    this.orcAddress = orcAddress;
     this.commandHandler.setSendCommand((cmd) => this.orcConnection.sendCommand(cmd));
+    this.commandHandler.setLog((level, msg) => this.dotNetRef?.invokeMethodAsync("OnOrcLog", level, msg));
+    const claimChannel = (0, import_nice_grpc_web3.createChannel)(orcAddress);
+    const claimAuth = createAuthMiddleware({ getClientKey: () => clientKey });
+    const claimClient = (0, import_nice_grpc_web3.createClientFactory)().use(claimAuth).create(SessionsProtoDefinition, claimChannel);
+    this.commandHandler.setClaimSession(async (sessionId) => {
+      const resp = await claimClient.claim({ Id: sessionId });
+      return resp.Success;
+    });
     await this.orcConnection.connect(
       clientKey,
       orcAddress,
@@ -11937,6 +13734,51 @@ var BrowserHost = class {
   async disconnectFromOrc() {
     this.orcConnection.disconnect();
     this.dotNetRef?.invokeMethodAsync("OnOrcConnectionChanged", false);
+  }
+  // ── ORC Chat (consumer path) ─────────────────────────────────────
+  async sendViaOrc(prompt) {
+    if (!this.orcAddress || !this.orcClientKey) throw new Error("Not connected to ORC");
+    const channel = (0, import_nice_grpc_web3.createChannel)(this.orcAddress);
+    const authMiddleware = createAuthMiddleware({ getClientKey: () => this.orcClientKey });
+    const factory = (0, import_nice_grpc_web3.createClientFactory)().use(authMiddleware);
+    const sessionClient = factory.create(SessionsProtoDefinition, channel);
+    const inferenceClient = factory.create(InferencesProtoDefinition, channel);
+    const session = await sessionClient.create({
+      ModelName: "",
+      DirectConnectRequired: false,
+      PreferredHostNames: []
+    });
+    const sessionId = session.Id;
+    console.log(`[orc-chat] Session created: ${sessionId}`, session);
+    this.dotNetRef?.invokeMethodAsync("OnOrcLog", "info", `ORC Chat: session ${sessionId.substring(0, 12)}...`);
+    const createResp = await inferenceClient.create({
+      SessionId: sessionId,
+      ThinkLevel: 0,
+      ModelName: "",
+      InitializationPrompt: "",
+      ToolGroups: [],
+      SecureTools: []
+    });
+    console.log(`[orc-chat] Inference created: ${createResp.InferenceId}`);
+    const start = performance.now();
+    let tokenCount = 0;
+    const stream = inferenceClient.send({
+      SessionId: sessionId,
+      InferenceId: createResp.InferenceId,
+      Text: prompt,
+      AntiPrompts: []
+    });
+    for await (const resp of stream) {
+      if (resp.Type === 3) {
+        this.dotNetRef?.invokeMethodAsync("OnToken", `[Error: ${resp.Content}]`);
+      } else if (resp.Type === 0 || resp.Type === 1) {
+        tokenCount = resp.MessageTokenCount || tokenCount + 1;
+        this.dotNetRef?.invokeMethodAsync("OnToken", resp.Content);
+      }
+    }
+    const elapsed = (performance.now() - start) / 1e3;
+    this.dotNetRef?.invokeMethodAsync("OnGenerationComplete", tokenCount, elapsed > 0 ? tokenCount / elapsed : 0);
+    this.dotNetRef?.invokeMethodAsync("OnOrcLog", "success", `ORC Chat: ${tokenCount} tokens in ${elapsed.toFixed(1)}s`);
   }
 };
 window.browserHost = new BrowserHost();

@@ -5,6 +5,10 @@
 
 import { LlogosEngine } from '@daisinet/llogos-webgpu';
 import type { GgufModelInfo, DownloadProgress } from '@daisinet/llogos-webgpu';
+import { createChannel, createClientFactory } from 'nice-grpc-web';
+import { createAuthMiddleware } from '@daisi/sdk-web';
+import { SessionsProtoDefinition } from '@daisi/sdk-generated-sessions';
+import { InferencesProtoDefinition } from '@daisi/sdk-generated-inferences';
 import { OrcConnection } from './orc-connection.js';
 import { CommandHandler } from './command-handler.js';
 
@@ -14,6 +18,8 @@ class BrowserHost {
   private commandHandler: CommandHandler | null = null;
   private abortController: AbortController | null = null;
   private dotNetRef: any = null;
+  private orcClientKey: string = '';
+  private orcAddress: string = '';
 
   setDotNetRef(ref: any): void { this.dotNetRef = ref; }
 
@@ -104,9 +110,21 @@ class BrowserHost {
 
   async connectToOrc(clientKey: string, orcAddress: string): Promise<void> {
     if (!this.commandHandler) throw new Error('Model not loaded');
+    this.orcClientKey = clientKey;
+    this.orcAddress = orcAddress;
 
     // Wire sendCommand so the command handler can stream tokens back
     this.commandHandler.setSendCommand((cmd) => this.orcConnection.sendCommand(cmd));
+    this.commandHandler.setLog((level, msg) => this.dotNetRef?.invokeMethodAsync('OnOrcLog', level, msg));
+
+    // Wire claimSession for ConnectRequest handling
+    const claimChannel = createChannel(orcAddress);
+    const claimAuth = createAuthMiddleware({ getClientKey: () => clientKey });
+    const claimClient = createClientFactory().use(claimAuth).create(SessionsProtoDefinition, claimChannel);
+    this.commandHandler.setClaimSession(async (sessionId: string) => {
+      const resp = await claimClient.claim({ Id: sessionId });
+      return resp.Success;
+    });
 
     await this.orcConnection.connect(
       clientKey,
@@ -123,6 +141,65 @@ class BrowserHost {
   async disconnectFromOrc(): Promise<void> {
     this.orcConnection.disconnect();
     this.dotNetRef?.invokeMethodAsync('OnOrcConnectionChanged', false);
+  }
+
+  // ── ORC Chat (consumer path) ─────────────────────────────────────
+
+  async sendViaOrc(prompt: string): Promise<void> {
+    if (!this.orcAddress || !this.orcClientKey) throw new Error('Not connected to ORC');
+
+    // Create a separate consumer client (same ORC, same auth)
+    const channel = createChannel(this.orcAddress);
+    const authMiddleware = createAuthMiddleware({ getClientKey: () => this.orcClientKey });
+    const factory = createClientFactory().use(authMiddleware);
+
+    const sessionClient = factory.create(SessionsProtoDefinition, channel);
+    const inferenceClient = factory.create(InferencesProtoDefinition, channel);
+
+    // 1. Create ORC session
+    const session = await sessionClient.create({
+      ModelName: '',
+      DirectConnectRequired: false,
+      PreferredHostNames: [],
+    });
+    const sessionId = session.Id;
+    console.log(`[orc-chat] Session created: ${sessionId}`, session);
+    this.dotNetRef?.invokeMethodAsync('OnOrcLog', 'info', `ORC Chat: session ${sessionId.substring(0, 12)}...`);
+
+    // 2. Create inference
+    const createResp = await inferenceClient.create({
+      SessionId: sessionId,
+      ThinkLevel: 0,
+      ModelName: '',
+      InitializationPrompt: '',
+      ToolGroups: [],
+      SecureTools: [],
+    });
+    console.log(`[orc-chat] Inference created: ${createResp.InferenceId}`);
+
+    // 3. Send prompt and stream tokens
+    const start = performance.now();
+    let tokenCount = 0;
+
+    const stream = inferenceClient.send({
+      SessionId: sessionId,
+      InferenceId: createResp.InferenceId,
+      Text: prompt,
+      AntiPrompts: [],
+    });
+
+    for await (const resp of stream) {
+      if (resp.Type === 3) { // Error
+        this.dotNetRef?.invokeMethodAsync('OnToken', `[Error: ${resp.Content}]`);
+      } else if (resp.Type === 0 || resp.Type === 1) { // Text or Thinking
+        tokenCount = resp.MessageTokenCount || tokenCount + 1;
+        this.dotNetRef?.invokeMethodAsync('OnToken', resp.Content);
+      }
+    }
+
+    const elapsed = (performance.now() - start) / 1000;
+    this.dotNetRef?.invokeMethodAsync('OnGenerationComplete', tokenCount, elapsed > 0 ? tokenCount / elapsed : 0);
+    this.dotNetRef?.invokeMethodAsync('OnOrcLog', 'success', `ORC Chat: ${tokenCount} tokens in ${elapsed.toFixed(1)}s`);
   }
 }
 
