@@ -174,7 +174,7 @@ export class CommandHandler {
     const temperature = request?.Temperature || 0.7;
     const startTime = performance.now();
 
-    this.log('success', `→ SendInferenceResponse Starting: "${prompt.substring(0, 60)}${prompt.length > 60 ? '...' : ''}" (max ${maxTokens} tokens)`);
+    this.log('success', `→ SendInferenceResponse Starting (max ${maxTokens} tokens)`);
 
     let tokenCount = 0;
     let tokenBuffer = '';

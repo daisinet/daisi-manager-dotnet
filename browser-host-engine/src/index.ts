@@ -27,7 +27,6 @@ class BrowserHost {
     if (!LlogosEngine.isSupported()) throw new Error('WebGPU not available');
     const caps = await this.engine.initGpu();
     const ai = caps.adapterInfo;
-    console.log('[gpu] adapterInfo:', { vendor: ai.vendor, architecture: ai.architecture, device: ai.device, description: ai.description });
     // Flatten adapterInfo since GPUAdapterInfo properties aren't enumerable
     return {
       ...caps,

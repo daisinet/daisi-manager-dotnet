@@ -13932,7 +13932,7 @@ var CommandHandler = class {
     const maxTokens = request?.MaxTokens || 512;
     const temperature = request?.Temperature || 0.7;
     const startTime = performance.now();
-    this.log("success", `\u2192 SendInferenceResponse Starting: "${prompt.substring(0, 60)}${prompt.length > 60 ? "..." : ""}" (max ${maxTokens} tokens)`);
+    this.log("success", `\u2192 SendInferenceResponse Starting (max ${maxTokens} tokens)`);
     let tokenCount = 0;
     let tokenBuffer = "";
     const BATCH_SIZE = 10;
@@ -14030,7 +14030,6 @@ var BrowserHost = class {
     if (!LlogosEngine.isSupported()) throw new Error("WebGPU not available");
     const caps = await this.engine.initGpu();
     const ai = caps.adapterInfo;
-    console.log("[gpu] adapterInfo:", { vendor: ai.vendor, architecture: ai.architecture, device: ai.device, description: ai.description });
     return {
       ...caps,
       adapterInfo: { vendor: ai.vendor, architecture: ai.architecture, device: ai.device, description: ai.description }
