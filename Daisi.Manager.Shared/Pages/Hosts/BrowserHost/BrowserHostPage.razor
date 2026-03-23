@@ -1,0 +1,254 @@
+@page "/hosts/browser"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using System.Text.Json
+@inject IJSRuntime JS
+
+<PageTitle>DAISI Browser Host</PageTitle>
+
+<div class="container-fluid py-3">
+    <div class="row mb-3">
+        <div class="col">
+            <h3><i class="fa-duotone fa-microchip"></i> Browser Host</h3>
+            <p class="text-secondary mb-0">Run an AI model directly in your browser using WebGPU.</p>
+        </div>
+    </div>
+
+    @* GPU Status *@
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <div class="card bg-dark">
+                <div class="card-header"><i class="fa-duotone fa-gpu-card"></i> GPU</div>
+                <div class="card-body">
+                    <span class="@(gpuReady ? "text-success" : "text-warning")">@gpuStatus</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-dark">
+                <div class="card-header"><i class="fa-duotone fa-brain"></i> Model</div>
+                <div class="card-body">
+                    @if (modelLoaded)
+                    {
+                        <span class="text-success">@modelName</span>
+                        <span class="text-secondary ms-2">VRAM: @vramMb MB</span>
+                        <button class="btn btn-sm btn-outline-danger float-end" @onclick="UnloadModel">Unload</button>
+                    }
+                    else
+                    {
+                        <div class="input-group">
+                            <select class="form-select" @bind="selectedModelUrl">
+                                <option value="">-- Select a model --</option>
+                                <option value="https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q8_0.gguf">TinyLlama 1.1B Q8_0 (1.1 GB)</option>
+                            </select>
+                            <button class="btn btn-outline-success" @onclick="LoadModel" disabled="@(string.IsNullOrEmpty(selectedModelUrl) || isLoading)">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm"></span>
+                                }
+                                Load
+                            </button>
+                        </div>
+                        @if (!string.IsNullOrEmpty(loadProgress))
+                        {
+                            <div class="progress mt-2" style="height: 6px;">
+                                <div class="progress-bar bg-success" style="width: @loadProgressPct%"></div>
+                            </div>
+                            <small class="text-secondary">@loadProgress</small>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* Chat *@
+    <div class="card bg-dark">
+        <div class="card-header d-flex align-items-center">
+            <i class="fa-duotone fa-comments me-2"></i> Chat
+            <button class="btn btn-sm btn-outline-secondary ms-auto" @onclick="NewChat">New Chat</button>
+            @if (isGenerating)
+            {
+                <button class="btn btn-sm btn-outline-danger ms-2" @onclick="StopGeneration">Stop</button>
+            }
+        </div>
+        <div class="card-body">
+            <div @ref="chatScrollRef" class="bg-dark border rounded p-3 mb-3" style="height: 400px; overflow-y: auto; font-family: monospace; font-size: 14px; white-space: pre-wrap;">
+                @((MarkupString)chatHtml)
+                @if (isGenerating)
+                {
+                    <span class="text-success">▌</span>
+                }
+            </div>
+            <div class="input-group">
+                <input class="form-control" @bind="userInput" @bind:event="oninput"
+                       @onkeydown="OnChatKeyDown" placeholder="Type a message..."
+                       disabled="@(!modelLoaded || isGenerating)" />
+                <button class="btn btn-outline-success" @onclick="SendMessage"
+                        disabled="@(!modelLoaded || isGenerating || string.IsNullOrWhiteSpace(userInput))">
+                    Send
+                </button>
+            </div>
+            @if (!string.IsNullOrEmpty(statsText))
+            {
+                <small class="text-secondary mt-1 d-block">@statsText</small>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private IJSObjectReference? jsModule;
+    private ElementReference chatScrollRef;
+
+    private bool gpuReady;
+    private string gpuStatus = "Initializing...";
+    private bool modelLoaded;
+    private bool isLoading;
+    private bool isGenerating;
+    private string selectedModelUrl = "";
+    private string modelName = "";
+    private int vramMb;
+    private string loadProgress = "";
+    private int loadProgressPct;
+    private string chatHtml = "";
+    private string userInput = "";
+    private string statsText = "";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Load the browser-host JS module
+            jsModule = await JS.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/Daisi.Manager.Shared/js/browser-host.js");
+
+            // Register this component for callbacks
+            var dotNetRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("browserHost.setDotNetRef", dotNetRef);
+
+            // Initialize GPU
+            try
+            {
+                var caps = await JS.InvokeAsync<object>("browserHost.initGpu");
+                gpuReady = true;
+                gpuStatus = "Ready";
+            }
+            catch (Exception ex)
+            {
+                gpuStatus = $"Error: {ex.Message}";
+            }
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadModel()
+    {
+        if (string.IsNullOrEmpty(selectedModelUrl)) return;
+        isLoading = true;
+        loadProgress = "Starting...";
+        StateHasChanged();
+
+        try
+        {
+            await JS.InvokeVoidAsync("browserHost.loadModel", selectedModelUrl);
+            modelLoaded = true;
+            modelName = "TinyLlama 1.1B Q8_0";
+            var state = await JS.InvokeAsync<JsonElement>("browserHost.getState");
+            vramMb = state.GetProperty("vramMb").GetInt32();
+        }
+        catch (Exception ex)
+        {
+            loadProgress = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task UnloadModel()
+    {
+        await JS.InvokeVoidAsync("browserHost.unloadModel");
+        modelLoaded = false;
+        modelName = "";
+        vramMb = 0;
+        chatHtml = "";
+        StateHasChanged();
+    }
+
+    private async Task NewChat()
+    {
+        await JS.InvokeVoidAsync("browserHost.resetSession");
+        chatHtml = "";
+        statsText = "";
+        StateHasChanged();
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(userInput) || !modelLoaded || isGenerating) return;
+
+        var prompt = userInput;
+        userInput = "";
+        chatHtml += $"<span class=\"text-info\">&gt; {System.Net.WebUtility.HtmlEncode(prompt)}</span>\n";
+        isGenerating = true;
+        statsText = "";
+        StateHasChanged();
+
+        try
+        {
+            await JS.InvokeVoidAsync("browserHost.generate", prompt, 256, 0);
+        }
+        catch (Exception ex)
+        {
+            chatHtml += $"\n<span class=\"text-danger\">[Error: {ex.Message}]</span>\n";
+        }
+        finally
+        {
+            isGenerating = false;
+            chatHtml += "\n";
+            StateHasChanged();
+        }
+    }
+
+    private async Task StopGeneration()
+    {
+        await JS.InvokeVoidAsync("browserHost.stopGeneration");
+    }
+
+    private async Task OnChatKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await SendMessage();
+    }
+
+    [JSInvokable]
+    public void OnToken(string token)
+    {
+        chatHtml += System.Net.WebUtility.HtmlEncode(token);
+        InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public void OnGenerationComplete(int tokenCount, double tokPerSec)
+    {
+        statsText = $"{tokenCount} tokens | {tokPerSec:F1} tok/s | VRAM: {vramMb} MB";
+        InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public void OnLoadProgress(string phase, long bytesDownloaded, long totalBytes)
+    {
+        loadProgressPct = totalBytes > 0 ? (int)(bytesDownloaded * 100 / totalBytes) : 0;
+        var mb = bytesDownloaded / 1024 / 1024;
+        var totalMb = totalBytes / 1024 / 1024;
+        loadProgress = $"{phase}... {mb}/{totalMb} MB";
+        InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (jsModule != null)
+            await jsModule.DisposeAsync();
+    }
+}
