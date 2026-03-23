@@ -329,7 +329,7 @@ var require_cjs = __commonJS({
         defineProperty(instance, "toString", {
           configurable: true,
           enumerable: false,
-          value: function toString2() {
+          value: function toString3() {
             return (this.name || "Error") + (typeof this.message === "undefined" ? "" : ": " + this.message);
           },
           writable: true
@@ -627,8 +627,8 @@ var require_execute = __commonJS({
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.execute = void 0;
     var AbortError_1 = require_AbortError();
-    function execute(signal, executor) {
-      return new Promise((resolve, reject) => {
+    function execute2(signal, executor) {
+      return new Promise((resolve2, reject) => {
         if (signal.aborted) {
           reject(new AbortError_1.AbortError());
           return;
@@ -644,7 +644,7 @@ var require_execute = __commonJS({
           }
         }
         const callback = executor((value) => {
-          resolve(value);
+          resolve2(value);
           finish();
         }, (reason) => {
           reject(reason);
@@ -671,7 +671,7 @@ var require_execute = __commonJS({
         }
       });
     }
-    exports.execute = execute;
+    exports.execute = execute2;
   }
 });
 
@@ -688,8 +688,8 @@ var require_abortable = __commonJS({
         };
         promise.then(noop, noop);
       }
-      return (0, execute_1.execute)(signal, (resolve, reject) => {
-        promise.then(resolve, reject);
+      return (0, execute_1.execute)(signal, (resolve2, reject) => {
+        promise.then(resolve2, reject);
         return () => {
         };
       });
@@ -706,9 +706,9 @@ var require_delay = __commonJS({
     exports.delay = void 0;
     var execute_1 = require_execute();
     function delay(signal, dueTime) {
-      return (0, execute_1.execute)(signal, (resolve) => {
+      return (0, execute_1.execute)(signal, (resolve2) => {
         const ms = typeof dueTime === "number" ? dueTime : dueTime.getTime() - Date.now();
-        const timer = setTimeout(resolve, ms);
+        const timer = setTimeout(resolve2, ms);
         return () => {
           clearTimeout(timer);
         };
@@ -741,11 +741,11 @@ var require_waitForEvent = __commonJS({
     exports.waitForEvent = void 0;
     var execute_1 = require_execute();
     function waitForEvent(signal, target, eventName, options) {
-      return (0, execute_1.execute)(signal, (resolve) => {
+      return (0, execute_1.execute)(signal, (resolve2) => {
         let unlisten;
         let finished = false;
         const handler = (...args) => {
-          resolve(args.length > 1 ? args : args[0]);
+          resolve2(args.length > 1 ? args : args[0]);
           finished = true;
           if (unlisten != null) {
             unlisten();
@@ -800,7 +800,7 @@ var require_all = __commonJS({
     exports.all = void 0;
     var AbortError_1 = require_AbortError();
     function all(signal, executor) {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve2, reject) => {
         if (signal.aborted) {
           reject(new AbortError_1.AbortError());
           return;
@@ -808,7 +808,7 @@ var require_all = __commonJS({
         const innerAbortController = new AbortController();
         const promises = executor(innerAbortController.signal);
         if (promises.length === 0) {
-          resolve([]);
+          resolve2([]);
           return;
         }
         const abortListener = () => {
@@ -825,7 +825,7 @@ var require_all = __commonJS({
             if (rejection != null) {
               reject(rejection.reason);
             } else {
-              resolve(results);
+              resolve2(results);
             }
           }
         }
@@ -855,7 +855,7 @@ var require_race = __commonJS({
     exports.race = void 0;
     var AbortError_1 = require_AbortError();
     function race(signal, executor) {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve2, reject) => {
         if (signal.aborted) {
           reject(new AbortError_1.AbortError());
           return;
@@ -873,7 +873,7 @@ var require_race = __commonJS({
           if (settledCount === promises.length) {
             signal.removeEventListener("abort", abortListener);
             if (result2.status === "fulfilled") {
-              resolve(result2.value);
+              resolve2(result2.value);
             } else {
               reject(result2.reason);
             }
@@ -973,7 +973,7 @@ var require_spawn = __commonJS({
       const removeSpawnAbortListener = () => {
         spawnSignal.removeEventListener("abort", abortTasks);
       };
-      let promise = new Promise((resolve, reject) => {
+      let promise = new Promise((resolve2, reject) => {
         let result;
         let failure;
         fork((signal2) => fn(signal2, {
@@ -1019,7 +1019,7 @@ var require_spawn = __commonJS({
               if (failure != null) {
                 reject(failure.error);
               } else {
-                resolve(result.value);
+                resolve2(result.value);
               }
             }
           });
@@ -1071,14 +1071,14 @@ var require_proactiveRetry = __commonJS({
     var execute_1 = require_execute();
     function proactiveRetry(signal, fn, options = {}) {
       const { baseMs = 1e3, onError, maxAttempts = Infinity } = options;
-      return (0, execute_1.execute)(signal, (resolve, reject) => {
+      return (0, execute_1.execute)(signal, (resolve2, reject) => {
         const innerAbortController = new AbortController();
         let attemptsExhausted = false;
         const promises = /* @__PURE__ */ new Map();
         function handleFulfilled(value) {
           innerAbortController.abort();
           promises.clear();
-          resolve(value);
+          resolve2(value);
         }
         function handleRejected(err, attempt) {
           promises.delete(attempt);
@@ -2303,11 +2303,11 @@ var require_AsyncSink = __commonJS({
           return;
         }
         if (this._resolvers.length > 0) {
-          const { resolve, reject } = this._resolvers.shift();
+          const { resolve: resolve2, reject } = this._resolvers.shift();
           if (item.type === ARRAY_ERROR) {
             reject(item.error);
           } else {
-            resolve({ done: false, value: item.value });
+            resolve2({ done: false, value: item.value });
           }
         } else {
           this._values.push(item);
@@ -2325,8 +2325,8 @@ var require_AsyncSink = __commonJS({
         if (this._ended) {
           return Promise.resolve({ done: true });
         }
-        return new Promise((resolve, reject) => {
-          this._resolvers.push({ resolve, reject });
+        return new Promise((resolve2, reject) => {
+          this._resolvers.push({ resolve: resolve2, reject });
         });
       }
       end() {
@@ -2798,7 +2798,7 @@ var require_cjs2 = __commonJS({
         defineProperty(instance, "toString", {
           configurable: true,
           enumerable: false,
-          value: function toString2() {
+          value: function toString3() {
             return (this.name || "Error") + (typeof this.message === "undefined" ? "" : ": " + this.message);
           },
           writable: true
@@ -3096,8 +3096,8 @@ var require_execute2 = __commonJS({
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.execute = void 0;
     var AbortError_1 = require_AbortError2();
-    function execute(signal, executor) {
-      return new Promise((resolve, reject) => {
+    function execute2(signal, executor) {
+      return new Promise((resolve2, reject) => {
         if (signal.aborted) {
           reject(new AbortError_1.AbortError());
           return;
@@ -3113,7 +3113,7 @@ var require_execute2 = __commonJS({
           }
         }
         const callback = executor((value) => {
-          resolve(value);
+          resolve2(value);
           finish();
         }, (reason) => {
           reject(reason);
@@ -3140,7 +3140,7 @@ var require_execute2 = __commonJS({
         }
       });
     }
-    exports.execute = execute;
+    exports.execute = execute2;
   }
 });
 
@@ -3157,8 +3157,8 @@ var require_abortable2 = __commonJS({
         };
         promise.then(noop, noop);
       }
-      return (0, execute_1.execute)(signal, (resolve, reject) => {
-        promise.then(resolve, reject);
+      return (0, execute_1.execute)(signal, (resolve2, reject) => {
+        promise.then(resolve2, reject);
         return () => {
         };
       });
@@ -3175,9 +3175,9 @@ var require_delay2 = __commonJS({
     exports.delay = void 0;
     var execute_1 = require_execute2();
     function delay(signal, dueTime) {
-      return (0, execute_1.execute)(signal, (resolve) => {
+      return (0, execute_1.execute)(signal, (resolve2) => {
         const ms = typeof dueTime === "number" ? dueTime : dueTime.getTime() - Date.now();
-        const timer = setTimeout(resolve, ms);
+        const timer = setTimeout(resolve2, ms);
         return () => {
           clearTimeout(timer);
         };
@@ -3210,11 +3210,11 @@ var require_waitForEvent2 = __commonJS({
     exports.waitForEvent = void 0;
     var execute_1 = require_execute2();
     function waitForEvent(signal, target, eventName, options) {
-      return (0, execute_1.execute)(signal, (resolve) => {
+      return (0, execute_1.execute)(signal, (resolve2) => {
         let unlisten;
         let finished = false;
         const handler = (...args) => {
-          resolve(args.length > 1 ? args : args[0]);
+          resolve2(args.length > 1 ? args : args[0]);
           finished = true;
           if (unlisten != null) {
             unlisten();
@@ -3269,7 +3269,7 @@ var require_all2 = __commonJS({
     exports.all = void 0;
     var AbortError_1 = require_AbortError2();
     function all(signal, executor) {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve2, reject) => {
         if (signal.aborted) {
           reject(new AbortError_1.AbortError());
           return;
@@ -3277,7 +3277,7 @@ var require_all2 = __commonJS({
         const innerAbortController = new AbortController();
         const promises = executor(innerAbortController.signal);
         if (promises.length === 0) {
-          resolve([]);
+          resolve2([]);
           return;
         }
         const abortListener = () => {
@@ -3294,7 +3294,7 @@ var require_all2 = __commonJS({
             if (rejection != null) {
               reject(rejection.reason);
             } else {
-              resolve(results);
+              resolve2(results);
             }
           }
         }
@@ -3324,7 +3324,7 @@ var require_race2 = __commonJS({
     exports.race = void 0;
     var AbortError_1 = require_AbortError2();
     function race(signal, executor) {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve2, reject) => {
         if (signal.aborted) {
           reject(new AbortError_1.AbortError());
           return;
@@ -3342,7 +3342,7 @@ var require_race2 = __commonJS({
           if (settledCount === promises.length) {
             signal.removeEventListener("abort", abortListener);
             if (result2.status === "fulfilled") {
-              resolve(result2.value);
+              resolve2(result2.value);
             } else {
               reject(result2.reason);
             }
@@ -3442,7 +3442,7 @@ var require_spawn2 = __commonJS({
       const removeSpawnAbortListener = () => {
         spawnSignal.removeEventListener("abort", abortTasks);
       };
-      let promise = new Promise((resolve, reject) => {
+      let promise = new Promise((resolve2, reject) => {
         let result;
         let failure;
         fork((signal2) => fn(signal2, {
@@ -3488,7 +3488,7 @@ var require_spawn2 = __commonJS({
               if (failure != null) {
                 reject(failure.error);
               } else {
-                resolve(result.value);
+                resolve2(result.value);
               }
             }
           });
@@ -3540,14 +3540,14 @@ var require_proactiveRetry2 = __commonJS({
     var execute_1 = require_execute2();
     function proactiveRetry(signal, fn, options = {}) {
       const { baseMs = 1e3, onError, maxAttempts = Infinity } = options;
-      return (0, execute_1.execute)(signal, (resolve, reject) => {
+      return (0, execute_1.execute)(signal, (resolve2, reject) => {
         const innerAbortController = new AbortController();
         let attemptsExhausted = false;
         const promises = /* @__PURE__ */ new Map();
         function handleFulfilled(value) {
           innerAbortController.abort();
           promises.clear();
-          resolve(value);
+          resolve2(value);
         }
         function handleRejected(err, attempt) {
           promises.delete(attempt);
@@ -4772,11 +4772,11 @@ var require_AsyncSink2 = __commonJS({
           return;
         }
         if (this._resolvers.length > 0) {
-          const { resolve, reject } = this._resolvers.shift();
+          const { resolve: resolve2, reject } = this._resolvers.shift();
           if (item.type === ARRAY_ERROR) {
             reject(item.error);
           } else {
-            resolve({ done: false, value: item.value });
+            resolve2({ done: false, value: item.value });
           }
         } else {
           this._values.push(item);
@@ -4794,8 +4794,8 @@ var require_AsyncSink2 = __commonJS({
         if (this._ended) {
           return Promise.resolve({ done: true });
         }
-        return new Promise((resolve, reject) => {
-          this._resolvers.push({ resolve, reject });
+        return new Promise((resolve2, reject) => {
+          this._resolvers.push({ resolve: resolve2, reject });
         });
       }
       end() {
@@ -6118,6 +6118,234 @@ function tokenizerFromGguf(metadata) {
   const useByteEncoding = model === "gpt2";
   return new BpeTokenizer(tokens, merges, bosTokenId, eosTokenId, padTokenId, useByteEncoding);
 }
+function tokenize(template) {
+  const tokens = [];
+  let i = 0;
+  while (i < template.length) {
+    if (template.startsWith("{%", i)) {
+      const end = template.indexOf("%}", i + 2);
+      if (end < 0) break;
+      tokens.push({ type: "tag", value: template.substring(i + 2, end).trim() });
+      i = end + 2;
+    } else if (template.startsWith("{{", i)) {
+      const end = template.indexOf("}}", i + 2);
+      if (end < 0) break;
+      tokens.push({ type: "expr", value: template.substring(i + 2, end).trim() });
+      i = end + 2;
+    } else if (template.startsWith("{#", i)) {
+      const end = template.indexOf("#}", i + 2);
+      i = end < 0 ? template.length : end + 2;
+    } else {
+      let next = template.length;
+      for (const marker of ["{%", "{{", "{#"]) {
+        const pos = template.indexOf(marker, i);
+        if (pos >= 0 && pos < next) next = pos;
+      }
+      tokens.push({ type: "text", value: template.substring(i, next) });
+      i = next;
+    }
+  }
+  return tokens;
+}
+function resolve(expr, ctx) {
+  expr = expr.trim();
+  if (expr.startsWith("'") && expr.endsWith("'") || expr.startsWith('"') && expr.endsWith('"')) {
+    return expr.slice(1, -1);
+  }
+  if (expr === "true" || expr === "True") return true;
+  if (expr === "false" || expr === "False") return false;
+  if (expr === "none" || expr === "None") return void 0;
+  if (/^\d+$/.test(expr)) return parseInt(expr, 10);
+  const parts = expr.split(".");
+  let val = ctx;
+  for (const part of parts) {
+    if (val == null || typeof val !== "object") return void 0;
+    val = val[part];
+  }
+  return val;
+}
+function evaluate(expr, ctx) {
+  expr = expr.trim();
+  if (expr.startsWith("not ")) {
+    return !truthy(evaluate(expr.substring(4), ctx));
+  }
+  for (const op of [" or ", " and "]) {
+    const idx = expr.lastIndexOf(op);
+    if (idx > 0) {
+      const left = evaluate(expr.substring(0, idx), ctx);
+      const right = evaluate(expr.substring(idx + op.length), ctx);
+      return op === " or " ? truthy(left) ? left : right : truthy(left) ? right : left;
+    }
+  }
+  if (expr.endsWith(" is defined")) {
+    const varName = expr.slice(0, -" is defined".length).trim();
+    return resolve(varName, ctx) !== void 0;
+  }
+  if (expr.endsWith(" is not defined")) {
+    const varName = expr.slice(0, -" is not defined".length).trim();
+    return resolve(varName, ctx) === void 0;
+  }
+  for (const op of ["!=", "=="]) {
+    const idx = expr.indexOf(op);
+    if (idx > 0) {
+      const left = evaluate(expr.substring(0, idx), ctx);
+      const right = evaluate(expr.substring(idx + op.length), ctx);
+      return op === "==" ? left === right : left !== right;
+    }
+  }
+  if (expr.includes("|")) {
+    const [base, ...filters] = expr.split("|");
+    let val = evaluate(base, ctx);
+    for (const f of filters) {
+      const filter = f.trim();
+      if (filter === "trim" && typeof val === "string") val = val.trim();
+    }
+    return val;
+  }
+  const bracketMatch = expr.match(/^(.+)\[(\d+)\]$/);
+  if (bracketMatch) {
+    const arr = resolve(bracketMatch[1], ctx);
+    if (Array.isArray(arr)) return arr[parseInt(bracketMatch[2], 10)];
+    return void 0;
+  }
+  if (expr.endsWith(".length") || expr.endsWith("|length")) {
+    const base = expr.replace(/[.|]length$/, "");
+    const val = resolve(base, ctx);
+    if (Array.isArray(val)) return val.length;
+    if (typeof val === "string") return val.length;
+    return 0;
+  }
+  return resolve(expr, ctx);
+}
+function truthy(val) {
+  if (val === void 0 || val === null || val === false || val === 0 || val === "") return false;
+  if (Array.isArray(val) && val.length === 0) return false;
+  return true;
+}
+function toString(val) {
+  if (val === void 0 || val === null) return "";
+  return String(val);
+}
+function execute(tokens, ctx) {
+  let output = "";
+  let i = 0;
+  while (i < tokens.length) {
+    const tok = tokens[i];
+    if (tok.type === "text") {
+      output += tok.value;
+      i++;
+    } else if (tok.type === "expr") {
+      output += toString(evaluate(tok.value, ctx));
+      i++;
+    } else if (tok.type === "tag") {
+      const tag = tok.value;
+      if (tag.startsWith("for ")) {
+        const forMatch = tag.match(/^for\s+(\w+)\s+in\s+(.+)$/);
+        if (!forMatch) {
+          i++;
+          continue;
+        }
+        const [, varName, iterExpr] = forMatch;
+        const iterable = evaluate(iterExpr, ctx);
+        const items = Array.isArray(iterable) ? iterable : [];
+        const body = [];
+        let depth = 1;
+        i++;
+        while (i < tokens.length && depth > 0) {
+          if (tokens[i].type === "tag") {
+            if (tokens[i].value.startsWith("for ")) depth++;
+            else if (tokens[i].value === "endfor") {
+              depth--;
+              if (depth === 0) {
+                i++;
+                break;
+              }
+            }
+          }
+          body.push(tokens[i]);
+          i++;
+        }
+        for (let idx = 0; idx < items.length; idx++) {
+          const loopCtx = {
+            ...ctx,
+            [varName]: items[idx],
+            loop: {
+              index0: idx,
+              index: idx + 1,
+              first: idx === 0,
+              last: idx === items.length - 1,
+              length: items.length
+            }
+          };
+          output += execute(body, loopCtx);
+        }
+      } else if (tag.startsWith("if ")) {
+        const branches = [];
+        let currentCond = tag.substring(3).trim();
+        let currentBody = [];
+        let depth = 1;
+        i++;
+        while (i < tokens.length && depth > 0) {
+          if (tokens[i].type === "tag") {
+            const inner = tokens[i].value;
+            if (inner.startsWith("if ")) {
+              depth++;
+              currentBody.push(tokens[i]);
+            } else if (inner === "endif") {
+              depth--;
+              if (depth === 0) {
+                branches.push({ cond: currentCond, body: currentBody });
+                i++;
+                break;
+              }
+              currentBody.push(tokens[i]);
+            } else if (depth === 1 && inner.startsWith("elif ")) {
+              branches.push({ cond: currentCond, body: currentBody });
+              currentCond = inner.substring(5).trim();
+              currentBody = [];
+            } else if (depth === 1 && inner === "else") {
+              branches.push({ cond: currentCond, body: currentBody });
+              currentCond = null;
+              currentBody = [];
+            } else {
+              currentBody.push(tokens[i]);
+            }
+          } else {
+            currentBody.push(tokens[i]);
+          }
+          i++;
+        }
+        for (const branch of branches) {
+          if (branch.cond === null || truthy(evaluate(branch.cond, ctx))) {
+            output += execute(branch.body, ctx);
+            break;
+          }
+        }
+      } else if (tag.startsWith("set ")) {
+        const setMatch = tag.match(/^set\s+(\w+)\s*=\s*(.+)$/);
+        if (setMatch) {
+          ctx[setMatch[1]] = evaluate(setMatch[2], ctx);
+        }
+        i++;
+      } else {
+        i++;
+      }
+    } else {
+      i++;
+    }
+  }
+  return output;
+}
+function applyTemplate(template, messages, options) {
+  const ctx = {
+    messages,
+    bos_token: options?.bos_token ?? "",
+    eos_token: options?.eos_token ?? "",
+    add_generation_prompt: options?.add_generation_prompt ?? true
+  };
+  const tokens = tokenize(template);
+  return execute(tokens, ctx);
+}
 var KvCache = class {
   device;
   numKvHeads;
@@ -6254,6 +6482,66 @@ function dequantizeToF32(buffer, type, elementCount) {
     }
     return result;
   }
+  if (type === 3) {
+    const blockCount = Math.ceil(elementCount / 32);
+    for (let b = 0; b < blockCount; b++) {
+      const bo = b * 20;
+      const delta = f16ToF32(view.getUint16(bo, true));
+      const min = f16ToF32(view.getUint16(bo + 2, true));
+      for (let j = 0; j < 16; j++) {
+        const byteVal = bytes[bo + 4 + j];
+        const lo = byteVal & 15;
+        const hi = byteVal >> 4 & 15;
+        const idx = b * 32;
+        if (idx + j < elementCount) result[idx + j] = delta * lo + min;
+        if (idx + j + 16 < elementCount) result[idx + j + 16] = delta * hi + min;
+      }
+    }
+    return result;
+  }
+  if (type === 6) {
+    const blockCount = Math.ceil(elementCount / 32);
+    for (let b = 0; b < blockCount; b++) {
+      const bo = b * 22;
+      const scale = f16ToF32(view.getUint16(bo, true));
+      const highBits = view.getUint32(bo + 2, true);
+      for (let j = 0; j < 16; j++) {
+        const byteVal = bytes[bo + 6 + j];
+        const lo4 = byteVal & 15;
+        const hi4 = byteVal >> 4 & 15;
+        const loBit = highBits >> j & 1;
+        const hiBit = highBits >> j + 16 & 1;
+        const q5lo = lo4 | loBit << 4;
+        const q5hi = hi4 | hiBit << 4;
+        const idx = b * 32;
+        if (idx + j < elementCount) result[idx + j] = scale * (q5lo - 16);
+        if (idx + j + 16 < elementCount) result[idx + j + 16] = scale * (q5hi - 16);
+      }
+    }
+    return result;
+  }
+  if (type === 7) {
+    const blockCount = Math.ceil(elementCount / 32);
+    for (let b = 0; b < blockCount; b++) {
+      const bo = b * 24;
+      const delta = f16ToF32(view.getUint16(bo, true));
+      const min = f16ToF32(view.getUint16(bo + 2, true));
+      const highBits = view.getUint32(bo + 4, true);
+      for (let j = 0; j < 16; j++) {
+        const byteVal = bytes[bo + 8 + j];
+        const lo4 = byteVal & 15;
+        const hi4 = byteVal >> 4 & 15;
+        const loBit = highBits >> j & 1;
+        const hiBit = highBits >> j + 16 & 1;
+        const q5lo = lo4 | loBit << 4;
+        const q5hi = hi4 | hiBit << 4;
+        const idx = b * 32;
+        if (idx + j < elementCount) result[idx + j] = delta * q5lo + min;
+        if (idx + j + 16 < elementCount) result[idx + j + 16] = delta * q5hi + min;
+      }
+    }
+    return result;
+  }
   throw new Error(`Unsupported dequant type: ${GgmlType[type]} (${type})`);
 }
 function f16ToF32(bits) {
@@ -6271,6 +6559,7 @@ function f16ToF32(bits) {
 }
 var GPU_MATMUL_TYPES = /* @__PURE__ */ new Set([
   0,
+  2,
   8
   /* Q8_0 */
 ]);
@@ -6711,7 +7000,7 @@ function argmax(arr) {
   }
   return maxIdx;
 }
-var LlogosEngine = class {
+var LlogosEngine = class _LlogosEngine {
   gpu = null;
   compute = null;
   model = null;
@@ -6752,6 +7041,11 @@ var LlogosEngine = class {
       options?.onProgress?.({ phase: "Parsing header", bytesDownloaded: 0, totalBytes: 0 });
       let info = await fetchGgufHeader(url);
       this.modelInfo = info;
+      const estimate = this.estimateVram(info);
+      const maxBuffer = this.gpu?.capabilities.maxBufferSize ?? 0;
+      if (maxBuffer > 0 && estimate.totalBytes > maxBuffer * 4) {
+        console.warn(`[llogos] Model may not fit: estimated ${Math.round(estimate.totalBytes / 1024 / 1024)} MB, max buffer ${Math.round(maxBuffer / 1024 / 1024)} MB`);
+      }
       let isCached = false;
       options?.onProgress?.({ phase: "Checking cache...", bytesDownloaded: 0, totalBytes: 0 });
       const fileBuffer = await downloadFile(url, (p) => {
@@ -6798,11 +7092,8 @@ var LlogosEngine = class {
         finalPrompt = this.applyChatTemplate(prompt);
       }
       const inputTokens = [];
-      if (this.model.position === 0 && this.tokenizer.bosTokenId >= 0) {
+      if (this.model.position === 0 && this.tokenizer.bosTokenId >= 0 && options?.raw) {
         inputTokens.push(this.tokenizer.bosTokenId);
-      }
-      if (this.model.position > 0) {
-        inputTokens.push(...this.tokenizer.encode("\n"));
       }
       inputTokens.push(...this.tokenizer.encode(finalPrompt));
       const allTokens = [...inputTokens];
@@ -6825,9 +7116,10 @@ var LlogosEngine = class {
       this._status = "loaded";
     }
   }
-  /** Reset the KV cache for a new conversation. */
+  /** Reset the KV cache and conversation history for a new conversation. */
   resetSession() {
     this.model?.resetCache();
+    this.conversationHistory = [];
   }
   /** Unload model and free GPU memory. */
   unloadModel() {
@@ -6841,24 +7133,81 @@ var LlogosEngine = class {
   get vramUsage() {
     return this.compute?.buffers.vramUsage ?? 0;
   }
+  // GPU types that stay quantized (have native GPU shaders)
+  static GPU_NATIVE_TYPES = /* @__PURE__ */ new Set([
+    0,
+    8,
+    2
+    /* Q4_0 */
+  ]);
   /**
-   * Apply chat template based on model architecture.
-   * Wraps user message in the appropriate format.
+   * Estimate VRAM needed for a model before downloading.
+   * Returns breakdown in bytes: weights, kvCache, working, total.
+   */
+  estimateVram(info) {
+    let weightsBytes = 0;
+    for (const tensor of info.tensors) {
+      if (_LlogosEngine.GPU_NATIVE_TYPES.has(tensor.type)) {
+        weightsBytes += tensor.byteSize;
+      } else {
+        weightsBytes += tensor.elementCount * 4;
+      }
+    }
+    const maxSeq = Math.min(info.contextLength, 4096);
+    const headDim = info.embeddingLength / info.headCount;
+    const kvHeads = info.headCountKv || info.headCount;
+    const kvCacheBytes = 2 * info.blockCount * kvHeads * maxSeq * headDim * 4;
+    const E = info.embeddingLength;
+    const F = info.feedForwardLength;
+    const V = info.vocabSize;
+    const workingBytes = (E * 11 + F * 3 + V) * 4;
+    return {
+      weightsBytes,
+      kvCacheBytes,
+      workingBytes,
+      totalBytes: weightsBytes + kvCacheBytes + workingBytes
+    };
+  }
+  /**
+   * Apply chat template to format the prompt.
+   * Uses the Jinja2 template from GGUF metadata if available,
+   * falls back to ChatML/Llama2 heuristics.
    */
   applyChatTemplate(userMessage) {
-    const arch = this.modelInfo?.architecture ?? "";
     const chatTemplate = this.modelInfo?.metadata.get("tokenizer.chat_template");
+    const messages = [
+      ...this.conversationHistory,
+      { role: "user", content: userMessage }
+    ];
+    if (chatTemplate) {
+      try {
+        const bosToken = this.tokenizer && this.tokenizer.bosTokenId >= 0 ? this.tokenizer.decode([this.tokenizer.bosTokenId]) : "";
+        const eosToken = this.tokenizer && this.tokenizer.eosTokenId >= 0 ? this.tokenizer.decode([this.tokenizer.eosTokenId]) : "";
+        return applyTemplate(chatTemplate, messages, {
+          bos_token: bosToken,
+          eos_token: eosToken,
+          add_generation_prompt: true
+        });
+      } catch {
+      }
+    }
     if (this.tokenizer && this.tokenizer.getTokenId("<|im_start|>") >= 0) {
-      return `<|im_start|>user
-${userMessage}<|im_end|>
-<|im_start|>assistant
+      let prompt = "";
+      for (const msg of messages) {
+        prompt += `<|im_start|>${msg.role}
+${msg.content}<|im_end|>
 `;
+      }
+      prompt += "<|im_start|>assistant\n";
+      return prompt;
     }
     if (chatTemplate?.includes("[INST]")) {
       return `[INST] ${userMessage} [/INST]`;
     }
     return userMessage;
   }
+  /** Conversation history for multi-turn chat template support. */
+  conversationHistory = [];
 };
 
 // src/index.ts
@@ -8051,7 +8400,7 @@ LongPrototype.toNumber = function toNumber() {
     return (this.high >>> 0) * TWO_PWR_32_DBL2 + (this.low >>> 0);
   return this.high * TWO_PWR_32_DBL2 + (this.low >>> 0);
 };
-LongPrototype.toString = function toString(radix) {
+LongPrototype.toString = function toString2(radix) {
   radix = radix || 10;
   if (radix < 2 || 36 < radix) throw RangeError("radix");
   if (this.isZero()) return "0";
@@ -13316,6 +13665,9 @@ function getTypeName(any) {
 }
 
 // src/orc-connection.ts
+var MAX_RETRIES = 10;
+var BASE_DELAY_MS = 1e3;
+var MAX_DELAY_MS = 3e4;
 function describeCommand(command) {
   const parts = [command.Name || "?"];
   if (command.SessionId) parts.push(`session=${command.SessionId.substring(0, 16)}`);
@@ -13327,6 +13679,9 @@ function describeCommand(command) {
   }
   return parts.join(" | ");
 }
+function sleep(ms) {
+  return new Promise((resolve2) => setTimeout(resolve2, ms));
+}
 var OrcConnection = class {
   abortController = null;
   heartbeatInterval = null;
@@ -13336,21 +13691,25 @@ var OrcConnection = class {
   buildHeartbeat = () => ({ Name: "HeartbeatRequest" });
   onLog = () => {
   };
+  consecutiveHeartbeatFailures = 0;
+  shouldReconnect = false;
   async connect(clientKey, orcAddress, onCommand, onDisconnect, buildHeartbeat, onLog) {
     this.onCommand = onCommand;
     this.onDisconnect = onDisconnect;
     this.buildHeartbeat = buildHeartbeat;
     this.onLog = onLog;
+    this.shouldReconnect = true;
     this.abortController = new AbortController();
     this.log("info", `Connecting to ${orcAddress}...`);
     const channel = (0, import_nice_grpc_web2.createChannel)(orcAddress);
     const authMiddleware = createAuthMiddleware({ getClientKey: () => clientKey });
     this.client = (0, import_nice_grpc_web2.createClientFactory)().use(authMiddleware).create(HostCommandsProtoDefinition, channel);
     this.log("info", "Client created, starting listener and heartbeat...");
-    this.startListening();
+    this.startListeningWithReconnect();
     this.startHeartbeat();
   }
   disconnect() {
+    this.shouldReconnect = false;
     this.abortController?.abort();
     this.abortController = null;
     if (this.heartbeatInterval) {
@@ -13364,31 +13723,49 @@ var OrcConnection = class {
     if (!this.client) return;
     await this.client.sendCommand({ Command: command });
   }
-  async startListening() {
+  async startListeningWithReconnect() {
+    let retryCount = 0;
+    while (this.shouldReconnect && this.client) {
+      try {
+        await this.listenToStream();
+        if (!this.shouldReconnect) break;
+        retryCount++;
+      } catch (e) {
+        if (e.name === "AbortError" || !this.shouldReconnect) break;
+        retryCount++;
+      }
+      if (retryCount > MAX_RETRIES) {
+        this.log("error", `Connection lost after ${MAX_RETRIES} retries`);
+        break;
+      }
+      const delay = Math.min(BASE_DELAY_MS * Math.pow(2, retryCount - 1), MAX_DELAY_MS);
+      const jitter = Math.round(delay * 0.2 * Math.random());
+      const totalDelay = delay + jitter;
+      this.log("warn", `Reconnecting in ${(totalDelay / 1e3).toFixed(1)}s (attempt ${retryCount}/${MAX_RETRIES})...`);
+      await sleep(totalDelay);
+      if (!this.shouldReconnect) break;
+      this.log("info", "Reconnecting...");
+    }
+    this.onDisconnect?.();
+  }
+  async listenToStream() {
     if (!this.client || !this.abortController) return;
-    try {
-      this.log("info", "Opening ListenForCommands stream...");
-      const stream = this.client.listenForCommands({}, {
-        signal: this.abortController.signal
-      });
-      for await (const command of stream) {
-        this.log("info", `\u2190 ${describeCommand(command)}`);
-        if (this.onCommand) {
-          const response = await this.onCommand(command);
-          if (response) {
-            this.log("success", `\u2192 ${describeCommand(response)}`);
-            await this.sendCommand(response);
-          }
+    this.log("info", "Opening ListenForCommands stream...");
+    const stream = this.client.listenForCommands({}, {
+      signal: this.abortController.signal
+    });
+    for await (const command of stream) {
+      this.consecutiveHeartbeatFailures = 0;
+      this.log("info", `\u2190 ${describeCommand(command)}`);
+      if (this.onCommand) {
+        const response = await this.onCommand(command);
+        if (response) {
+          this.log("success", `\u2192 ${describeCommand(response)}`);
+          await this.sendCommand(response);
         }
       }
-      this.log("warn", "Stream ended");
-    } catch (e) {
-      if (e.name !== "AbortError") {
-        this.log("error", `Stream error: ${e.message}`);
-      }
-    } finally {
-      this.onDisconnect?.();
     }
+    this.log("warn", "Stream ended");
   }
   startHeartbeat() {
     this.sendHeartbeat();
@@ -13399,9 +13776,16 @@ var OrcConnection = class {
     try {
       const hb = this.buildHeartbeat();
       await this.sendCommand(hb);
+      this.consecutiveHeartbeatFailures = 0;
       this.log("success", `\u2192 ${describeCommand(hb)}`);
     } catch (e) {
-      this.log("error", `Heartbeat failed: ${e.message}`);
+      this.consecutiveHeartbeatFailures++;
+      this.log("error", `Heartbeat failed (${this.consecutiveHeartbeatFailures}/3): ${e.message}`);
+      if (this.consecutiveHeartbeatFailures >= 3) {
+        this.log("warn", "Connection appears dead, forcing reconnect...");
+        this.abortController?.abort();
+        this.abortController = new AbortController();
+      }
     }
   }
   log(level, message) {

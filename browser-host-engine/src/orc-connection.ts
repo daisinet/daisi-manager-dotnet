@@ -1,5 +1,6 @@
 /**
  * ORC connection — connects directly from browser via grpc-web.
+ * Includes automatic reconnection with exponential backoff.
  */
 
 import { createChannel, createClientFactory } from 'nice-grpc-web';
@@ -11,6 +12,10 @@ import { getTypeName } from './proto-helpers.js';
 export type CommandHandler = (command: Command) => Promise<Command | null>;
 export type HeartbeatBuilder = () => Partial<Command>;
 export type LogHandler = (level: string, message: string) => void;
+
+const MAX_RETRIES = 10;
+const BASE_DELAY_MS = 1000;
+const MAX_DELAY_MS = 30000;
 
 /** Describe a command in human-readable form for logging. */
 function describeCommand(command: Partial<Command>): string {
@@ -25,6 +30,10 @@ function describeCommand(command: Partial<Command>): string {
   return parts.join(' | ');
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export class OrcConnection {
   private abortController: AbortController | null = null;
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
@@ -33,6 +42,8 @@ export class OrcConnection {
   private onDisconnect: (() => void) | null = null;
   private buildHeartbeat: HeartbeatBuilder = () => ({ Name: 'HeartbeatRequest' });
   private onLog: LogHandler = () => {};
+  private consecutiveHeartbeatFailures = 0;
+  private shouldReconnect = false;
 
   async connect(
     clientKey: string,
@@ -46,6 +57,7 @@ export class OrcConnection {
     this.onDisconnect = onDisconnect;
     this.buildHeartbeat = buildHeartbeat;
     this.onLog = onLog;
+    this.shouldReconnect = true;
     this.abortController = new AbortController();
 
     this.log('info', `Connecting to ${orcAddress}...`);
@@ -58,11 +70,12 @@ export class OrcConnection {
       .create(HostCommandsProtoDefinition, channel);
 
     this.log('info', 'Client created, starting listener and heartbeat...');
-    this.startListening();
+    this.startListeningWithReconnect();
     this.startHeartbeat();
   }
 
   disconnect(): void {
+    this.shouldReconnect = false;
     this.abortController?.abort();
     this.abortController = null;
     if (this.heartbeatInterval) {
@@ -78,31 +91,59 @@ export class OrcConnection {
     await this.client.sendCommand({ Command: command });
   }
 
-  private async startListening(): Promise<void> {
+  private async startListeningWithReconnect(): Promise<void> {
+    let retryCount = 0;
+
+    while (this.shouldReconnect && this.client) {
+      try {
+        await this.listenToStream();
+        // Stream ended normally — if we should reconnect, treat as a retry
+        if (!this.shouldReconnect) break;
+        retryCount++;
+      } catch (e: any) {
+        if (e.name === 'AbortError' || !this.shouldReconnect) break;
+        retryCount++;
+      }
+
+      if (retryCount > MAX_RETRIES) {
+        this.log('error', `Connection lost after ${MAX_RETRIES} retries`);
+        break;
+      }
+
+      // Exponential backoff with jitter
+      const delay = Math.min(BASE_DELAY_MS * Math.pow(2, retryCount - 1), MAX_DELAY_MS);
+      const jitter = Math.round(delay * 0.2 * Math.random());
+      const totalDelay = delay + jitter;
+      this.log('warn', `Reconnecting in ${(totalDelay / 1000).toFixed(1)}s (attempt ${retryCount}/${MAX_RETRIES})...`);
+      await sleep(totalDelay);
+
+      if (!this.shouldReconnect) break;
+      this.log('info', 'Reconnecting...');
+    }
+
+    this.onDisconnect?.();
+  }
+
+  private async listenToStream(): Promise<void> {
     if (!this.client || !this.abortController) return;
-    try {
-      this.log('info', 'Opening ListenForCommands stream...');
-      const stream = this.client.listenForCommands({}, {
-        signal: this.abortController.signal,
-      });
-      for await (const command of stream) {
-        this.log('info', `← ${describeCommand(command)}`);
-        if (this.onCommand) {
-          const response = await this.onCommand(command);
-          if (response) {
-            this.log('success', `→ ${describeCommand(response)}`);
-            await this.sendCommand(response);
-          }
+
+    this.log('info', 'Opening ListenForCommands stream...');
+    const stream = this.client.listenForCommands({}, {
+      signal: this.abortController.signal,
+    });
+
+    for await (const command of stream) {
+      this.consecutiveHeartbeatFailures = 0; // Stream is alive
+      this.log('info', `← ${describeCommand(command)}`);
+      if (this.onCommand) {
+        const response = await this.onCommand(command);
+        if (response) {
+          this.log('success', `→ ${describeCommand(response)}`);
+          await this.sendCommand(response);
         }
       }
-      this.log('warn', 'Stream ended');
-    } catch (e: any) {
-      if (e.name !== 'AbortError') {
-        this.log('error', `Stream error: ${e.message}`);
-      }
-    } finally {
-      this.onDisconnect?.();
     }
+    this.log('warn', 'Stream ended');
   }
 
   private startHeartbeat(): void {
@@ -115,9 +156,17 @@ export class OrcConnection {
     try {
       const hb = this.buildHeartbeat();
       await this.sendCommand(hb);
+      this.consecutiveHeartbeatFailures = 0;
       this.log('success', `→ ${describeCommand(hb)}`);
     } catch (e: any) {
-      this.log('error', `Heartbeat failed: ${e.message}`);
+      this.consecutiveHeartbeatFailures++;
+      this.log('error', `Heartbeat failed (${this.consecutiveHeartbeatFailures}/3): ${e.message}`);
+      // 3 consecutive failures → force reconnect
+      if (this.consecutiveHeartbeatFailures >= 3) {
+        this.log('warn', 'Connection appears dead, forcing reconnect...');
+        this.abortController?.abort();
+        this.abortController = new AbortController();
+      }
     }
   }
 
