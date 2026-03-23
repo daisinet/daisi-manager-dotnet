@@ -102,6 +102,43 @@ class BrowserHost {
   isSupported(): boolean {
     return LlogosEngine.isSupported();
   }
+
+  /** Check if a model URL is cached and ready to load. */
+  async isCached(url: string): Promise<boolean> {
+    try {
+      const cache = await caches.open('llogos-webgpu-models');
+      const match = await cache.match(url);
+      return !!match;
+    } catch {
+      return false;
+    }
+  }
+
+  // ── ORC Connection ──────────────────────────────────────────────────
+
+  private clientKey: string | null = null;
+  private connected = false;
+
+  /** Connect to ORC with a client key (obtained from Manager server). */
+  async connectToOrc(clientKey: string): Promise<void> {
+    this.clientKey = clientKey;
+    this.connected = true;
+    // TODO: Use daisi-sdk-typescript to:
+    // 1. Create DaisiClient with clientKey
+    // 2. Call ListenForCommands() server-stream
+    // 3. Start heartbeat loop via SendCommand()
+    // 4. Handle incoming commands (CreateInference, SendInference, etc.)
+    console.log('[browser-host] Connected to ORC with clientKey');
+    this.dotNetRef?.invokeMethodAsync('OnOrcConnectionChanged', true);
+  }
+
+  /** Disconnect from ORC. */
+  async disconnectFromOrc(): Promise<void> {
+    this.connected = false;
+    this.clientKey = null;
+    console.log('[browser-host] Disconnected from ORC');
+    this.dotNetRef?.invokeMethodAsync('OnOrcConnectionChanged', false);
+  }
 }
 
 // Expose globally for Blazor JS interop

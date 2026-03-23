@@ -1,21 +1,28 @@
 @page "/hosts/browser"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @using System.Text.Json
+@using Daisi.SDK.Web.Authorization
 @inject IJSRuntime JS
+@inject HostClientFactory HostClientFactory
+@inject AuthClientFactory AuthClientFactory
 
 <PageTitle>DAISI Browser Host</PageTitle>
 
 <div class="container-fluid py-3">
-    <div class="row mb-3">
-        <div class="col">
-            <h3><i class="fa-duotone fa-microchip"></i> Browser Host</h3>
-            <p class="text-secondary mb-0">Run an AI model directly in your browser using WebGPU.</p>
+    @* Header with toolbar *@
+    <div class="d-flex align-items-center mb-3">
+        <div class="me-auto">
+            <h3 class="mb-0"><i class="fa-duotone fa-microchip"></i> Browser Host</h3>
+            <p class="text-secondary mb-0">Run a DAISI Host directly in your browser using WebGPU.</p>
         </div>
+        <button class="btn btn-outline-success" @onclick="ToggleChat" disabled="@(!modelLoaded)">
+            <i class="fa-duotone fa-comments"></i> Chat
+        </button>
     </div>
 
-    @* GPU Status *@
-    <div class="row g-3 mb-3">
-        <div class="col-md-6">
+    <div class="row g-3">
+        @* GPU Status *@
+        <div class="col-md-4">
             <div class="card bg-dark">
                 <div class="card-header"><i class="fa-duotone fa-gpu-card"></i> GPU</div>
                 <div class="card-body">
@@ -23,28 +30,27 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
+
+        @* Model *@
+        <div class="col-md-4">
             <div class="card bg-dark">
                 <div class="card-header"><i class="fa-duotone fa-brain"></i> Model</div>
                 <div class="card-body">
                     @if (modelLoaded)
                     {
                         <span class="text-success">@modelName</span>
-                        <span class="text-secondary ms-2">VRAM: @vramMb MB</span>
+                        <span class="text-secondary ms-2">@vramMb MB</span>
                         <button class="btn btn-sm btn-outline-danger float-end" @onclick="UnloadModel">Unload</button>
                     }
                     else
                     {
                         <div class="input-group">
                             <select class="form-select" @bind="selectedModelUrl">
-                                <option value="">-- Select a model --</option>
-                                <option value="https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q8_0.gguf">TinyLlama 1.1B Q8_0 (1.1 GB)</option>
+                                <option value="">-- Select model --</option>
+                                <option value="https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q8_0.gguf">TinyLlama 1.1B Q8_0</option>
                             </select>
                             <button class="btn btn-outline-success" @onclick="LoadModel" disabled="@(string.IsNullOrEmpty(selectedModelUrl) || isLoading)">
-                                @if (isLoading)
-                                {
-                                    <span class="spinner-border spinner-border-sm"></span>
-                                }
+                                @if (isLoading) { <span class="spinner-border spinner-border-sm"></span> }
                                 Load
                             </button>
                         </div>
@@ -59,47 +65,109 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    @* Chat *@
-    <div class="card bg-dark">
-        <div class="card-header d-flex align-items-center">
-            <i class="fa-duotone fa-comments me-2"></i> Chat
-            <button class="btn btn-sm btn-outline-secondary ms-auto" @onclick="NewChat">New Chat</button>
+        @* ORC Connection *@
+        <div class="col-md-4">
+            <div class="card bg-dark">
+                <div class="card-header"><i class="fa-duotone fa-network-wired"></i> ORC Connection</div>
+                <div class="card-body">
+                    @if (isOnline)
+                    {
+                        <span class="text-success"><i class="fa-duotone fa-circle-check"></i> Online as @selectedHostName</span>
+                        <button class="btn btn-sm btn-outline-danger float-end" @onclick="GoOffline">Disconnect</button>
+                    }
+                    else
+                    {
+                        <div class="input-group">
+                            <select class="form-select" @bind="selectedHostId" disabled="@(isConnecting || hosts == null)">
+                                <option value="">-- Select host identity --</option>
+                                @if (hosts != null)
+                                {
+                                    @foreach (var host in hosts)
+                                    {
+                                        <option value="@host.Id">@host.Name</option>
+                                    }
+                                }
+                            </select>
+                            <button class="btn btn-outline-success" @onclick="GoOnline"
+                                    disabled="@(string.IsNullOrEmpty(selectedHostId) || !modelLoaded || isConnecting)">
+                                @if (isConnecting) { <span class="spinner-border spinner-border-sm"></span> }
+                                Go Online
+                            </button>
+                        </div>
+                        @if (!string.IsNullOrEmpty(connectionError))
+                        {
+                            <small class="text-danger mt-1 d-block">@connectionError</small>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Chat Aside (slide-out panel) *@
+@if (chatOpen)
+{
+    <div class="position-fixed top-0 end-0 h-100 bg-dark border-start shadow-lg d-flex flex-column"
+         style="width: 420px; z-index: 1050;">
+        @* Chat header *@
+        <div class="d-flex align-items-center p-3 border-bottom">
+            <i class="fa-duotone fa-comments text-success me-2"></i>
+            <strong>Chat</strong>
+            <button class="btn btn-sm btn-outline-secondary ms-auto" @onclick="NewChat" title="New Chat">
+                <i class="fa-duotone fa-rotate-right"></i>
+            </button>
             @if (isGenerating)
             {
                 <button class="btn btn-sm btn-outline-danger ms-2" @onclick="StopGeneration">Stop</button>
             }
+            <button class="btn btn-sm btn-outline-secondary ms-2" @onclick="ToggleChat">
+                <i class="fa-duotone fa-xmark"></i>
+            </button>
         </div>
-        <div class="card-body">
-            <div @ref="chatScrollRef" class="bg-dark border rounded p-3 mb-3" style="height: 400px; overflow-y: auto; font-family: monospace; font-size: 14px; white-space: pre-wrap;">
-                @((MarkupString)chatHtml)
-                @if (isGenerating)
-                {
-                    <span class="text-success">▌</span>
-                }
+
+        @* Privacy notice *@
+        <div class="px-3 py-2 border-bottom" style="font-size: 12px;">
+            <span class="text-secondary"><i class="fa-duotone fa-lock text-success"></i> Always free. Always private. Your conversation runs entirely on your device — nothing is sent to a server.</span>
+        </div>
+
+        @* Chat messages *@
+        <div class="flex-grow-1 overflow-auto p-3" style="font-family: monospace; font-size: 13px; white-space: pre-wrap;">
+            @((MarkupString)chatHtml)
+            @if (isGenerating)
+            {
+                <span class="text-success">▌</span>
+            }
+        </div>
+
+        @* Stats *@
+        @if (!string.IsNullOrEmpty(statsText))
+        {
+            <div class="px-3 py-1 border-top" style="font-size: 11px;">
+                <span class="text-secondary">@statsText</span>
             </div>
+        }
+
+        @* Input *@
+        <div class="p-3 border-top">
             <div class="input-group">
                 <input class="form-control" @bind="userInput" @bind:event="oninput"
                        @onkeydown="OnChatKeyDown" placeholder="Type a message..."
                        disabled="@(!modelLoaded || isGenerating)" />
                 <button class="btn btn-outline-success" @onclick="SendMessage"
                         disabled="@(!modelLoaded || isGenerating || string.IsNullOrWhiteSpace(userInput))">
-                    Send
+                    <i class="fa-duotone fa-paper-plane"></i>
                 </button>
             </div>
-            @if (!string.IsNullOrEmpty(statsText))
-            {
-                <small class="text-secondary mt-1 d-block">@statsText</small>
-            }
         </div>
     </div>
-</div>
+}
 
 @code {
     private IJSObjectReference? jsModule;
-    private ElementReference chatScrollRef;
 
+    // GPU / Model
     private bool gpuReady;
     private string gpuStatus = "Initializing...";
     private bool modelLoaded;
@@ -113,23 +181,26 @@
     private string chatHtml = "";
     private string userInput = "";
     private string statsText = "";
+    private bool chatOpen;
+
+    // ORC connection
+    private List<Daisi.Protos.V1.Host>? hosts;
+    private string selectedHostId = "";
+    private string selectedHostName = "";
+    private bool isOnline;
+    private bool isConnecting;
+    private string connectionError = "";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            // Load the browser-host JS module
-            jsModule = await JS.InvokeAsync<IJSObjectReference>(
-                "import", "./_content/Daisi.Manager.Shared/js/browser-host.js");
-
-            // Register this component for callbacks
             var dotNetRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("browserHost.setDotNetRef", dotNetRef);
 
-            // Initialize GPU
             try
             {
-                var caps = await JS.InvokeAsync<object>("browserHost.initGpu");
+                await JS.InvokeAsync<object>("browserHost.initGpu");
                 gpuReady = true;
                 gpuStatus = "Ready";
             }
@@ -137,9 +208,33 @@
             {
                 gpuStatus = $"Error: {ex.Message}";
             }
+
+            await LoadHosts();
             StateHasChanged();
+
+            // Auto-load model if cached
+            var defaultModel = "https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q8_0.gguf";
+            var isCached = await JS.InvokeAsync<bool>("browserHost.isCached", defaultModel);
+            if (isCached)
+            {
+                selectedModelUrl = defaultModel;
+                StateHasChanged();
+                await LoadModel();
+            }
         }
     }
+
+    private async Task LoadHosts()
+    {
+        try
+        {
+            var response = await HostClientFactory.Create().GetHostsAsync(new Daisi.Protos.V1.GetHostsRequest());
+            hosts = response.Hosts.OrderBy(h => h.Name).ToList();
+        }
+        catch { hosts = new(); }
+    }
+
+    private void ToggleChat() { chatOpen = !chatOpen; }
 
     private async Task LoadModel()
     {
@@ -147,7 +242,6 @@
         isLoading = true;
         loadProgress = "Starting...";
         StateHasChanged();
-
         try
         {
             await JS.InvokeVoidAsync("browserHost.loadModel", selectedModelUrl);
@@ -156,99 +250,75 @@
             var state = await JS.InvokeAsync<JsonElement>("browserHost.getState");
             vramMb = state.GetProperty("vramMb").GetInt32();
         }
-        catch (Exception ex)
-        {
-            loadProgress = $"Error: {ex.Message}";
-        }
-        finally
-        {
-            isLoading = false;
-            StateHasChanged();
-        }
+        catch (Exception ex) { loadProgress = $"Error: {ex.Message}"; }
+        finally { isLoading = false; StateHasChanged(); }
     }
 
     private async Task UnloadModel()
     {
         await JS.InvokeVoidAsync("browserHost.unloadModel");
-        modelLoaded = false;
-        modelName = "";
-        vramMb = 0;
-        chatHtml = "";
+        modelLoaded = false; modelName = ""; vramMb = 0; chatHtml = "";
+        if (isOnline) await GoOffline();
+        StateHasChanged();
+    }
+
+    private async Task GoOnline()
+    {
+        if (string.IsNullOrEmpty(selectedHostId)) return;
+        isConnecting = true; connectionError = "";
+        StateHasChanged();
+        try
+        {
+            var hostClient = HostClientFactory.Create();
+            var secretKeyResponse = await hostClient.GetSecretKeyAsync(
+                new Daisi.Protos.V1.GetSecretKeyRequest { HostId = selectedHostId });
+
+            var authClient = AuthClientFactory.Create();
+            var clientKeyResponse = await authClient.CreateClientKeyAsync(
+                new Daisi.Protos.V1.CreateClientKeyRequest { SecretKey = secretKeyResponse.SecretKey });
+
+            await JS.InvokeVoidAsync("browserHost.connectToOrc", clientKeyResponse.ClientKey);
+            selectedHostName = hosts?.FirstOrDefault(h => h.Id == selectedHostId)?.Name ?? selectedHostId;
+            isOnline = true;
+        }
+        catch (Exception ex) { connectionError = ex.Message; }
+        finally { isConnecting = false; StateHasChanged(); }
+    }
+
+    private async Task GoOffline()
+    {
+        await JS.InvokeVoidAsync("browserHost.disconnectFromOrc");
+        isOnline = false;
         StateHasChanged();
     }
 
     private async Task NewChat()
     {
         await JS.InvokeVoidAsync("browserHost.resetSession");
-        chatHtml = "";
-        statsText = "";
+        chatHtml = ""; statsText = "";
         StateHasChanged();
     }
 
     private async Task SendMessage()
     {
         if (string.IsNullOrWhiteSpace(userInput) || !modelLoaded || isGenerating) return;
-
         var prompt = userInput;
         userInput = "";
         chatHtml += $"<span class=\"text-info\">&gt; {System.Net.WebUtility.HtmlEncode(prompt)}</span>\n";
-        isGenerating = true;
-        statsText = "";
+        isGenerating = true; statsText = "";
         StateHasChanged();
-
-        try
-        {
-            await JS.InvokeVoidAsync("browserHost.generate", prompt, 256, 0);
-        }
-        catch (Exception ex)
-        {
-            chatHtml += $"\n<span class=\"text-danger\">[Error: {ex.Message}]</span>\n";
-        }
-        finally
-        {
-            isGenerating = false;
-            chatHtml += "\n";
-            StateHasChanged();
-        }
+        try { await JS.InvokeVoidAsync("browserHost.generate", prompt, 256, 0); }
+        catch (Exception ex) { chatHtml += $"\n<span class=\"text-danger\">[Error: {ex.Message}]</span>\n"; }
+        finally { isGenerating = false; chatHtml += "\n"; StateHasChanged(); }
     }
 
-    private async Task StopGeneration()
-    {
-        await JS.InvokeVoidAsync("browserHost.stopGeneration");
-    }
+    private async Task StopGeneration() => await JS.InvokeVoidAsync("browserHost.stopGeneration");
+    private async Task OnChatKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") await SendMessage(); }
 
-    private async Task OnChatKeyDown(KeyboardEventArgs e)
-    {
-        if (e.Key == "Enter") await SendMessage();
-    }
+    [JSInvokable] public void OnToken(string token) { chatHtml += System.Net.WebUtility.HtmlEncode(token); InvokeAsync(StateHasChanged); }
+    [JSInvokable] public void OnGenerationComplete(int tokenCount, double tokPerSec) { statsText = $"{tokenCount} tokens | {tokPerSec:F1} tok/s | VRAM: {vramMb} MB"; InvokeAsync(StateHasChanged); }
+    [JSInvokable] public void OnLoadProgress(string phase, long bytesDownloaded, long totalBytes) { loadProgressPct = totalBytes > 0 ? (int)(bytesDownloaded * 100 / totalBytes) : 0; loadProgress = $"{phase}... {bytesDownloaded / 1024 / 1024}/{totalBytes / 1024 / 1024} MB"; InvokeAsync(StateHasChanged); }
+    [JSInvokable] public void OnOrcConnectionChanged(bool connected) { isOnline = connected; InvokeAsync(StateHasChanged); }
 
-    [JSInvokable]
-    public void OnToken(string token)
-    {
-        chatHtml += System.Net.WebUtility.HtmlEncode(token);
-        InvokeAsync(StateHasChanged);
-    }
-
-    [JSInvokable]
-    public void OnGenerationComplete(int tokenCount, double tokPerSec)
-    {
-        statsText = $"{tokenCount} tokens | {tokPerSec:F1} tok/s | VRAM: {vramMb} MB";
-        InvokeAsync(StateHasChanged);
-    }
-
-    [JSInvokable]
-    public void OnLoadProgress(string phase, long bytesDownloaded, long totalBytes)
-    {
-        loadProgressPct = totalBytes > 0 ? (int)(bytesDownloaded * 100 / totalBytes) : 0;
-        var mb = bytesDownloaded / 1024 / 1024;
-        var totalMb = totalBytes / 1024 / 1024;
-        loadProgress = $"{phase}... {mb}/{totalMb} MB";
-        InvokeAsync(StateHasChanged);
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (jsModule != null)
-            await jsModule.DisposeAsync();
-    }
+    public async ValueTask DisposeAsync() { if (jsModule != null) await jsModule.DisposeAsync(); }
 }

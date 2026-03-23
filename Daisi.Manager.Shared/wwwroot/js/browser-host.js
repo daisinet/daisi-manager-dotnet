@@ -1966,6 +1966,33 @@ var BrowserHost = class {
   isSupported() {
     return LlogosEngine.isSupported();
   }
+  /** Check if a model URL is cached and ready to load. */
+  async isCached(url) {
+    try {
+      const cache = await caches.open("llogos-webgpu-models");
+      const match = await cache.match(url);
+      return !!match;
+    } catch {
+      return false;
+    }
+  }
+  // ── ORC Connection ──────────────────────────────────────────────────
+  clientKey = null;
+  connected = false;
+  /** Connect to ORC with a client key (obtained from Manager server). */
+  async connectToOrc(clientKey) {
+    this.clientKey = clientKey;
+    this.connected = true;
+    console.log("[browser-host] Connected to ORC with clientKey");
+    this.dotNetRef?.invokeMethodAsync("OnOrcConnectionChanged", true);
+  }
+  /** Disconnect from ORC. */
+  async disconnectFromOrc() {
+    this.connected = false;
+    this.clientKey = null;
+    console.log("[browser-host] Disconnected from ORC");
+    this.dotNetRef?.invokeMethodAsync("OnOrcConnectionChanged", false);
+  }
 };
 window.browserHost = new BrowserHost();
 //# sourceMappingURL=browser-host.js.map
