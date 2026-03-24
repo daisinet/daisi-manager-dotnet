@@ -83,10 +83,11 @@
                         <div class="input-group">
                             <select class="form-select" @bind="selectedModelUrl">
                                 <option value="">-- Select model --</option>
+                                <option value="https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q8_0.gguf">Llama 3.2 1B Instruct Q8_0 (1.3 GB)</option>
                                 <option value="https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_0.gguf">Qwen 2.5 0.5B Q4_0 (429 MB)</option>
                                 <option value="https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q8_0.gguf">Qwen 2.5 0.5B Q8_0 (676 MB)</option>
-                                <option value="https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q8_0.gguf">TinyLlama 1.1B Q8_0 (1.1 GB)</option>
-                                <option value="https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q8_0.gguf">Llama 3.2 1B Instruct Q8_0 (1.3 GB)</option>
+                                <option value="https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q8_0.gguf">Qwen 3.5 0.8B Q8_0 (812 MB)</option>
+<option value="https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q8_0.gguf">TinyLlama 1.1B Q8_0 (1.1 GB)</option>
                             </select>
                             <button class="btn btn-outline-success" @onclick="LoadModel" disabled="@(string.IsNullOrEmpty(selectedModelUrl) || isLoading)">
                                 @if (isLoading) { <span class="spinner-border spinner-border-sm"></span> }
