@@ -8,7 +8,7 @@
     "dev": "node esbuild.config.mjs --watch"
   },
   "dependencies": {
-    "@daisinet/llogos-webgpu": "file:../../daisi-llogos/src/Daisi.Llogos.WebGpu",
+    "@daisinet/llogos-webgpu": "file:../../daisi-llogos/src/webgpu",
     "@daisi/sdk": "file:../../daisi-sdk-typescript",
     "nice-grpc-web": "^3.3.9",
     "nice-grpc-common": "^2.0.2"
