@@ -55,7 +55,7 @@ jobs:
 
       - name: Build llogos-webgpu
         run: |
-          cd daisi-llogos/src/Daisi.Llogos.WebGpu
+          cd daisi-llogos/src/webgpu
           npm install
           npm run build
 
