@@ -190,7 +190,7 @@
 
             // Step 4: Download + load
             var isCached = await JS.InvokeAsync<bool>("browserHost.isCached", selectedUrl);
-            SetPhase("downloading", isCached ? "Loading cached model..." : $"Downloading {modelName}...");
+            SetPhase("downloading", isCached ? "Loading cached model..." : $"Downloading {modelName} to browser cache...");
             await JS.InvokeVoidAsync("browserHost.loadModel", selectedUrl);
 
             // Get VRAM
@@ -242,7 +242,7 @@
     public void OnLoadProgress(string phase, long downloaded, long total)
     {
         downloadPercent = total > 0 ? (double)downloaded / total * 100 : 0;
-        phaseText = total > 0 ? $"Downloading {modelName}... {downloadPercent:F0}%" : $"Loading {modelName}...";
+        phaseText = total > 0 ? $"Downloading {modelName} to browser cache... {downloadPercent:F0}%" : $"Loading {modelName}...";
         StateHasChanged();
     }
 
