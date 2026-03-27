@@ -136,9 +136,9 @@
     // Model selection by GPU max buffer size
     private static readonly (long minBytes, string url, string name)[] ModelTiers = new[]
     {
-        (5L * 1024 * 1024 * 1024,  "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q8_0.gguf", "Qwen 3.5 4B Q8_0"),
-        (2L * 1024 * 1024 * 1024,  "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q8_0.gguf", "Llama 3.2 1B Q8_0"),
-        (1L * 1024 * 1024 * 1024,  "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q8_0.gguf", "Qwen 3.5 0.8B Q8_0"),
+        (2L * 1024 * 1024 * 1024,  "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q8_0.gguf", "Qwen 3.5 4B Q8_0"),
+        (1L * 1024 * 1024 * 1024,  "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q8_0.gguf", "Llama 3.2 1B Q8_0"),
+        (512L * 1024 * 1024,        "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q8_0.gguf", "Qwen 3.5 0.8B Q8_0"),
         (0L,                        "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_0.gguf", "Qwen 2.5 0.5B Q4_0"),
     };
 
@@ -188,10 +188,11 @@
                 }
             }
 
-            // Step 4: Download + load
+            // Step 4: Download + load (no timeout — large models can take minutes to download)
             var isCached = await JS.InvokeAsync<bool>("browserHost.isCached", selectedUrl);
             SetPhase("downloading", isCached ? "Loading cached model..." : $"Downloading {modelName} to browser cache...");
-            await JS.InvokeVoidAsync("browserHost.loadModel", selectedUrl);
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(30));
+            await JS.InvokeVoidAsync("browserHost.loadModel", cts.Token, selectedUrl);
 
             // Get VRAM
             var state = await JS.InvokeAsync<JsonElement>("browserHost.getState");
