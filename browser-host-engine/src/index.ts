@@ -62,6 +62,7 @@ class BrowserHost {
     try {
       for await (const token of this.engine.generate(prompt, {
         maxTokens, temperature, signal: this.abortController.signal,
+        repetitionPenalty: 1.15,
       })) {
         count++;
         this.dotNetRef?.invokeMethodAsync('OnToken', token);

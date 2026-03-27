@@ -507,7 +507,7 @@
         }
         else
         {
-            try { await JS.InvokeVoidAsync("browserHost.generate", prompt, 256, 0); }
+            try { await JS.InvokeVoidAsync("browserHost.generate", prompt, 128, 0.7); }
             catch (Exception ex) { chatHtml += $"\n<span class=\"text-danger\">[Error: {ex.Message}]</span>\n"; }
         }
 

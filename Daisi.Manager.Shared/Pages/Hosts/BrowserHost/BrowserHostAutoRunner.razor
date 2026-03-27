@@ -1,0 +1,298 @@
+@using Microsoft.JSInterop
+@using System.Text.Json
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<div class="daisi-glass-card p-4" style="max-width: 600px; margin: 0 auto;">
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="text-center">
+            <i class="fa-solid fa-triangle-exclamation fa-2x text-warning mb-3"></i>
+            <h5 class="text-white">@errorMessage</h5>
+            @if (errorMessage.Contains("WebGPU"))
+            {
+                <p class="opacity-50 mt-2">Try <a href="https://www.google.com/chrome/" target="_blank" class="text-accent">Chrome</a> or <a href="https://www.microsoft.com/edge" target="_blank" class="text-accent">Edge</a> on desktop.</p>
+            }
+        </div>
+    }
+    else
+    {
+        <!-- Phase indicator -->
+        <div class="d-flex align-items-center mb-3">
+            @if (phase != "online")
+            {
+                <div class="spinner-border spinner-border-sm text-accent me-2" role="status"></div>
+            }
+            else
+            {
+                <i class="fa-solid fa-circle-check text-success me-2"></i>
+            }
+            <span class="text-white fw-bold">@phaseText</span>
+        </div>
+
+        <!-- Progress bar (download phase) -->
+        @if (phase == "downloading" && downloadPercent > 0)
+        {
+            <div class="progress mb-3" style="height: 6px; background: rgba(255,255,255,0.1);">
+                <div class="progress-bar bg-accent" style="width: @downloadPercent%"></div>
+            </div>
+        }
+
+        <!-- GPU info -->
+        @if (!string.IsNullOrEmpty(gpuDevice))
+        {
+            <div class="d-flex justify-content-between mb-2 small">
+                <span class="opacity-50">GPU</span>
+                <span class="text-white">@gpuDevice</span>
+            </div>
+        }
+
+        <!-- Model info -->
+        @if (!string.IsNullOrEmpty(modelName))
+        {
+            <div class="d-flex justify-content-between mb-2 small">
+                <span class="opacity-50">Model</span>
+                <span class="text-white">@modelName</span>
+            </div>
+        }
+
+        @if (vramMb > 0)
+        {
+            <div class="d-flex justify-content-between mb-2 small">
+                <span class="opacity-50">VRAM</span>
+                <span class="text-white">@vramMb MB</span>
+            </div>
+        }
+
+        <!-- Online stats -->
+        @if (phase == "online")
+        {
+            <hr class="border-secondary my-3" />
+            <div class="d-flex justify-content-between mb-2 small">
+                <span class="opacity-50">Tokens Processed</span>
+                <span class="text-accent fw-bold">@tokensProcessed.ToString("N0")</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2 small">
+                <span class="opacity-50">Uptime</span>
+                <span class="text-white">@FormatUptime()</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2 small">
+                <span class="opacity-50">Requests</span>
+                <span class="text-white">@requestCount</span>
+            </div>
+
+            <!-- Claim Credits -->
+            @if (!claimed)
+            {
+                <hr class="border-secondary my-3" />
+                <button class="btn btn-outline-accent w-100" @onclick="ShowClaimDialog">
+                    <i class="fa-solid fa-gift me-2"></i>Claim Your Credits
+                </button>
+            }
+        }
+
+        <!-- Claim dialog -->
+        @if (showClaimDialog)
+        {
+            <div class="mt-3 p-3 rounded" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(247,140,29,0.3);">
+                <h6 class="text-white mb-3">Transfer this host to your account</h6>
+                <div class="d-grid gap-2">
+                    <a href="@GetClaimUrl(true)" target="_blank" class="btn btn-primary btn-sm">
+                        <i class="fa-solid fa-user-plus me-2"></i>Create an Account
+                    </a>
+                    <a href="@GetClaimUrl(false)" target="_blank" class="btn btn-outline-secondary btn-sm">
+                        <i class="fa-solid fa-right-to-bracket me-2"></i>I Already Have an Account
+                    </a>
+                    <button class="btn btn-link btn-sm text-secondary" @onclick="() => showClaimDialog = false">Cancel</button>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public string ClientKey { get; set; } = "";
+    [Parameter] public string OrcAddress { get; set; } = "";
+    [Parameter] public string HostId { get; set; } = "";
+    [Parameter] public string AccountId { get; set; } = "";
+    [Parameter] public string ManagerBaseUrl { get; set; } = "https://manager.daisinet.com";
+    [Parameter] public EventCallback OnDisposed { get; set; }
+
+    private string phase = "init";
+    private string phaseText = "Initializing...";
+    private string errorMessage = "";
+    private string gpuDevice = "";
+    private string modelName = "";
+    private int vramMb = 0;
+    private double downloadPercent = 0;
+    private long tokensProcessed = 0;
+    private int requestCount = 0;
+    private bool showClaimDialog = false;
+    private bool claimed = false;
+    private DateTime? connectedAt;
+    private System.Threading.Timer? uptimeTimer;
+    private DotNetObjectReference<BrowserHostAutoRunner>? dotNetRef;
+
+    // Model selection by GPU max buffer size
+    private static readonly (long minBytes, string url, string name)[] ModelTiers = new[]
+    {
+        (2L * 1024 * 1024 * 1024,  "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q8_0.gguf", "Qwen 3.5 4B Q8_0"),
+        (1L * 1024 * 1024 * 1024,  "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q8_0.gguf", "Llama 3.2 1B Q8_0"),
+        (512L * 1024 * 1024,        "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q8_0.gguf", "Qwen 3.5 0.8B Q8_0"),
+        (0L,                        "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_0.gguf", "Qwen 2.5 0.5B Q4_0"),
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        dotNetRef = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("browserHost.setDotNetRef", dotNetRef);
+
+        // Register beforeunload handler
+        await JS.InvokeVoidAsync("eval", "window._bhCleanup = () => window.browserHost?.disconnectFromOrc(); window.addEventListener('beforeunload', window._bhCleanup);");
+
+        try
+        {
+            // Step 1: Check WebGPU support
+            var supported = await JS.InvokeAsync<bool>("browserHost.isSupported");
+            if (!supported)
+            {
+                errorMessage = "WebGPU is not supported in this browser.";
+                StateHasChanged();
+                return;
+            }
+
+            // Step 2: Init GPU
+            SetPhase("gpu", "Detecting GPU...");
+            var caps = await JS.InvokeAsync<JsonElement>("browserHost.initGpu");
+            var ai = caps.GetProperty("adapterInfo");
+            var desc = ai.TryGetProperty("description", out var d) ? d.GetString() : "";
+            var vendor = ai.TryGetProperty("vendor", out var v) ? v.GetString() : "";
+            gpuDevice = !string.IsNullOrEmpty(desc) ? desc : vendor ?? "Unknown";
+            gpuDevice = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase(gpuDevice.ToLower());
+
+            var maxBufferSize = caps.TryGetProperty("maxBufferSize", out var mbs) ? mbs.GetInt64() : 0;
+            StateHasChanged();
+
+            // Step 3: Auto-select model
+            string selectedUrl = ModelTiers[^1].url;
+            modelName = ModelTiers[^1].name;
+            foreach (var tier in ModelTiers)
+            {
+                if (maxBufferSize >= tier.minBytes)
+                {
+                    selectedUrl = tier.url;
+                    modelName = tier.name;
+                    break;
+                }
+            }
+
+            // Step 4: Download + load (no timeout — large models can take minutes to download)
+            var isCached = await JS.InvokeAsync<bool>("browserHost.isCached", selectedUrl);
+            SetPhase("downloading", isCached ? "Loading cached model..." : $"Downloading {modelName} to browser cache...");
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(30));
+            await JS.InvokeVoidAsync("browserHost.loadModel", cts.Token, selectedUrl);
+
+            // Get VRAM
+            var state = await JS.InvokeAsync<JsonElement>("browserHost.getState");
+            vramMb = state.GetProperty("vramMb").GetInt32();
+
+            // Step 5: Connect to ORC
+            SetPhase("connecting", "Connecting to DAISI network...");
+            await JS.InvokeVoidAsync("browserHost.connectToOrc", ClientKey, OrcAddress);
+
+            SetPhase("online", "Hosting on DAISI network");
+            connectedAt = DateTime.Now;
+            uptimeTimer = new System.Threading.Timer(_ => InvokeAsync(StateHasChanged), null, 1000, 1000);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+            StateHasChanged();
+        }
+    }
+
+    private void SetPhase(string p, string text)
+    {
+        phase = p;
+        phaseText = text;
+        StateHasChanged();
+    }
+
+    private string FormatUptime()
+    {
+        if (connectedAt == null) return "—";
+        var elapsed = DateTime.Now - connectedAt.Value;
+        if (elapsed.TotalHours >= 1) return $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m";
+        if (elapsed.TotalMinutes >= 1) return $"{elapsed.Minutes}m {elapsed.Seconds}s";
+        return $"{elapsed.Seconds}s";
+    }
+
+    private void ShowClaimDialog() => showClaimDialog = true;
+
+    private string GetClaimUrl(bool isNewAccount)
+    {
+        // The claim page requires auth. The returnUrl carries through login/register.
+        var claimPath = $"/hosts/claim?claimHostId={HostId}&claimAccountId={AccountId}";
+        var authPage = isNewAccount ? "/account/register" : "/account/login";
+        return $"{ManagerBaseUrl}{authPage}?returnUrl={Uri.EscapeDataString(claimPath)}";
+    }
+
+    [JSInvokable]
+    public void OnLoadProgress(string phase, long downloaded, long total)
+    {
+        downloadPercent = total > 0 ? (double)downloaded / total * 100 : 0;
+        phaseText = total > 0 ? $"Downloading {modelName} to browser cache... {downloadPercent:F0}%" : $"Loading {modelName}...";
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnToken(string token) { }
+
+    [JSInvokable]
+    public void OnGenerationComplete(int tokenCount, double tokensPerSecond)
+    {
+        tokensProcessed += tokenCount;
+        requestCount++;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnOrcConnectionChanged(bool connected)
+    {
+        if (connected)
+        {
+            SetPhase("online", "Hosting on DAISI network");
+            connectedAt ??= DateTime.Now;
+        }
+        else if (phase == "online")
+        {
+            SetPhase("connecting", "Reconnecting...");
+        }
+    }
+
+    [JSInvokable]
+    public void OnOrcLog(string level, string message)
+    {
+        // Track inference completions from ORC activity
+        if (message.Contains("tokens in"))
+        {
+            requestCount++;
+            StateHasChanged();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        uptimeTimer?.Dispose();
+        try
+        {
+            await JS.InvokeVoidAsync("browserHost.disconnectFromOrc");
+            await JS.InvokeVoidAsync("eval", "window.removeEventListener('beforeunload', window._bhCleanup);");
+        }
+        catch { }
+        dotNetRef?.Dispose();
+        await OnDisposed.InvokeAsync();
+    }
+}
