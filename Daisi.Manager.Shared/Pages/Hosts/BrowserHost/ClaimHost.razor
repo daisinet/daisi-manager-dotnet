@@ -1,0 +1,82 @@
+@page "/hosts/claim"
+@using Microsoft.AspNetCore.Authorization
+@using Daisi.SDK.Clients.V1.Orc
+@using Daisi.Protos.V1
+@attribute [Authorize]
+
+<PageTitle>Claim Your Browser Host - DAISI</PageTitle>
+
+<div class="container pt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card bg-dark text-white">
+                <div class="card-body text-center p-5">
+                    @if (claiming)
+                    {
+                        <div class="spinner-border text-warning mb-3" role="status"></div>
+                        <h5>Transferring your browser host...</h5>
+                    }
+                    else if (success)
+                    {
+                        <i class="fa-solid fa-circle-check fa-3x text-success mb-3"></i>
+                        <h4>Host Claimed!</h4>
+                        <p class="opacity-75">Your anonymous browser host has been transferred to your account. Credits earned during anonymous hosting will carry over.</p>
+                        <a href="/hosts/browser" class="btn btn-primary mt-3">Go to Browser Host</a>
+                    }
+                    else if (!string.IsNullOrEmpty(error))
+                    {
+                        <i class="fa-solid fa-triangle-exclamation fa-3x text-warning mb-3"></i>
+                        <h4>Claim Failed</h4>
+                        <p class="opacity-75">@error</p>
+                        <a href="/hosts/browser" class="btn btn-outline-secondary mt-3">Go to Browser Host</a>
+                    }
+                    else
+                    {
+                        <p class="opacity-75">Missing claim parameters.</p>
+                        <a href="/hosts/browser" class="btn btn-outline-secondary mt-3">Go to Browser Host</a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery] public string? ClaimHostId { get; set; }
+    [SupplyParameterFromQuery] public string? ClaimAccountId { get; set; }
+    [Inject] HostClientFactory HostClientFactory { get; set; } = default!;
+
+    private bool claiming = true;
+    private bool success = false;
+    private string error = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrEmpty(ClaimHostId) || string.IsNullOrEmpty(ClaimAccountId))
+        {
+            claiming = false;
+            return;
+        }
+
+        try
+        {
+            var hostClient = HostClientFactory.Create();
+            var response = await hostClient.ClaimHostAsync(new ClaimHostRequest
+            {
+                HostId = ClaimHostId,
+                SourceAccountId = ClaimAccountId
+            });
+
+            success = response.Success;
+            if (!success) error = "The host could not be transferred. It may have already been claimed or archived.";
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            claiming = false;
+        }
+    }
+}
