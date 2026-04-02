@@ -116,8 +116,6 @@
     [Parameter] public string HostId { get; set; } = "";
     [Parameter] public string AccountId { get; set; } = "";
     [Parameter] public string ManagerBaseUrl { get; set; } = "https://manager.daisinet.com";
-    [Parameter] public string ModelUrl { get; set; } = "";
-    [Parameter] public string ModelDisplayName { get; set; } = "";
     [Parameter] public EventCallback OnDisposed { get; set; }
 
     private string phase = "init";
@@ -177,25 +175,16 @@
             var maxBufferSize = caps.TryGetProperty("maxBufferSize", out var mbs) ? mbs.GetInt64() : 0;
             StateHasChanged();
 
-            // Step 3: Select model (use provided URL or auto-select by GPU capability)
-            string selectedUrl;
-            if (!string.IsNullOrEmpty(ModelUrl))
+            // Step 3: Auto-select model
+            string selectedUrl = ModelTiers[^1].url;
+            modelName = ModelTiers[^1].name;
+            foreach (var tier in ModelTiers)
             {
-                selectedUrl = ModelUrl;
-                modelName = !string.IsNullOrEmpty(ModelDisplayName) ? ModelDisplayName : ModelUrl;
-            }
-            else
-            {
-                selectedUrl = ModelTiers[^1].url;
-                modelName = ModelTiers[^1].name;
-                foreach (var tier in ModelTiers)
+                if (maxBufferSize >= tier.minBytes)
                 {
-                    if (maxBufferSize >= tier.minBytes)
-                    {
-                        selectedUrl = tier.url;
-                        modelName = tier.name;
-                        break;
-                    }
+                    selectedUrl = tier.url;
+                    modelName = tier.name;
+                    break;
                 }
             }
 
