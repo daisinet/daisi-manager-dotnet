@@ -1,3 +1,9 @@
+# DAISI has moved to [Daisi Git](https://git.daisi.ai/daisinet/daisi-manager-dotnet), a free and fast git management studio that we built from scratch in C#.
+## This code base is no longer kept up to date here.
+---
+
+
+
 # Daisi Manager Suite
 The DAISI Manager suite is a set of web and MAUI applications that allows users to setup their own accounts, and manage their private networks, hosts, and other imporant account level entities. Works directly with the system Orc using the publicly available SDK project.
 
